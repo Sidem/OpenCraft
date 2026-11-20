@@ -58,21 +58,41 @@ impl Game {
         self.track_selected_item();
         self.update_scope(dt, self.render_eye);
         let (eye, time) = (self.render_eye, (self.sim.tick as f64 + alpha) * TICK);
+        self.render_time = time;
+        self.wire_props.step(&self.sim.world, &self.sim.factory, eye);
+        let (strategy, explored_changes, atlas) =
+            (self.strategy.active(), self.minimap.atlas.changes as usize, &self.minimap.atlas);
+        self.static_boxes.update(
+            &self.sim.factory,
+            &self.wire_props,
+            &mut self.sim.world,
+            eye,
+            strategy,
+            explored_changes,
+            |cx, cz| atlas.tile(cx, cz).is_some(),
+        );
         self.instances.clear();
         self.write_item_instances(dt, eye);
         self.write_avatars(dt, eye);
         self.write_move_marker(eye);
         self.write_drone_instances(eye, alpha);
         let factory_from = self.instances.len() / crate::factory::INSTANCE_FLOATS;
-        self.sim.factory.write_instances(&mut self.instances, eye, time, self.sim.world.view_distance());
+        self.sim.factory.write_dynamic_instances(
+            &self.static_boxes.index,
+            &mut self.instances,
+            eye,
+            time,
+            self.sim.world.view_distance(),
+        );
         let factory_to = self.instances.len() / crate::factory::INSTANCE_FLOATS;
-        self.write_wires(eye);
         self.write_signs(eye);
         self.write_leds(eye);
         self.write_streets(eye);
         self.write_port_pads(eye);
-        let world = &mut self.sim.world;
-        factory::light_boxes(&mut self.instances, eye, |cell| world.light_at(cell));
+        {
+            let world = &mut self.sim.world;
+            factory::light_boxes(&mut self.instances, eye, |c| world.light_at(c));
+        }
         self.write_line_preview(eye, time);
         self.write_power_preview(eye);
         self.write_rail_preview(eye);
@@ -83,7 +103,7 @@ impl Game {
         self.write_strategy_fog(eye);
         self.write_halos(eye);
         factory::split_round(&self.instances, &mut self.round_instances);
-        self.write_xray(factory_from..factory_to);
+        self.write_xray(factory_from..factory_to, eye);
         self.minimap.atlas.refresh_some(&self.sim.world);
     }
 }

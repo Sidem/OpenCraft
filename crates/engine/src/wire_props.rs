@@ -8,12 +8,13 @@
 //! each re-checked after `RECHECK_FRAMES` so digging or filling under a wire moves its props.
 //! Only spans between two real poles get props: a cable hangs into its shaft on purpose, a machine's lead is short.
 
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::block::{self, tex};
+use crate::chunk::CHUNK_SIZE;
 use crate::factory::{self, push_box, sag_point, POLE_WIRE_Y};
 use crate::math::{IVec3, Vec3};
-use crate::Game;
+use crate::world::{chunk_of, World};
 
 /// Spans shorter than this across the ground get no props.
 const MIN_RUN: f64 = 2.5;
@@ -28,6 +29,8 @@ const MAX_CLIMB: i32 = 48;
 const NEW_PER_FRAME: usize = 24;
 const RECHECK_FRAMES: u32 = 120;
 const RECHECKS_PER_FRAME: usize = 8;
+/// Most pole-to-pole spans scanned per frame while looking for due rechecks (keeps huge bases O(1) per frame).
+const SCAN_PER_FRAME: usize = 128;
 
 /// The tops of the props a wire from `a` to `b` (world points) needs so that it touches no ground, in order from `a`.
 /// `ground` says whether a cell is ground a wire must not pass through.
@@ -37,58 +40,145 @@ pub fn route(a: Vec3, b: Vec3, ground: &impl Fn(IVec3) -> bool) -> Vec<Vec3> {
     out
 }
 
-/// The cached props of every span, by its ends.
-#[derive(Default)]
+/// The cached props of every span, by its ends, plus the wire span lists cached from `Factory::layout_gen`.
 pub(crate) struct WireProps {
     routes: FxHashMap<[i32; 6], Route>,
+    pole_spans: Vec<(Vec3, Vec3, u16)>,
+    leads: Vec<(Vec3, Vec3, u16)>,
+    layout_gen: u64,
+    version: u64,
+    cursor: usize,
     frame: u32,
+}
+
+impl Default for WireProps {
+    fn default() -> Self {
+        Self {
+            routes: FxHashMap::default(),
+            pole_spans: Vec::new(),
+            leads: Vec::new(),
+            layout_gen: u64::MAX,
+            version: 1,
+            cursor: 0,
+            frame: 0,
+        }
+    }
 }
 
 struct Route {
     props: Vec<Vec3>,
-    /// The frame it was last routed and last drawn.
+    /// The frame it was last routed.
     routed: u32,
-    seen: u32,
 }
 
-impl Game {
-    /// Draws every power wire near the camera, and the props under those that need them.
-    pub(crate) fn write_wires(&mut self, eye: Vec3) {
-        let (world, factory) = (&self.sim.world, &self.sim.factory);
-        let (props, out) = (&mut self.wire_props, &mut self.instances);
-        props.frame = props.frame.wrapping_add(1);
-        let frame = props.frame;
+impl WireProps {
+    /// Monotonic version bumped only when wire geometry or props actually change.
+    pub(crate) fn version(&self) -> u64 {
+        self.version
+    }
+
+    /// Drops all cached wire lists and routes (after a co-op snapshot resync).
+    pub(crate) fn reset(&mut self) {
+        self.routes.clear();
+        self.pole_spans.clear();
+        self.leads.clear();
+        self.layout_gen = u64::MAX;
+        self.cursor = 0;
+        self.version = self.version.wrapping_add(1);
+    }
+
+    /// Syncs span lists when the factory layout changes and incrementally routes/rechecks props near `eye`.
+    pub(crate) fn step(&mut self, world: &World, factory: &factory::Factory, eye: Vec3) {
+        self.frame = self.frame.wrapping_add(1);
+        if factory.layout_gen != self.layout_gen {
+            self.layout_gen = factory.layout_gen;
+            self.pole_spans.clear();
+            self.leads.clear();
+            let mut live = FxHashSet::default();
+            factory.for_each_wire(Vec3::ZERO, f64::INFINITY, |a, b, layer, poles| {
+                if poles {
+                    self.pole_spans.push((a, b, layer));
+                    live.insert(key(a, b));
+                } else {
+                    self.leads.push((a, b, layer));
+                }
+            });
+            self.routes.retain(|k, _| live.contains(k));
+            self.cursor = 0;
+            self.version = self.version.wrapping_add(1);
+        }
+        let n = self.pole_spans.len();
+        if n == 0 {
+            return;
+        }
+        let (frame, range2) = (self.frame, world.view_distance().powi(2));
         let (mut fresh, mut rechecks) = (NEW_PER_FRAME, RECHECKS_PER_FRAME);
         let ground = |c: IVec3| world.get_block(c).is_some_and(is_ground);
-        factory.for_each_wire(eye, world.view_distance(), |a, b, layer, poles| {
-            if !poles {
-                return factory::wire(out, a - eye, b - eye, layer);
+        let mut changed = false;
+        let scan = n.min(SCAN_PER_FRAME);
+        for _ in 0..scan {
+            let idx = self.cursor % n;
+            self.cursor = (idx + 1) % n;
+            let (a, b, _) = self.pole_spans[idx];
+            let mid = (a + b) * 0.5 - eye;
+            if mid.x * mid.x + mid.y * mid.y + mid.z * mid.z > range2 {
+                continue;
             }
-            let key = key(a, b);
-            let r = match props.routes.get_mut(&key) {
+            let k = key(a, b);
+            match self.routes.get_mut(&k) {
                 Some(r) => {
                     if frame.wrapping_sub(r.routed) > RECHECK_FRAMES && rechecks > 0 {
                         rechecks -= 1;
-                        (r.props, r.routed) = (route(a, b, &ground), frame);
+                        let next = route(a, b, &ground);
+                        if next != r.props {
+                            r.props = next;
+                            changed = true;
+                        }
+                        r.routed = frame;
                     }
-                    r
                 }
                 None if fresh > 0 => {
                     fresh -= 1;
-                    props.routes.entry(key).or_insert(Route { props: route(a, b, &ground), routed: frame, seen: 0 })
+                    let props = route(a, b, &ground);
+                    if !props.is_empty() {
+                        changed = true;
+                    }
+                    self.routes.insert(k, Route { props, routed: frame });
                 }
-                None => return factory::wire(out, a - eye, b - eye, layer),
-            };
-            r.seen = frame;
-            let mut from = a;
-            for &top in &r.props {
-                factory::wire(out, from - eye, top - eye, layer);
-                push_prop(out, top - eye);
-                from = top;
+                None => {}
             }
-            factory::wire(out, from - eye, b - eye, layer);
-        });
-        props.routes.retain(|_, r| r.seen == frame || frame.wrapping_sub(r.seen) < 2);
+            if fresh == 0 && rechecks == 0 {
+                break;
+            }
+        }
+        if changed {
+            self.version = self.version.wrapping_add(1);
+        }
+    }
+
+    /// Emits all cached power wires and their props into per-chunk `wire_boxes` (static cache).
+    pub(crate) fn emit_binned(&self, chunks: &mut FxHashMap<IVec3, factory::ChunkMembers>) {
+        let mut scratch = Vec::new();
+        for &(a, b, layer) in &self.pole_spans {
+            let base = (chunk_of(a.floor()) * CHUNK_SIZE).as_vec3();
+            scratch.clear();
+            let mut from = a;
+            if let Some(r) = self.routes.get(&key(a, b)) {
+                for &top in &r.props {
+                    factory::wire(&mut scratch, from - base, top - base, layer);
+                    push_prop(&mut scratch, top - base);
+                    from = top;
+                }
+            }
+            factory::wire(&mut scratch, from - base, b - base, layer);
+            factory::bin_boxes(&scratch, base, chunks, true);
+        }
+        for &(a, b, layer) in &self.leads {
+            let base = (chunk_of(a.floor()) * CHUNK_SIZE).as_vec3();
+            scratch.clear();
+            factory::wire(&mut scratch, a - base, b - base, layer);
+            factory::bin_boxes(&scratch, base, chunks, true);
+        }
     }
 }
 

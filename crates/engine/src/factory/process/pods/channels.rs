@@ -50,6 +50,7 @@ impl Factory {
     pub fn set_channel(&mut self, pos: IVec3, channel: u8) {
         if let Some(&Slot::Process(i)) = self.at.get(&pos) {
             self.processors[i as usize].set_channel(channel);
+            self.layout_gen = self.layout_gen.wrapping_add(1);
         }
     }
 

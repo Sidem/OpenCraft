@@ -30,8 +30,8 @@ use crate::math::{IVec3, Vec3};
 use super::belt::{Belt, BELT_HEIGHT, BELT_TIERS};
 use super::belt_curve::BEND_STRAIGHT;
 use super::links::Slot;
-use super::render::{push_box, INSTANCE_FLOATS, PITCH};
-use super::{tier_mark, DIRS};
+use super::render::{mark_belt_scroll, push_box, INSTANCE_FLOATS, PITCH};
+use super::DIRS;
 
 const UP: IVec3 = IVec3::new(0, 1, 0);
 
@@ -230,9 +230,9 @@ impl Belt {
         }
     }
 
-    /// The parts of the model that differ from a flat belt. `at` maps local coordinates (forward is
-    /// -z, y up from the cell bottom) to camera-relative ones.
-    pub(super) fn shape_model(&self, out: &mut Vec<f32>, at: &dyn Fn(f32, f32, f32) -> Vec3, yaw: f32, scroll: f32) {
+    /// The static parts of the model that differ from a flat belt (tier studs live in `Belt::write_studs`).
+    /// `at` maps local coordinates (forward is -z, y up from the cell bottom) to offset-relative ones.
+    pub(super) fn shape_model(&self, out: &mut Vec<f32>, at: &dyn Fn(f32, f32, f32) -> Vec3, yaw: f32) {
         let top = BELT_TIERS[self.tier as usize].top;
         let belt = [top, tex::FRAME, tex::FRAME];
         // Rails and frames wear the tier stripe on their sides.
@@ -245,18 +245,19 @@ impl Belt {
                     let rise = if self.shape == Shape::Up { i as f32 } else { 2.0 - i as f32 };
                     let h = (rise + 0.5) / 3.0 + BELT_HEIGHT;
                     let z = (1.0 - i as f32) / 3.0;
-                    push_box(out, at(0.0, h * 0.5, z), yaw, [0.9, h, 1.0 / 3.0], scroll, belt, true);
+                    push_box(out, at(0.0, h * 0.5, z), yaw, [0.9, h, 1.0 / 3.0], 0.0, belt, true);
+                    mark_belt_scroll(out, self.tier);
                     for x in [-0.46, 0.46] {
                         push_box(out, at(x, h - 0.06, z), yaw, [0.07, 0.14, 1.0 / 3.0], 0.0, rail, false);
                     }
                 }
             }
-            Shape::Lift => self.lift_model(out, at, yaw, scroll, belt, rail),
+            Shape::Lift => self.lift_model(out, at, yaw, belt, rail),
             // A drop stands where a lift facing the other way would (its parts mirrored), but its boxes keep the
             // drop's own heading so the belts' arrows and scroll point the way items go: on, then down, then out.
             Shape::Drop => {
                 let back = |x: f32, y: f32, z: f32| at(-x, y, -z);
-                self.lift_model(out, &back, yaw, scroll, belt, rail);
+                self.lift_model(out, &back, yaw, belt, rail);
             }
             Shape::Entry | Shape::Exit => {
                 let z = if self.shape == Shape::Entry { -0.25 } else { 0.25 };
@@ -264,14 +265,6 @@ impl Belt {
                     push_box(out, at(x, 0.32, z), yaw, [0.14, 0.64, 0.5], 0.0, rail, false);
                 }
                 push_box(out, at(0.0, 0.62, z), yaw, [0.96, 0.1, 0.5], 0.0, [tex::COPPER_INGOT; 3], false);
-                // Every pass piece shows its Mk: studs across its hood.
-                if tier_mark::near(at(0.0, 0.0, 0.0)) {
-                    let (paint, d) = ([tex::paint(self.tier); 3], tier_mark::DEPTH);
-                    let stud = [tier_mark::STUD, d, tier_mark::STUD];
-                    for o in tier_mark::offsets(self.tier) {
-                        push_box(out, at(o, 0.67 + d / 2.0, z), yaw, stud, 0.0, paint, false);
-                    }
-                }
             }
         }
     }
@@ -285,7 +278,6 @@ impl Belt {
         out: &mut Vec<f32>,
         at: &dyn Fn(f32, f32, f32) -> Vec3,
         yaw: f32,
-        scroll: f32,
         belt: [u16; 3],
         rail: [u16; 3],
     ) {
@@ -298,7 +290,8 @@ impl Belt {
         let spine_back = FACE - BELT_T;
         let spine = [0.92, 1.0, spine_back - SPINE_FRONT];
         push_box(out, at(0.0, 0.5, (spine_back + SPINE_FRONT) * 0.5), yaw, spine, 0.0, rail, true);
-        push_box(out, at(0.0, 0.5, FACE - BELT_T * 0.5), yaw, [0.84, BELT_T, 1.0], scroll, belt, true);
+        push_box(out, at(0.0, 0.5, FACE - BELT_T * 0.5), yaw, [0.84, BELT_T, 1.0], 0.0, belt, true);
+        mark_belt_scroll(out, self.tier);
         let rec = out.len() - INSTANCE_FLOATS;
         // Stood on end: a lift's arrows run up its face, a drop's down (tipped the other way).
         out[rec + PITCH] = if self.shape == Shape::Drop { -FRAC_PI_2 } else { FRAC_PI_2 };
@@ -308,7 +301,8 @@ impl Belt {
         // A flat belt span with its rails at height `y`, from `back` to `front` (local z).
         let span = |out: &mut Vec<f32>, y: f32, back: f32, front: f32| {
             let (z, len) = ((back + front) * 0.5, back - front);
-            push_box(out, at(0.0, y + BELT_HEIGHT * 0.5, z), yaw, [0.84, BELT_HEIGHT, len], scroll, belt, true);
+            push_box(out, at(0.0, y + BELT_HEIGHT * 0.5, z), yaw, [0.84, BELT_HEIGHT, len], 0.0, belt, true);
+            mark_belt_scroll(out, self.tier);
             for x in [-0.46, 0.46] {
                 push_box(out, at(x, y + 0.13, z), yaw, [0.08, 0.26, len], 0.0, rail, true);
             }

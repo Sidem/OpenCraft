@@ -89,6 +89,11 @@ impl Game {
         self.cur_mesh.as_ref().map_or(0, |m| m.liquid_quads)
     }
 
+    /// Translucent cube quads (stained glass), stored after the liquid ones; drawn blended after solid boxes and water.
+    pub fn mesh_translucent_quads(&self) -> u32 {
+        self.cur_mesh.as_ref().map_or(0, |m| m.translucent_quads)
+    }
+
     /// Byte offset of the current mesh's shaped list (round trunks and canopies, engine `mesher/shaped.rs`).
     pub fn mesh_shaped_ptr(&self) -> usize {
         self.cur_mesh.as_ref().map_or(0, |m| m.shaped.as_ptr() as usize)

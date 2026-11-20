@@ -36,15 +36,20 @@ fn cable(out: &mut Vec<f32>, rel: Vec3, arms: [bool; 6], layer: u16) {
 }
 
 impl Factory {
+    /// Boxes for one cable `i` (from `self.poles`) at offset-relative `rel`.
+    pub(super) fn write_cable_one(&self, out: &mut Vec<f32>, i: usize, rel: Vec3) {
+        let c = &self.poles[i];
+        let arms = AROUND.map(|(x, y, z)| self.at.contains_key(&(c.pos + IVec3::new(x, y, z))));
+        cable(out, rel, arms, self.power.pole_layer(i as u32));
+    }
+
     /// Boxes for every cable within `range` of the camera.
     pub(super) fn write_cables(&self, out: &mut Vec<f32>, eye: Vec3, range: f64) {
         for (i, c) in self.poles.iter().enumerate().filter(|(_, p)| p.is_cable()) {
             let rel = c.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye;
-            if rel.x * rel.x + rel.y * rel.y + rel.z * rel.z > range * range {
-                continue;
+            if rel.x * rel.x + rel.y * rel.y + rel.z * rel.z <= range * range {
+                self.write_cable_one(out, i, rel);
             }
-            let arms = AROUND.map(|(x, y, z)| self.at.contains_key(&(c.pos + IVec3::new(x, y, z))));
-            cable(out, rel, arms, self.power.pole_layer(i as u32));
         }
     }
 }

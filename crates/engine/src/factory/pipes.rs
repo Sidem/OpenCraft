@@ -238,6 +238,14 @@ impl Machine for Pipework {
     /// spout around a pump's or outlet's arms. Each arm ends at its face, so joined cells never draw the same surface
     /// twice (they flickered), and a steel flange rings each joint, drawn by the cell on its low side only.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
+        self.write_static(out, rel);
+        self.write_dynamic(out, rel, time);
+    }
+}
+
+impl Pipework {
+    /// Camera- and time-independent pipework geometry (pipes, hubs, arms, flanges, pump body, outlet body).
+    pub(super) fn write_static(&self, out: &mut Vec<f32>, rel: Vec3) {
         let steel = [tex::STEEL; 3];
         let pipe = [match self.fluid {
             Fluid::Water => tex::PIPE_WATER,
@@ -245,7 +253,6 @@ impl Machine for Pipework {
             Fluid::Mixed => tex::LAMP_RED,
         }; 3];
         let joined = |f: usize| self.arms & (1 << f) != 0;
-        // The line every join lies on (none joined: the way it was placed), or none for a bend or a junction.
         let facing = if DIRS[self.facing as usize].x != 0 { 0 } else { 2 };
         let line = (0..6).filter(|&f| joined(f)).map(axis_of).try_fold(None, |line, a| match line {
             Some(l) if l != a => Err(()),
@@ -259,7 +266,6 @@ impl Machine for Pipework {
             (Part::Pipe, Some(a)) => push_round(out, rel, 0.0, AXES[a], along(a, 1.0, PIPE_D), 1.0, pipe, false),
             (part, _) => {
                 if part == Part::Pipe {
-                    // The hub lies along the axis with the most arms.
                     let arms_on = |a: usize| (0..6).filter(|&f| joined(f) && axis_of(f) == a).count();
                     let a = (0..3).max_by_key(|&a| arms_on(a)).unwrap_or(0);
                     push_round(out, rel, 0.0, AXES[a], along(a, HUB_D, HUB_D), 1.0, steel, false);
@@ -277,19 +283,30 @@ impl Machine for Pipework {
         match self.part {
             Part::Pipe => {}
             Part::Pump => {
-                // A skid, a round impeller casing lying across, a motor on top whose fan turns while it pumps.
                 let skid = if self.tier > 0 { tex::stripe(self.tier) } else { tex::FRAME };
-                // Its underside a hair above the cell's floor, off the plane where a downward arm ends.
                 push_box(out, rel + Vec3::new(0.0, -0.425, 0.0), 0.0, [0.86, 0.13, 0.86], 0.0, [skid; 3], false);
-                tier_mark::ring(out, rel + Vec3::new(0.0, -0.43, 0.0), 0.0, [0.43, 0.43], self.tier);
                 let casing = [tex::FRAME, tex::PIPE_WATER, tex::FRAME];
-                let at = rel + Vec3::new(0.0, -0.06, 0.0);
-                push_round(out, at, 0.0, Axis::X, [0.6, 0.62, 0.62], 1.0, casing, false);
+                push_round(out, rel + Vec3::new(0.0, -0.06, 0.0), 0.0, Axis::X, [0.6, 0.62, 0.62], 1.0, casing, false);
                 let motor = [tex::FRAME, tex::MOTOR, tex::FRAME];
-                // Motor and fan stay under the flange of a pipe joined on top.
                 push_box(out, rel + Vec3::new(0.0, 0.33, 0.0), 0.0, [0.34, 0.2, 0.34], 0.0, motor, false);
+            }
+            Part::Outlet => {
+                let d = DIRS[self.facing as usize].as_vec3();
+                push_box(out, rel, 0.0, [0.5; 3], 0.0, steel, false);
+                let yaw = d.x.atan2(-d.z) as f32;
+                push_box(out, rel + d * 0.4, yaw, [0.3, 0.3, 0.3], 0.0, [tex::FRAME; 3], false);
+            }
+        }
+    }
+
+    /// Animated and near-camera parts of a pump or outlet (fan, stream, status lamp, tier studs; nothing for pipes).
+    pub(super) fn write_dynamic(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
+        match self.part {
+            Part::Pipe => {}
+            Part::Pump => {
+                tier_mark::ring(out, rel + Vec3::new(0.0, -0.43, 0.0), 0.0, [0.43, 0.43], self.tier);
                 let spin = if self.flow == Flow::Working { (time * 9.0) as f32 } else { 0.0 };
-                push_box(out, rel + Vec3::new(0.0, 0.45, 0.0), spin, [0.32, 0.04, 0.08], 0.0, steel, false);
+                push_box(out, rel + Vec3::new(0.0, 0.45, 0.0), spin, [0.32, 0.04, 0.08], 0.0, [tex::STEEL; 3], false);
                 push_box(
                     out,
                     rel + Vec3::new(0.0, 0.37, 0.18),
@@ -302,9 +319,7 @@ impl Machine for Pipework {
             }
             Part::Outlet => {
                 let d = DIRS[self.facing as usize].as_vec3();
-                push_box(out, rel, 0.0, [0.5; 3], 0.0, steel, false);
                 let yaw = d.x.atan2(-d.z) as f32;
-                push_box(out, rel + d * 0.4, yaw, [0.3, 0.3, 0.3], 0.0, [tex::FRAME; 3], false);
                 if self.flow == Flow::Working {
                     let stream = rel + d * 0.62 - Vec3::new(0.0, 0.25, 0.0);
                     push_box(out, stream, yaw, [0.18, 0.5, 0.14], (time * 2.0) as f32, [tex::WATER; 3], false);

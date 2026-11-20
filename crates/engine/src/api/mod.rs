@@ -32,6 +32,7 @@ mod ruins;
 mod save;
 mod signs;
 mod sites;
+mod static_boxes;
 mod surroundings;
 mod telescope;
 mod towns;

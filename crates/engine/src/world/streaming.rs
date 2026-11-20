@@ -161,7 +161,11 @@ impl World {
             let p = self.gen_queue.pop().expect("checked above");
             let chunk = self.saved.remove(&p).unwrap_or_else(|| self.generator.generate(p));
             self.chunks.insert(p, Entry { chunk, has_mesh: false });
+            let before = self.light_cache.len();
             self.light_cache.retain(|_, e| e.lit.is_some()); // what couldn't be lit may be now
+            if self.light_cache.len() != before {
+                self.light_version = self.light_version.wrapping_add(1);
+            }
             self.dirty.insert(p);
             self.mesh_queue_stale = true;
         }
@@ -230,7 +234,12 @@ impl World {
             g if g.is_empty() => self.glows.remove(&p),
             g => self.glows.insert(p, g),
         };
-        let quads = out.opaque_quads + out.cutout_quads + out.liquid_quads + out.shaped_opaque + out.shaped_cutout;
+        let quads = out.opaque_quads
+            + out.cutout_quads
+            + out.liquid_quads
+            + out.translucent_quads
+            + out.shaped_opaque
+            + out.shaped_cutout;
         if quads == 0 && !entry.has_mesh {
             return true;
         }
@@ -241,6 +250,7 @@ impl World {
             opaque_quads: out.opaque_quads,
             cutout_quads: out.cutout_quads,
             liquid_quads: out.liquid_quads,
+            translucent_quads: out.translucent_quads,
             shaped: out.shaped,
             shaped_opaque: out.shaped_opaque,
             shaped_cutout: out.shaped_cutout,

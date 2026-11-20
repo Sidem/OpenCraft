@@ -51,6 +51,37 @@ fn the_sixteen_concretes_are_far_apart_in_colour() {
     }
 }
 
+/// Sixteen stained glass layers are translucent inside an opaque border and distinct from each other in colour.
+#[test]
+fn stained_glass_layers_are_translucent_and_distinct() {
+    let interior_mean = |layer: u16| {
+        let mut sum = [0.0; 3];
+        let mut count = 0.0;
+        for y in 1..15 {
+            for x in 1..15 {
+                let c = pixel(layer, x, y);
+                assert!(c[3] > 0 && c[3] < 255, "layer {layer} ({x},{y}) should be translucent, got alpha {}", c[3]);
+                for i in 0..3 {
+                    sum[i] += f64::from(c[i]);
+                }
+                count += 1.0;
+            }
+        }
+        assert_eq!(pixel(layer, 0, 0)[3], 255, "frame border is opaque");
+        sum.map(|s| s / count)
+    };
+    let layers: Vec<u16> = (tex::STAINED_GLASS_FIRST..=tex::STAINED_GLASS_LAST).collect();
+    assert_eq!(layers.len(), 16);
+    for (i, &a) in layers.iter().enumerate() {
+        let ma = interior_mean(a);
+        for &b in &layers[i + 1..] {
+            let mb = interior_mean(b);
+            let d = ((ma[0] - mb[0]).powi(2) + (ma[1] - mb[1]).powi(2) + (ma[2] - mb[2]).powi(2)).sqrt();
+            assert!(d >= 40.0, "stained glass layers {a} and {b} are {d:.0} apart");
+        }
+    }
+}
+
 #[test]
 fn every_layer_is_generated() {
     let px = generate();

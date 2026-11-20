@@ -258,6 +258,9 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::LED_PANEL => led::panel(x, y),
         tex::PIGMENT_RED..=tex::PIGMENT_YELLOW => decor::pigment(x, y, (layer - tex::PIGMENT_RED) as usize),
         tex::TINT_FIRST..=tex::TINT_LAST => decor::tint(x, y, (layer - tex::TINT_FIRST) as usize),
+        tex::STAINED_GLASS_FIRST..=tex::STAINED_GLASS_LAST => {
+            decor::stained_glass(x, y, (layer - tex::STAINED_GLASS_FIRST) as usize)
+        }
         l if l >= tex::planks_layer(0) => woods::pixel(layer, x, y),
         tex::RED_CONCRETE..=tex::PANEL_LIGHT => decor::pixel(layer, x, y),
         tex::WOOD_DOOR..=tex::PLASTER => house::pixel(layer, x, y),

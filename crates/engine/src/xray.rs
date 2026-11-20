@@ -38,9 +38,9 @@ impl Default for Xray {
 }
 
 impl Game {
-    /// Fills `Xray::boxes` and `round` from `factory_span` of the frame's instances, or empties them when inactive.
-    /// Call after `light_boxes` and before anything else reorders `self.instances`.
-    pub(crate) fn write_xray(&mut self, factory_span: Range<usize>) {
+    /// Fills `Xray::boxes` and `round` from `factory_span` of the frame's dynamic instances plus cached static chunks
+    /// near `eye`, or empties them when inactive. Call after `light_boxes` and before anything reorders `instances`.
+    pub(crate) fn write_xray(&mut self, factory_span: Range<usize>, eye: crate::math::Vec3) {
         if !self.xray_active() {
             self.xray.boxes.clear();
             self.xray.round.clear();
@@ -50,6 +50,9 @@ impl Game {
         let span = &self.instances[factory_span.start * INSTANCE_FLOATS..factory_span.end * INSTANCE_FLOATS];
         let x = &mut self.xray;
         x.capped = copy_near(span, RADIUS, MAX_RECORDS, &mut x.boxes, &mut x.round);
+        if !x.capped {
+            x.capped = self.static_boxes.copy_xray_near(eye, RADIUS, MAX_RECORDS, &mut x.boxes, &mut x.round);
+        }
     }
 }
 

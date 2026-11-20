@@ -62,7 +62,11 @@ for (const file of files) {
     report.push(`warn ${rel}: ${n} ${unit} (soft limit ${rule.soft} for ${rule.kind}; split before adding)`);
   }
 }
-const startup = Math.round(STARTUP.files.reduce((sum, f) => sum + fs.statSync(path.join(root, f)).size, 0) / 1024);
+const startup = Math.round(
+  STARTUP.files
+    .filter((f) => fs.existsSync(path.join(root, f)))
+    .reduce((sum, f) => sum + fs.statSync(path.join(root, f)).size, 0) / 1024,
+);
 if (startup > STARTUP.hard) {
   failed++;
   report.push(`FAIL session-start read: ${startup} KB (hard limit ${STARTUP.hard}: ${STARTUP.files.join(', ')})`);

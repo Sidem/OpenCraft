@@ -38,9 +38,8 @@ const GAUGE_HIGH: f64 = 0.6;
 /// Water held at which the gauge is full: a unit just taken on top of the level that asks for one.
 const FULL: u32 = WATER_LOW + UNIT_ENERGY;
 
-/// Draws the connections of boiler `p`; `centre` is its footprint's centre relative to the camera, `rel` its
-/// anchor cell's and `yaw` its turn.
-pub(super) fn draw_boiler(p: &Processor, out: &mut Vec<f32>, rel: Vec3, centre: Vec3, yaw: f32) {
+/// Draws the static connections of boiler `p` (coal chutes, water/steam fittings, gauge frame).
+pub(super) fn draw_boiler_static(p: &Processor, out: &mut Vec<f32>, rel: Vec3, centre: Vec3, yaw: f32) {
     let coal = [tex::COAL_ORE, tex::GENERATOR_SIDE, tex::FRAME];
     for (cell, side) in p.spec.footprint.faces(p.pos, p.dir, Role::In) {
         let at = rel + (cell - p.pos).as_vec3();
@@ -59,10 +58,14 @@ pub(super) fn draw_boiler(p: &Processor, out: &mut Vec<f32>, rel: Vec3, centre: 
     }
     fittings(p, out, rel, Role::Water, tex::PIPE_WATER, WATER_WIDE);
     fittings(p, out, rel, Role::Steam, tex::PIPE_STEAM, STEAM_WIDE);
-    let level = f64::from(p.steam.water.min(FULL)) / f64::from(FULL);
-    let top = GAUGE_Y - f64::from(GAUGE_TALL) / 2.0;
     let frame = [tex::FRAME; 3];
     push_box(out, local(centre, yaw, [GAUGE_X, GAUGE_Y, GAUGE_Z]), yaw, [0.16, GAUGE_TALL, 0.08], 0.0, frame, false);
+}
+
+/// Draws the dynamic water-level bar of boiler `p`.
+pub(super) fn draw_boiler_dynamic(p: &Processor, out: &mut Vec<f32>, centre: Vec3, yaw: f32) {
+    let level = f64::from(p.steam.water.min(FULL)) / f64::from(FULL);
+    let top = GAUGE_Y - f64::from(GAUGE_TALL) / 2.0;
     let high = GAUGE_HIGH * level;
     if high > 0.02 {
         let y = top + 0.05 + high * 0.5;

@@ -9,7 +9,7 @@
 //! hangs on it, unless it is wired to a pole by hand (poles win). Hang a cable from a pole at the rim
 //! and lower it.
 
-use crate::block::{tex, AIR, MACHINE_PART};
+use crate::block::{AIR, MACHINE_PART};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::math::{IVec3, Vec3};
@@ -17,9 +17,8 @@ use crate::world::World;
 
 use super::footprint::Footprint;
 use super::links::Slot;
-use super::pole_mount::{mount_model, SIDES};
-use super::render::push_box;
-use super::{pole_tower, tier_mark, Factory, Machine};
+use super::pole_mount::SIDES;
+use super::{pole_tower, Factory, Machine};
 
 /// What a pole tier reaches, in blocks between cell centres.
 pub struct PoleTier {
@@ -255,40 +254,8 @@ impl Machine for Pole {
     /// A steel post two blocks tall (`POLE_RISE` above its cell's top) with a crossarm and two copper insulators; a
     /// tier wears its stripe on the post. A cable is drawn by `cable.rs`, which knows what it touches.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, _: f64) {
-        if self.is_cable() {
-            return;
-        }
-        if self.is_long() {
-            return pole_tower::long_model(out, rel + LONG_FOOTPRINT.centre(0));
-        }
-        if self.wall == 0 {
-            push_box(out, rel + Vec3::new(0.0, -0.42, 0.0), 0.0, [0.38, 0.15, 0.38], 0.0, [tex::FRAME; 3], false);
-        } else {
-            mount_model(out, rel, self.wall);
-        }
-        let post = 0.85 + POLE_RISE as f32;
-        push_box(
-            out,
-            rel + Vec3::new(0.0, -0.04 + POLE_RISE / 2.0, 0.0),
-            0.0,
-            [0.13, post, 0.13],
-            0.0,
-            [tex::FRAME; 3],
-            true,
-        );
-        if self.tier > 0 {
-            let band = [tex::stripe(self.tier); 3];
-            push_box(out, rel + Vec3::new(0.0, -0.28, 0.0), 0.0, [0.17, 0.14, 0.17], 0.0, band, false);
-        }
-        tier_mark::collars(out, rel + Vec3::new(0.0, -0.08, 0.0), 0.13, self.tier);
-        let top = POLE_RISE;
-        push_box(out, rel + Vec3::new(0.0, 0.34 + top, 0.0), 0.0, [0.72, 0.08, 0.11], 0.0, [tex::FRAME; 3], false);
-        for x in [-INSULATOR_X, INSULATOR_X] {
-            let c = [tex::COPPER_WIRE; 3];
-            let glass = [tex::FLASK_GLASS; 3];
-            push_box(out, rel + Vec3::new(x, INSULATOR_Y - 0.1 + top, 0.0), 0.0, [0.12, 0.17, 0.12], 0.0, glass, false);
-            push_box(out, rel + Vec3::new(x, INSULATOR_Y + top, 0.0), 0.0, [0.08, 0.05, 0.08], 0.0, c, false);
-        }
+        self.write_static(out, rel);
+        self.write_dynamic(out, rel);
     }
 }
 

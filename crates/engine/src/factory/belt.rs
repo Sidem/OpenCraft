@@ -10,11 +10,8 @@
 //! hands on per [`FLOW_SECS`] window and averages the last [`FLOW_WINDOWS`] (its readout's flow, against
 //! [`most_a_minute`]; derived, not saved). Drawing it: `belt_model.rs`.
 
-use std::f32::consts::FRAC_PI_2;
-
 use crate::block::tex;
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::entities::push_item_model;
 use crate::inventory::Stack;
 use crate::item::{self, ItemId};
 use crate::math::{IVec3, Vec3};
@@ -23,7 +20,6 @@ use super::belt_curve::{bend_of, bend_words, BENDS, BEND_STRAIGHT};
 use super::belt_shape::Shape;
 use super::links::{deliver, Link, Sinks, Slot};
 use super::provenance::Tag;
-use super::render::push_box;
 use super::{Factory, Machine, DIRS};
 
 /// A belt tier's numbers: speed in blocks per second and the texture of its moving top.
@@ -407,14 +403,6 @@ impl Machine for Belt {
     /// A scrolling rubber top between two rails (or the shape's model), and the items riding on it.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         self.frame(out, rel, time);
-        let base = rel - Vec3::new(0.0, 0.5, 0.0);
-        let yaw = self.dir as f32 * FRAC_PI_2;
-        for it in self.items.iter().filter(|it| self.shows(it.p)) {
-            let Some((pos, size)) = self.item_pose(it, base) else { continue };
-            // Only near the camera: a modelled item is many boxes, and far belts hold thousands of them.
-            if rel.length() > ITEM_DETAIL_RANGE || !push_item_model(out, it.item, pos, yaw, ride_unit(it.item) as f64) {
-                push_box(out, pos, yaw, size, 0.0, item::def(it.item).map_or([0; 3], |d| d.tex), false);
-            }
-        }
+        self.write_items(out, rel);
     }
 }

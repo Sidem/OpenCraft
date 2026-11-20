@@ -393,5 +393,6 @@ impl Factory {
         process::link_steam(&mut self.processors, &self.at, &mut self.pipework);
 
         super::belt_order::belt_order(&self.belts, &mut self.order);
+        self.layout_gen = self.layout_gen.wrapping_add(1);
     }
 }

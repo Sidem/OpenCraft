@@ -14,70 +14,64 @@ use crate::world::DAYLIGHT;
 use super::miner::MinerStatus;
 use super::{Factory, Machine};
 
-/// Floats per box instance: centre xyz (camera-relative), yaw, size xyz, uv scroll,
-/// texture layers top/side/bottom, then the mode and light: the uv mode bit (0 = whole texture per face, 1 =
-/// world-scaled), the [`ROUND`] bit, plus four times the light byte (sky in the low nibble, block light in the high
-/// one, as `light.rs` writes it), then pitch, roll, top-width taper and the glow flag. `push_box` starts
-/// every box at [`DAYLIGHT`]; `light_boxes` sets the real light and the glow. Ordinary boxes have no
-/// tilt or taper. A glow flag of 2 is a beacon (`mark_beacon`): it glows and the fog doesn't hide it; 3 or more is a beacon
-/// of one colour (`mark_beacon_tinted`).
+/// Floats per box instance: centre xyz, yaw, size xyz, uv scroll, texture layers top/side/bottom, mode+light (bit 0
+/// world uv, bit 1 `ROUND`, bits 2..=9 light byte, bits 10..=12 belt scroll tier+1), pitch, roll, taper, glow (2 beacon,
+/// >=3 tinted beacon). `push_box` starts at [`DAYLIGHT`]; `light_boxes` sets real light and glow.
 pub const INSTANCE_FLOATS: usize = 16;
 /// The mode bit of a round body (`push_round`): the host draws it as a cylinder, not a box (`render/boxes.ts`).
 pub const ROUND: u32 = 2;
+/// Bit shift in `MODE_LIGHT` for a belt top's shader-driven scroll speed (`tier + 1` in bits 10..=12; 0 = static scroll).
+const BELT_SCROLL_SHIFT: u32 = 10;
+const LIGHT_MASK: u32 = 0xff << 2;
 const MODE_LIGHT: usize = 11;
 pub(super) const PITCH: usize = 12;
 const TAPER: usize = 14;
 const GLOW: usize = 15;
 const BEACON: f32 = 2.0;
-/// A tinted beacon's flag is this plus its 12-bit colour (`mark_beacon_tinted`).
 const TINTED_BEACON: f32 = 3.0;
-/// Texture layers that give light rather than take it (status lights, lamps, laser beams, the jetpack's
-/// flame, rocket exhaust): the shader draws a box with one of them at full brightness, day or night.
-const GLOWING: [u16; 10] = [
-    tex::LAMP_GREEN,
-    tex::LAMP_YELLOW,
-    tex::LAMP_RED,
-    tex::LAMP_BLUE,
-    tex::LAMP,
-    tex::BEAM,
-    tex::PLUME_CORE,
-    tex::PLUME_FLAME,
-    tex::PLUME_TAIL,
-    tex::PLUME_DIAMOND,
-];
+/// Texture layers that give light rather than take it (status lights, lamps, laser beams, jetpack/rocket plumes).
+#[inline]
+fn is_glowing(l: u16) -> bool {
+    matches!(
+        l,
+        tex::LAMP_GREEN
+            | tex::LAMP_YELLOW
+            | tex::LAMP_RED
+            | tex::LAMP_BLUE
+            | tex::LAMP
+            | tex::BEAM
+            | tex::PLUME_CORE
+            | tex::PLUME_FLAME
+            | tex::PLUME_TAIL
+            | tex::PLUME_DIAMOND
+    )
+}
 
 /// Pushes one box instance (see [`INSTANCE_FLOATS`]).
 #[allow(clippy::too_many_arguments)]
-pub fn push_box(
-    out: &mut Vec<f32>,
-    center: Vec3,
-    yaw: f32,
-    size: [f32; 3],
-    scroll: f32,
-    tex: [u16; 3],
-    world_uv: bool,
-) {
-    out.extend_from_slice(&[
-        center.x as f32,
-        center.y as f32,
-        center.z as f32,
+pub fn push_box(out: &mut Vec<f32>, c: Vec3, yaw: f32, s: [f32; 3], scroll: f32, t: [u16; 3], world_uv: bool) {
+    let rec = [
+        c.x as f32,
+        c.y as f32,
+        c.z as f32,
         yaw,
-        size[0],
-        size[1],
-        size[2],
+        s[0],
+        s[1],
+        s[2],
         scroll,
-        tex[0] as f32,
-        tex[1] as f32,
-        tex[2] as f32,
+        t[0] as f32,
+        t[1] as f32,
+        t[2] as f32,
         packed(u32::from(world_uv), DAYLIGHT),
         0.0,
         0.0,
         1.0,
         0.0,
-    ]);
+    ];
+    out.extend_from_slice(&rec);
 }
 
-/// The way a round body's axis runs, in its own frame before `yaw` turns it.
+/// Round body axis in its own frame before `yaw`.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Axis {
     Up,
@@ -85,9 +79,7 @@ pub enum Axis {
     Z,
 }
 
-/// What a model part is drawn as: a box, a box leaned by a pitch about its own x after its yaw turns it (its up goes
-/// to (-sin yaw sin pitch, cos pitch, cos yaw sin pitch): a tower's leg), or a round body along `axis` whose far end
-/// (+y, +x or +z) is `taper` times as wide as its near end (1 a cylinder, under 1 a cone's frustum).
+/// Model part form: box, pitched box (`Lean`), or round body along `Axis` with top-width `taper`.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Form {
     Box,
@@ -95,11 +87,9 @@ pub enum Form {
     Round(Axis, f32),
 }
 
-/// A plain cylinder standing upright.
 pub const UPRIGHT: Form = Form::Round(Axis::Up, 1.0);
 
-/// Pushes a round body (see [`Form`]) filling the box of `size` (x, y, z before `yaw`, as `push_box`), its axis along
-/// `axis`. The host draws it from a cylinder mesh (`render/boxes.ts`); the engine sees it as that box (hit boxes, light).
+/// Pushes a round body filling `size` along `axis` (rendered as a cylinder in `render/boxes.ts`).
 #[allow(clippy::too_many_arguments)]
 #[inline(never)]
 pub fn push_round(
@@ -116,9 +106,7 @@ pub fn push_round(
     make_round(out, axis, taper);
 }
 
-/// Pushes a round body `len` long, `top` wide at its upper end and `bottom` at its lower, centred on `center`, its axis
-/// leaned by `lean` after `yaw` turns it (up goes to (-sin yaw sin lean, cos lean, cos yaw sin lean), as [`Form::Lean`]).
-/// A body wider at the top is drawn upside down, so its taper is never over 1.
+/// Pushes a tapered cone frustum `len` long, `top` wide at upper end and `bottom` at lower, leaned by `lean`.
 #[allow(clippy::too_many_arguments)]
 pub fn push_cone(
     out: &mut Vec<f32>,
@@ -186,13 +174,24 @@ pub fn make_round(out: &mut [f32], axis: Axis, taper: f32) {
             r[4..7].copy_from_slice(&[z, x, y]);
         }
     }
-    r[MODE_LIGHT] = packed(r[MODE_LIGHT] as u32 & 1 | ROUND, (r[MODE_LIGHT] as u32 >> 2) as u8);
+    r[MODE_LIGHT] = (r[MODE_LIGHT] as u32 | ROUND) as f32;
     r[TAPER] = taper;
 }
 
-/// The part one instance record draws, as `push_shape` takes it: its form, centre, yaw, size and layers (the inverse
-/// of `push_shape`, for icons drawn from a placed model: `item_models/placed.rs`). A round body comes back along y or
-/// z (one along x is the same body along z turned a quarter); roll and a round body's lean are dropped.
+/// Tags the box just pushed onto `out` as a scrolling belt top of `tier`: the box shader adds `u_beltScroll[tier]`
+/// to its uv scroll so belt frames stay static in per-chunk GPU buffers (`static_boxes`).
+pub fn mark_belt_scroll(out: &mut [f32], tier: u8) {
+    let rec = out.len() - INSTANCE_FLOATS;
+    out[rec + MODE_LIGHT] = (out[rec + MODE_LIGHT] as u32 | ((u32::from(tier) + 1) << BELT_SCROLL_SHIFT)) as f32;
+}
+
+/// Whether an instance record is a round body (`ROUND` bit set).
+#[inline]
+pub fn is_round(rec: &[f32]) -> bool {
+    rec[MODE_LIGHT] as u32 & ROUND != 0
+}
+
+/// Inverse of `push_shape` for icons drawn from a placed model (`item_models/placed.rs`).
 pub fn shape_of(r: &[f32]) -> (Form, [f32; 3], f32, [f32; 3], [u16; 3]) {
     let centre = [r[0], r[1], r[2]];
     let tex = [r[8] as u16, r[9] as u16, r[10] as u16];
@@ -247,9 +246,7 @@ pub fn split_round(boxes: &[f32], round: &mut Vec<f32>) {
     }
 }
 
-/// Copies the records of `boxes` whose centre lies within `radius` of the camera (records are camera-relative) into
-/// `out`, at most `max` of them, and the round bodies among those also into `round` (as [`split_round`] does).
-/// Returns whether the cap cut any off.
+/// Copies records within `radius` of the camera into `out` (at most `max`) and round bodies into `round`.
 pub fn copy_near(boxes: &[f32], radius: f32, max: usize, out: &mut Vec<f32>, round: &mut Vec<f32>) -> bool {
     out.clear();
     round.clear();
@@ -273,17 +270,14 @@ mod fake_round;
 #[cfg(test)]
 pub use fake_round::fake_round;
 
-/// Makes the box just pushed onto `out` a beacon: it lights itself and shows through the fog, to mark something far
-/// off (the long-distance pole a held one is measured from: `power_tools/long_pole.rs`).
+/// Marks the last box as a self-lit beacon shown through fog (`power_tools/long_pole.rs`).
 pub fn mark_beacon(out: &mut [f32]) {
     if let Some(last) = out.last_mut() {
         *last = BEACON;
     }
 }
 
-/// A beacon painted one flat colour (the telescope's pins: `telescope/beacons.rs`). `rgb` is 0xRRGGBB, scaled up so its
-/// brightest channel is full (a light, not a pigment) and kept at 4 bits a channel in the glow flag, which is
-/// [`TINTED_BEACON`] plus the colour; the box shader decodes it (`boxVert` in `render/shaders.ts`).
+/// Marks the last box as a flat-colour tinted beacon (`TINTED_BEACON` + 12-bit RGB, `telescope/beacons.rs`).
 pub fn mark_beacon_tinted(out: &mut [f32], rgb: u32) {
     let [r, g, b] = [rgb >> 16 & 255, rgb >> 8 & 255, rgb & 255];
     let top = r.max(g).max(b);
@@ -293,9 +287,7 @@ pub fn mark_beacon_tinted(out: &mut [f32], rgb: u32) {
     }
 }
 
-/// Makes the box just pushed onto `out` darkness: pure black whatever the light (a tinted beacon of no colour, which
-/// `mark_beacon_tinted` never makes), for a hole items vanish into (`process/port_mouth.rs`). Keep it small and near:
-/// the fog doesn't hide it.
+/// Marks the last box pure black regardless of light (`process/port_mouth.rs`).
 pub fn mark_dark(out: &mut [f32]) {
     if let Some(last) = out.last_mut() {
         *last = TINTED_BEACON;
@@ -307,10 +299,21 @@ fn packed(mode: u32, light: u8) -> f32 {
     mode as f32 + 4.0 * f32::from(light)
 }
 
+/// Applies cell light `lit` and the glowing flag to one instance record `rec`.
+#[inline]
+fn apply_light(rec: &mut [f32], lit: u8) {
+    rec[MODE_LIGHT] = ((rec[MODE_LIGHT] as u32 & !LIGHT_MASK) | (u32::from(lit) << 2)) as f32;
+    if rec[GLOW] < BEACON {
+        let (t0, t1, t2) = (rec[8] as u16, rec[9] as u16, rec[10] as u16);
+        let g = is_glowing(t0) || (t1 != t0 && is_glowing(t1)) || (t2 != t0 && t2 != t1 && is_glowing(t2));
+        rec[GLOW] = f32::from(u8::from(g));
+    }
+}
+
 /// Lights every box in `boxes` (records of [`INSTANCE_FLOATS`], centres relative to `eye`) with the light
-/// of the cell its centre is in, from `light` (`World::light_at`), and flags the [`GLOWING`] ones. A cell with no light at all (a wire
-/// or an item sunk into the ground, whose centre is inside solid rock) borrows the best of its
-/// neighbours, so only a box really in the dark is dark.
+/// of the cell its centre is in, from `light` (`World::light_at`), and flags glowing layers. A cell with no light at
+/// all (inside solid rock) borrows the best of its neighbours, so only a box really in the dark is dark.
+#[inline(never)]
 pub fn light_boxes(boxes: &mut [f32], eye: Vec3, mut light: impl FnMut(IVec3) -> u8) {
     const AROUND: [(i32, i32, i32); 6] = [(0, 1, 0), (1, 0, 0), (-1, 0, 0), (0, 0, 1), (0, 0, -1), (0, -1, 0)];
     let mut last: Option<(IVec3, u8)> = None;
@@ -324,10 +327,7 @@ pub fn light_boxes(boxes: &mut [f32], eye: Vec3, mut light: impl FnMut(IVec3) ->
             },
         };
         last = Some((cell, lit));
-        rec[MODE_LIGHT] = packed(rec[MODE_LIGHT] as u32 & 3, lit);
-        if rec[GLOW] < BEACON {
-            rec[GLOW] = f32::from(u8::from(rec[8..11].iter().any(|&l| GLOWING.contains(&(l as u16)))));
-        }
+        apply_light(rec, lit);
     }
 }
 
@@ -384,7 +384,7 @@ impl Factory {
 }
 
 /// Models of the machines in `list` whose cell centre is within `range` of `eye`.
-fn models<T: Machine>(list: &[T], out: &mut Vec<f32>, eye: Vec3, time: f64, range: f64) {
+pub(super) fn models<T: Machine>(list: &[T], out: &mut Vec<f32>, eye: Vec3, time: f64, range: f64) {
     for m in list {
         let rel = m.pos().as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye;
         if rel.x * rel.x + rel.y * rel.y + rel.z * rel.z <= range * range {

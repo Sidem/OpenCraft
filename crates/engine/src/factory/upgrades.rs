@@ -149,6 +149,7 @@ impl Factory {
         // A tier can change how a machine is powered or wired (the Mk3 smelter is electric, a pylon
         // reaches further): link it again.
         self.dirty = true;
+        self.layout_gen = self.layout_gen.wrapping_add(1);
     }
 }
 #[cfg(test)]

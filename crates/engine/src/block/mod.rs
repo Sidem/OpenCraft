@@ -214,6 +214,11 @@ pub use street::{is_street, post_dir, street_post, STREET, STREET_COUNT};
 /// The eleven mixed-hue concretes, ids 228–238 (`tints.rs`).
 mod tints;
 pub use tints::{BLUE_CONCRETE, TINT_COUNT};
+/// Stained glass in sixteen hues, ids 239–254 (`glass.rs`).
+mod glass;
+#[cfg(test)]
+pub use glass::is_stained_glass;
+pub use glass::{is_glass, STAINED_GLASS_COUNT, STAINED_GLASS_FIRST};
 const BASE_COUNT: usize = 129;
 pub const BLOCK_COUNT: usize = BASE_COUNT
     + DECOR_COUNT
@@ -227,7 +232,8 @@ pub const BLOCK_COUNT: usize = BASE_COUNT
     + MERGER_COUNT
     + LED_COUNT
     + STREET_COUNT
-    + TINT_COUNT;
+    + TINT_COUNT
+    + STAINED_GLASS_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;
@@ -255,6 +261,8 @@ pub enum Render {
     Plant,
     /// Water: see-through, never targeted, replaced by whatever is placed into it.
     Liquid,
+    /// Semi-transparent cube (stained glass): blended after opaque and boxes; adjacent equal blocks hide inner faces.
+    Translucent,
 }
 
 #[derive(Clone, Copy)]
@@ -295,7 +303,7 @@ pub const TABLE_LEN: usize = BLOCK_COUNT.next_multiple_of(256);
 
 /// Flat lookup tables for hot loops (`tables.rs`).
 mod tables;
-pub use tables::{ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT, SOLID};
+pub use tables::{ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT, SOLID, TRANSLUCENT};
 
 /// Whether placing a block may take this cell (air or water), and so whether aiming passes through it.
 #[inline]

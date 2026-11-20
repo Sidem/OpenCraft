@@ -141,6 +141,8 @@ fn unlock_recipes(u: Unlock) -> Vec<(ItemId, Vec<ItemId>)> {
 /// smelted from ore from the start (Ore Crushing only adds a second way, from crushed ore).
 const EARLY_INGREDIENTS: &[(&str, &str)] = &[
     ("Pigments", "Copper Ingot"),
+    ("Architecture", "Iron Ingot"),
+    ("Architecture", "Copper Ingot"),
     ("Mechanics", "Pump"),
     ("Mechanics", "Forester"),
     ("Mk5 Machines", "Drone Port Mk4"),

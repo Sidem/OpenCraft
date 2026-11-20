@@ -80,4 +80,7 @@ pub const DYE_FIRST: u16 = 155;
 pub const DYE_ROWS: u16 = 22;
 /// The first eleven rows of `DYE_ROWS` are the chemical plant's.
 pub const DYE_PLANT_ROWS: u16 = 11;
+/// Stained glass (`glass.rs`, unlocked by Architecture): sixteen hues in `block/glass.rs` order.
+pub const GLASS_FIRST: u16 = 177;
+pub const GLASS_ROWS: u16 = 16;
 // Rows 88 on are the upgrader's, one per tier (`refit.rs`; research locks them by category, `Research::locked_by`).

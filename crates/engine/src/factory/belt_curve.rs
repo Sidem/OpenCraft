@@ -13,7 +13,7 @@ use crate::math::Vec3;
 
 use super::belt::{Belt, BELT_HEIGHT, BELT_TIERS};
 use super::belt_shape::Shape;
-use super::render::push_box;
+use super::render::{mark_belt_scroll, push_box};
 use super::{machine, Kind, DIRS};
 
 /// Straight: items come in at the back. The other bends take them in from the belt's left or right side.
@@ -82,7 +82,7 @@ impl Belt {
     /// The corner's model: a quarter ring of belt pieces whose tops scroll along it, each with its stretch of the outer
     /// rail. It has no cross bars: a straight belt before or after it draws one at that edge only if not joined to it.
     /// `base` is the cell's bottom centre.
-    pub(super) fn curve_model(&self, out: &mut Vec<f32>, base: Vec3, scroll: f32, side: u8) {
+    pub(super) fn curve_model(&self, out: &mut Vec<f32>, base: Vec3, side: u8) {
         let top = [BELT_TIERS[self.tier as usize].top, tex::FRAME, tex::FRAME];
         let rail = [tex::FRAME, tex::stripe(self.tier), tex::FRAME];
         let at = |(x, z): (f32, f32), y: f32| base + Vec3::new(x as f64, y as f64, z as f64);
@@ -90,10 +90,11 @@ impl Belt {
             let yaw = self.tangent_yaw(side, (k as f32 + 0.5) * FRAC_PI_2 / PIECES as f32);
             // Neighbouring pieces overlap near the inner corner: the middle one sits a hair higher so they never fight.
             let lift = (k % 2) as f32 * 0.004;
-            // The top's texture moves on by the share of the corner already behind the piece, so it flows on round.
-            let along = 0.5 + scroll - (k as f32 + 0.5) / PIECES as f32;
+            // Phase offset per piece; the box shader adds `u_beltScroll[tier]` so the corner stays static.
+            let along = 0.5 - (k as f32 + 0.5) / PIECES as f32;
             let size = [0.84, BELT_HEIGHT + lift * 2.0, PIECE];
             push_box(out, at(self.arc_point(side, 0.5, s, c), BELT_HEIGHT * 0.5 + lift), yaw, size, along, top, true);
+            mark_belt_scroll(out, self.tier);
             push_box(out, at(self.arc_point(side, 0.5 + RAIL, s, c), 0.13), yaw, [0.08, 0.26, PIECE], 0.0, rail, true);
         }
     }

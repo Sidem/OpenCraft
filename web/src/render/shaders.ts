@@ -340,7 +340,11 @@ void main() {
 #ifdef BOXES
   shown = mix(shown, v_beacon.rgb, v_beacon.a);
 #endif
+#ifdef TRANSLUCENT
+  o_color = vec4(applyFog(shown, hazed), c.a);
+#else
   o_color = vec4(applyFog(shown, hazed), 1.0);
+#endif
 #ifdef BOXES
   if (u_xray.x > 0.0) {
     // X-ray goggles (render/boxes.ts drawXray): what sits behind the ground is unlit, so draw it flat in the texture's

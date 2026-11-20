@@ -27,6 +27,27 @@ pub fn tint(x: i32, y: i32, which: usize) -> [u8; 4] {
     concrete(x, y, HUES[which])
 }
 
+/// Stained glass in one of the sixteen hues (five primary hues, then `HUES`): dark lead frame (opaque), translucent
+/// tinted pane with subtle glass mottling and diagonal specular glints.
+pub fn stained_glass(x: i32, y: i32, which: usize) -> [u8; 4] {
+    let colour = if which < PIGMENTS.len() { PIGMENTS[which] } else { HUES[which - PIGMENTS.len()] };
+    if x == 0 || x == 15 || y == 0 || y == 15 {
+        let corner = (x == 0 || x == 15) && (y == 0 || y == 15);
+        return rgb([74.0, 68.0, 64.0], if corner { 1.15 } else { 0.8 + 0.1 * n(725, x, y) });
+    }
+    let glint = ((x - y == 3 || x - y == -6) && (2..14).contains(&x) && (2..14).contains(&y))
+        || (x == 3 && y == 4)
+        || (x == 12 && y == 11);
+    let shade = if glint { 1.28 } else { 0.94 + 0.16 * mottle(726, x, y, 0.25) + 0.04 * n(727, x, y) };
+    let mut c = rgb(colour, shade);
+    if glint {
+        c = [c[0].saturating_add(48), c[1].saturating_add(48), c[2].saturating_add(48), 225];
+    } else {
+        c[3] = 152;
+    }
+    c
+}
+
 pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     match layer {
         tex::RED_CONCRETE => concrete(x, y, RED),
@@ -47,7 +68,7 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
 }
 
 /// Poured concrete: broad mottling, a seam every 8 texels like cast slabs and a few pits.
-fn concrete(x: i32, y: i32, colour: [f64; 3]) -> [u8; 4] {
+pub(super) fn concrete(x: i32, y: i32, colour: [f64; 3]) -> [u8; 4] {
     if x % 8 == 0 || y % 8 == 0 {
         return rgb(colour, 0.78 + 0.06 * n(720, x, y));
     }

@@ -104,8 +104,80 @@ const LIFT_HEIGHT: f64 = 160.0;
 const POUR_ITEMS: usize = 5;
 const POUR_RATE: f64 = 1.6;
 
-/// Draws `p`'s parts at `rel` (its anchor cell's centre relative to the camera).
+/// Draws `p`'s parts at `rel` (its anchor cell's centre relative to the camera), port openings last.
 pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
+    let ports = draw_static_body(p, out, rel);
+    draw_dynamic_body(p, out, rel, time);
+    if ports {
+        super::port_mouth::draw(p, out, rel);
+    }
+}
+
+impl Processor {
+    /// Camera- and time-independent processor geometry, at offset-relative `rel`.
+    pub(in crate::factory) fn write_static(&self, out: &mut Vec<f32>, rel: Vec3) {
+        draw_static(self, out, rel);
+    }
+
+    /// Animated, status-dependent and near-camera processor parts, at camera-relative `rel`.
+    pub(in crate::factory) fn write_dynamic(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
+        draw_dynamic(self, out, rel, time);
+    }
+}
+
+/// Static parts of `p` at offset-relative `rel`: hull parts, tier band box, channel mark, pipe fittings and lintels.
+pub fn draw_static(p: &Processor, out: &mut Vec<f32>, rel: Vec3) {
+    if draw_static_body(p, out, rel) {
+        super::port_mouth::draw_static(p, out, rel);
+    }
+}
+
+/// Static parts except port lintels; returns whether `p` has multi-block port openings.
+fn draw_static_body(p: &Processor, out: &mut Vec<f32>, rel: Vec3) -> bool {
+    let yaw = p.dir as f32 * std::f32::consts::FRAC_PI_2;
+    let centre = rel + p.footprint().centre(p.dir);
+    for part in p.spec.parts {
+        let texture = match part.look {
+            Look::Tex(t) => t,
+            Look::Band(top) => {
+                if p.is_compact() {
+                    continue;
+                }
+                [top, tex::stripe(p.tier_colour()), tex::FRAME]
+            }
+            Look::Channel => [tex::GRID_FIRST + u16::from(p.channel()); 3],
+            _ => continue,
+        };
+        let at = local(centre, yaw, part.at.map(f64::from));
+        push_shape(out, part.form, at, yaw + part.turn * std::f32::consts::FRAC_PI_2, part.size, texture, false);
+    }
+    match p.energy() {
+        Energy::Boiler => {
+            steam_view::draw_boiler_static(p, out, rel, centre, yaw);
+            return false;
+        }
+        Energy::Turbine => {
+            steam_view::draw_turbine(p, out, rel);
+            return false;
+        }
+        _ => {}
+    }
+    if p.footprint().is_single() {
+        return false;
+    }
+    steam_view::fittings(p, out, rel, Role::Water, tex::PIPE_WATER, steam_view::WATER_WIDE);
+    true
+}
+
+/// Dynamic and near-camera parts of `p` at camera-relative `rel`.
+pub fn draw_dynamic(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
+    if draw_dynamic_body(p, out, rel, time) {
+        super::port_mouth::draw_dynamic(p, out, rel);
+    }
+}
+
+/// Dynamic parts except port mouths; returns whether `p` has multi-block port openings.
+fn draw_dynamic_body(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) -> bool {
     let working = p.status == Status::Working;
     let stroke = if working { (time * 6.0).sin().abs() * STROKE } else { 0.0 };
     let yaw = p.dir as f32 * std::f32::consts::FRAC_PI_2;
@@ -113,6 +185,14 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
     for part in p.spec.parts {
         let mut at = local(centre, yaw, part.at.map(f64::from));
         let texture = match part.look {
+            Look::Tex(_) | Look::Channel => continue,
+            Look::Band(_) => {
+                if !p.is_compact() && p.spec.tiers.len() > 1 {
+                    let half = [part.size[0] / 2.0, part.size[2] / 2.0];
+                    tier_mark::ring_coloured(out, at, yaw, half, p.tier, p.tier_colour());
+                }
+                continue;
+            }
             Look::Smoke => {
                 if working {
                     smoke::puffs(out, at, time, smoke::seed(p.pos), part.size[0]);
@@ -141,26 +221,12 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
                 super::pump::draw_jack(p, out, centre, yaw, time);
                 continue;
             }
-            Look::Tex(t) => t,
-            Look::Band(top) => {
-                // A machine that comes in tiers wears its Mk studs around its band.
-                // (A one-block pumpjack from an old save is drawn a third the size and has no room for one.)
-                if p.is_compact() {
-                    continue;
-                }
-                if p.spec.tiers.len() > 1 {
-                    let half = [part.size[0] / 2.0, part.size[2] / 2.0];
-                    tier_mark::ring_coloured(out, at, yaw, half, p.tier, p.tier_colour());
-                }
-                [top, tex::stripe(p.tier_colour()), tex::FRAME]
-            }
             Look::Fire(idle) => [if working { tex::LAMP_YELLOW } else { idle }; 3],
             Look::Lamp => [lamp(p.status); 3],
             Look::Press(share, t) => {
                 at.y -= stroke * share as f64;
                 t
             }
-            Look::Channel => [tex::GRID_FIRST + u16::from(p.channel()); 3],
             Look::Rocket => {
                 if let Some(share) = batch_share(p, time) {
                     let done = share * 1000.0;
@@ -175,16 +241,13 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         push_shape(out, part.form, at, yaw + part.turn * std::f32::consts::FRAC_PI_2, part.size, texture, false);
     }
     match p.energy() {
-        // Chutes, pipe fittings and a gauge instead of the generic hatches.
-        Energy::Boiler => return steam_view::draw_boiler(p, out, rel, centre, yaw),
-        Energy::Turbine => return steam_view::draw_turbine(p, out, rel),
-        _ => {}
+        Energy::Boiler => {
+            steam_view::draw_boiler_dynamic(p, out, centre, yaw);
+            false
+        }
+        Energy::Turbine => false,
+        _ => !p.footprint().is_single(),
     }
-    if p.footprint().is_single() {
-        return;
-    }
-    steam_view::fittings(p, out, rel, Role::Water, tex::PIPE_WATER, steam_view::WATER_WIDE);
-    super::port_mouth::draw(p, out, rel);
 }
 
 /// Items falling through the pour part centred at camera-relative `at`, `size` across and high: the first item the

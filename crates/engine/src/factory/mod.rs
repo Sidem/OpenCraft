@@ -1,22 +1,10 @@
-//! Factory machines: belts (with ramps, lifts and underpasses), miners, storage boxes, processors
-//! (smelters, constructors: `process/`), splitters, filters, power (generators, poles), research labs
-//! (with the world's `Research`), pipework (`pipes.rs`, `pumping.rs`), quarries and the world's
-//! terraforming sites (`sites.rs`) and rails (`rail.rs`). Belts, miners and processors come in tiers (`tiers.rs`).
+//! Factory machines: belts, miners, storage, processors (`process/`), routers, power, labs, pipework, quarries,
+//! terraforming sites, rails and fibre (`fibre.rs`). Tiers index `tiers.rs`.
 //!
-//! Machines occupy one voxel each (the chunk holds their block id, so collision, targeting and breaking
-//! work unchanged), multi-block processors several (`footprint/`), while their state lives here, keyed
-//! by every cell in `at`, and keep running when their chunk is streamed out. `MACHINES` (`table.rs`) maps a block to
-//! its kind and buffer size (several blocks may share a kind). Each kind is a struct in its own file implementing
-//! [`Machine`], in its own `Vec`; code acting on one machine matches on its `Slot`. Removal: `swap_remove`, fix `at`.
-//!
-//! Core state (DEV_PLAN section 3.4): `update` (`tick.rs`) runs one fixed tick and reports to the view only through
-//! `SimEvent`s. Links and the belt order are derived, rebuilt by `relink` when `dirty`.
-//!
-//! A machine that turns inputs into outputs is a processor spec row (`process/specs.rs`), not a kind.
-//! To add a machine: its file (struct, `step`, `impl Machine`), a `Kind` and a `Slot` variant with a `MACHINES` row
-//! and a `Vec` field (saved in `state.rs`), then follow the compiler through the `match`es (`place`, `remove`,
-//! `update`, `links.rs`, `describe.rs`, `render.rs`, `panel.rs`, `efficiency.rs`). Its block goes in `block.rs`, its
-//! recipe in `recipes.rs`.
+//! Machines occupy one voxel each (multi-block processors several: `footprint/`), keyed in `at`, and keep running
+//! when streamed out. Each kind implements [`Machine`] in its own `Vec`, indexed via `Slot`. Core state (DEV_PLAN §3.4):
+//! `update` (`tick.rs`) runs one fixed tick and reports via `SimEvent`s; links/order rebuild in `relink` when `dirty`.
+//! Processors are spec rows (`process/specs.rs`); new kinds add a `Kind`/`Slot`/`MACHINES` row and `Vec`.
 
 mod belt;
 mod belt_chain;
@@ -70,6 +58,7 @@ mod sensor;
 mod sites;
 pub(crate) mod smoke;
 mod state;
+mod static_view;
 pub mod stock;
 mod storage;
 mod switch;
@@ -134,15 +123,18 @@ pub use miner::MinerStatus;
 pub use miner::MINER_TIERS;
 pub use miner_burner::CoalMinerView;
 pub use panel::{turns, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT, ROLE_STORE};
-pub use pole::{long_top, preview_pole, preview_wire, tier_stats, LongLink, LONG_LOCAL_LINK, LONG_STATS, LONG_TIER};
-pub use pole::{POLE_TIERS, POLE_UNLINKED, POLE_WIRE_Y};
+pub use pole::{
+    long_top, preview_pole, preview_wire, tier_stats, LongLink, LONG_LOCAL_LINK, LONG_STATS, LONG_TIER, POLE_TIERS,
+    POLE_UNLINKED, POLE_WIRE_Y,
+};
 pub use pole_hang::ghost_hang;
 pub use ports::PortInfo;
 pub use power::{sag_point, wire};
 pub(crate) use process::EJECTOR_ICON;
-pub use process::{channel_colour, channel_name, first_maker, makes, spec as process_spec, Want};
-pub use process::{forester_survey, ForesterPatch, ForesterSurvey};
-pub use process::{tenths, tenths_a_minute};
+pub use process::{
+    channel_colour, channel_name, first_maker, forester_survey, makes, spec as process_spec, tenths, tenths_a_minute,
+    ForesterPatch, ForesterSurvey, Want,
+};
 #[cfg(test)]
 pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};
 pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};
@@ -151,11 +143,12 @@ pub use rail::{
     Fault, Fit, SplitWhy, Track, MAX_LINKS, MAX_SPAN,
 };
 pub use render::{
-    copy_near, light_boxes, make_round, mark_beacon, mark_beacon_tinted, push_box, push_cone, push_framed, push_round,
-    push_shape, shape_of, split_round, Axis, Form, Framed, INSTANCE_FLOATS, ROUND,
+    copy_near, is_round, light_boxes, make_round, mark_beacon, mark_beacon_tinted, push_box, push_cone, push_framed,
+    push_round, push_shape, shape_of, split_round, Axis, Form, Framed, INSTANCE_FLOATS, ROUND,
 };
 pub use sensor::RULES as SENSOR_RULES;
 pub use sites::{cut_takes, survey_site, survey_tunnel, touches_water, Job, Site, SiteSurvey, Sites, Tunnel, SECTIONS};
+pub(crate) use static_view::{bin_boxes, ChunkIndex, ChunkMembers};
 pub use trains::{car_at, car_box, CarAim, Spot, DROP_ALL, MAX_CARS};
 pub use wiring::Hookup;
 pub use {belt::belt_preview, belt::lift_preview, belt_shape::Shape, cable::preview_cable};
@@ -224,6 +217,8 @@ pub struct Factory {
     /// Belt indices, downstream first.
     order: Vec<u32>,
     dirty: bool,
+    /// Bumped on any structural or static-visual change (derived, not saved or hashed: `static_boxes`).
+    pub(crate) layout_gen: u64,
     pub deposits: Deposits,
     /// The world's research, which labs advance.
     pub research: Research,
@@ -267,9 +262,7 @@ impl Factory {
         self.processors.iter().any(|p| p.spec.block == block && p.input.count(item) > 0)
     }
 
-    /// Adds the machine that `block` is at `pos` (nothing for other blocks). `facing` is the placing
-    /// player's horizontal direction (belts run that way); `against` is the clicked block, which a
-    /// miner drills if it is adjacent. `tier` is the machine's tier for tiered kinds (`tiers.rs`).
+    /// Adds the machine that `block` is at `pos` (`facing` horizontal direction, `against` clicked block).
     pub fn place(&mut self, world: &mut World, block: BlockId, pos: IVec3, facing: u8, against: IVec3, tier: u8) {
         let Some(def) = machine(block) else { return };
         self.remove(pos);
@@ -322,6 +315,7 @@ impl Factory {
             self.set_tier(pos, tier);
         }
         self.dirty = true;
+        self.layout_gen = self.layout_gen.wrapping_add(1);
         if (block == POLE || block == LONG_POLE) && facing & pole::POLE_UNLINKED == 0 {
             self.hook_new_pole(pos, tier);
         }
@@ -341,6 +335,7 @@ impl Factory {
         }
         add_to(&mut self.belts, belt, &mut self.at, Slot::Belt);
         self.dirty = true;
+        self.layout_gen = self.layout_gen.wrapping_add(1);
     }
 
     pub fn add_miner(&mut self, pos: IVec3, drill: u8, deposit: Option<DepositKey>, tier: u8) {
@@ -359,6 +354,7 @@ impl Factory {
     pub fn remove(&mut self, pos: IVec3) -> Vec<Stack> {
         let Some(slot) = self.at.remove(&pos) else { return Vec::new() };
         self.dirty = true;
+        self.layout_gen = self.layout_gen.wrapping_add(1);
         let at = &mut self.at;
         let mut contents = match slot {
             Slot::Belt(i) => swap_out(&mut self.belts, i, at, Slot::Belt),

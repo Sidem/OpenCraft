@@ -35,6 +35,7 @@ interface ChunkMesh {
   opaque: number;
   cutout: number;
   liquid: number;
+  translucent: number;
   shaped: ShapedPart | null;
   dist: number;
 }
@@ -60,6 +61,7 @@ export class Renderer {
 
   private readonly opaque;
   private readonly cutout;
+  private readonly translucent;
   private readonly shapedOpaque;
   private readonly shapedCutout;
 
@@ -99,6 +101,7 @@ export class Renderer {
     };
     this.opaque = pass(S.chunkVert, []);
     this.cutout = pass(S.chunkVert, ['CUTOUT']);
+    this.translucent = pass(S.chunkVert, ['TRANSLUCENT']);
     this.shapedOpaque = pass(shapedVert, ['SHAPED']);
     this.shapedCutout = pass(shapedVert, ['SHAPED', 'CUTOUT']);
 
@@ -115,16 +118,9 @@ export class Renderer {
     this.falling = new Falling(gl, this.quadIndex, (quads) => this.ensureQuadCapacity(quads));
   }
 
-  setViewRadius(r: number): void {
-    this.viewRadius = r;
-  }
-
+  setViewRadius(r: number): void { this.viewRadius = r; }
   /** The share of the screen's pixels' width drawn: 1 sharp, 0.5 half as many each way (quality.ts). */
-  setScale(s: number): void {
-    this.scale = s;
-  }
-
-  /** Uploads all block textures as one TEXTURE_2D_ARRAY (one layer per texture, no atlas bleeding). */
+  setScale(s: number): void { this.scale = s; }
   /** The texture layer of water (`game.water_layer()`; liquid vertices don't carry one). */
   setWaterLayer(layer: number): void { this.water.layer = layer; }
 
@@ -167,7 +163,7 @@ export class Renderer {
 
   /** How each layer turns per block (`game.texture_turns()`: two bits a layer, 32 words); all zeros turns none. */
   setTurns(mask: Uint32Array): void {
-    for (const pass of [this.opaque, this.cutout]) {
+    for (const pass of [this.opaque, this.cutout, this.translucent]) {
       this.gl.useProgram(pass.prog);
       this.gl.uniform1uiv(pass.u.u_turns, mask);
     }
@@ -180,10 +176,10 @@ export class Renderer {
    * round trunks and canopies, `shapedOpaque` quads then `shapedCutout` (shaped.ts).
    */
   upsertChunk(x: number, y: number, z: number, verts: Uint32Array, opaque: number, cutout: number, liquid: number,
-    shaped: Uint32Array = new Uint32Array(0), shapedOpaque = 0, shapedCutout = 0): void {
+    translucent = 0, shaped: Uint32Array = new Uint32Array(0), shapedOpaque = 0, shapedCutout = 0): void {
     const key = chunkKey(x, y, z);
     let mesh = this.meshes.get(key);
-    const total = opaque + cutout + liquid;
+    const total = opaque + cutout + liquid + translucent;
     if (total + shapedOpaque + shapedCutout === 0) {
       if (mesh) this.deleteMesh(key, mesh);
       return;
@@ -200,7 +196,7 @@ export class Renderer {
       gl.enableVertexAttribArray(1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.quadIndex);
       gl.bindVertexArray(null);
-      mesh = { x, y, z, vao, vbo, capacity: 0, opaque: 0, cutout: 0, liquid: 0, shaped: null, dist: 0 };
+      mesh = { x, y, z, vao, vbo, capacity: 0, opaque: 0, cutout: 0, liquid: 0, translucent: 0, shaped: null, dist: 0 };
       this.meshes.set(key, mesh);
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vbo);
@@ -213,17 +209,19 @@ export class Renderer {
     } else {
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, verts);
     }
-    mesh.opaque = opaque;
-    mesh.cutout = cutout;
-    mesh.liquid = liquid;
+    mesh.opaque = opaque; mesh.cutout = cutout; mesh.liquid = liquid; mesh.translucent = translucent;
     mesh.shaped = uploadShaped(gl, mesh.shaped, this.quadIndex, shaped, shapedOpaque, shapedCutout);
   }
 
   removeChunk(x: number, y: number, z: number): void {
-    const key = chunkKey(x, y, z);
-    const mesh = this.meshes.get(key);
+    const key = chunkKey(x, y, z), mesh = this.meshes.get(key);
     if (mesh) this.deleteMesh(key, mesh);
   }
+  /** Creates or replaces one cached static box chunk (`static_boxes/`). */
+  upsertStaticBoxes(x: number, y: number, z: number, bounds: ArrayLike<number>, cubes: Float32Array, cubeCount: number, round: Float32Array, roundCount: number): void {
+    this.boxes.upsertStaticChunk(chunkKey(x, y, z), x, y, z, bounds, cubes, cubeCount, round, roundCount);
+  }
+  removeStaticBoxes(x: number, y: number, z: number): void { this.boxes.removeStaticChunk(chunkKey(x, y, z)); }
 
   private deleteMesh(key: number, mesh: ChunkMesh): void {
     this.gl.deleteVertexArray(mesh.vao);
@@ -313,16 +311,7 @@ export class Renderer {
     gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.texture);
 
     let drawCalls = 0, quads = 0;
-    // Cubes, then trunks and inner canopies; then the cutout cubes, then the leafy shells.
-    const passes: [typeof this.opaque, Draws][] = [
-      [this.opaque, (m) => [m.opaque, 0, m.vao]],
-      [this.shapedOpaque, (m) => [m.shaped?.opaque ?? 0, 0, m.shaped?.vao ?? null]],
-      [this.cutout, (m) => [m.cutout, m.opaque, m.vao]],
-      [this.shapedCutout, (m) => [m.shaped?.cutout ?? 0, m.shaped?.opaque ?? 0, m.shaped?.vao ?? null]],
-    ];
-    for (const [pass, draws] of passes) {
-      // Leaf cards are seen from both sides.
-      if (pass === this.shapedCutout) gl.disable(gl.CULL_FACE);
+    const drawPass = (pass: typeof this.opaque, draws: Draws, backToFront = false) => {
       gl.useProgram(pass.prog);
       gl.uniformMatrix4fv(pass.u.u_viewProj, false, this.viewProj);
       gl.uniform1i(pass.u.u_tex, 0);
@@ -336,18 +325,29 @@ export class Renderer {
       uploadHeldLights(gl, pass.u.u_held);
       gl.uniform3f(pass.u.u_pivot, 0, 0, 0);
       gl.uniformMatrix3fv(pass.u.u_turn, false, IDENTITY3);
-      for (const m of vis) {
+      for (let k = 0; k < vis.length; k++) {
+        const m = vis[backToFront ? vis.length - 1 - k : k];
         const [n, first, vao] = draws(m);
         if (n === 0) continue;
         gl.uniform3f(pass.u.u_offset, m.x * CHUNK - ex, m.y * CHUNK - ey, m.z * CHUNK - ez);
         const period = S.TERRAIN_TINT_PERIOD;
         gl.uniform3f(pass.u.u_worldOrigin, (m.x * CHUNK) % period, (m.y * CHUNK) % period, (m.z * CHUNK) % period);
         gl.bindVertexArray(vao);
-        // Cutout quads are stored after the opaque ones; the shared index buffer is offset to match.
         gl.drawElements(gl.TRIANGLES, n * 6, gl.UNSIGNED_INT, first * 24);
         drawCalls++;
         quads += n;
       }
+    };
+    // Cubes, then trunks and inner canopies; then the cutout cubes, then the leafy shells.
+    const passes: [typeof this.opaque, Draws][] = [
+      [this.opaque, (m) => [m.opaque, 0, m.vao]],
+      [this.shapedOpaque, (m) => [m.shaped?.opaque ?? 0, 0, m.shaped?.vao ?? null]],
+      [this.cutout, (m) => [m.cutout, m.opaque, m.vao]],
+      [this.shapedCutout, (m) => [m.shaped?.cutout ?? 0, m.shaped?.opaque ?? 0, m.shaped?.vao ?? null]],
+    ];
+    for (const [pass, draws] of passes) {
+      if (pass === this.shapedCutout) gl.disable(gl.CULL_FACE);
+      drawPass(pass, draws);
       if (pass === this.shapedOpaque || pass === this.shapedCutout) {
         drawCalls += this.falling.draw(pass.u, pass === this.shapedCutout, now, [ex, ey, ez]);
       }
@@ -355,14 +355,23 @@ export class Renderer {
     gl.enable(gl.CULL_FACE);
 
     // Before the solid boxes, so the depth buffer holds only terrain and the view shows exactly what the ground hides.
-    drawCalls += this.boxes.drawXray(this.viewProj, sky, fog, f.xray, f.xrayCount, f.xrayRound, f.xrayRoundCount, f.xrayRadius, f.xrayFade);
-    drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.boxes, f.boxCount, f.round, f.roundCount);
+    drawCalls += this.boxes.drawXray(this.viewProj, sky, fog, f.xray, f.xrayCount, f.xrayRound, f.xrayRoundCount, f.xrayRadius, f.xrayFade, f.beltScroll);
+    drawCalls += this.boxes.drawStatic(this.viewProj, this.planes, [ex, ey, ez], sky, fog, f.beltScroll);
+    drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.boxes, f.boxCount, f.round, f.roundCount, undefined, f.beltScroll);
     const [waterCalls, waterQuads] = this.water.draw(vis, this.viewProj, [ex, ey, ez], sky, fog);
     drawCalls += waterCalls;
     quads += waterQuads;
-    drawCalls += this.boxes.drawGhost(this.viewProj, sky, fog, f.ghost, f.ghostCount, f.ghostRound, f.ghostRoundCount, f.ghostBlocked);
+    if (vis.some((m) => m.translucent > 0)) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthMask(false);
+      drawPass(this.translucent, (m) => [m.translucent, m.opaque + m.cutout + m.liquid, m.vao], true);
+      gl.depthMask(true);
+      gl.disable(gl.BLEND);
+    }
+    drawCalls += this.boxes.drawGhost(this.viewProj, sky, fog, f.ghost, f.ghostCount, f.ghostRound, f.ghostRoundCount, f.ghostBlocked, f.beltScroll);
     // The ghost writes no depth, so a port behind it still shows its marks; a wall still hides them.
-    drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.marks, f.marksCount, f.marksRound, f.marksRoundCount);
+    drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.marks, f.marksCount, f.marksRound, f.marksRoundCount, undefined, f.beltScroll);
     drawCalls += this.halos.draw(this.view, this.proj, sky, fog.range, f.halos, f.haloCount, f.haloFloats);
     if (!f.underwater) drawCalls += this.precip.draw(this.viewProj, f.eye, sky, drawn, this.skySettings.precip, now);
 

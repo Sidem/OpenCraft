@@ -5,7 +5,7 @@
 
 use crate::block::tex;
 
-use super::{frame, n, rgb, smooth};
+use super::{decor, frame, n, rgb};
 
 pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     match layer {
@@ -13,7 +13,7 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::ASSEMBLER_TOP => assembler_top(x, y),
         tex::PORT_IN => port(x, y, [70.0, 190.0, 225.0]),
         tex::PORT_OUT => port(x, y, [240.0, 170.0, 50.0]),
-        tex::CONCRETE => concrete(x, y),
+        tex::CONCRETE => decor::concrete(x, y, [168.0, 166.0, 160.0]),
         _ => motor(x, y),
     }
 }
@@ -56,13 +56,6 @@ fn port(x: i32, y: i32, colour: [f64; 3]) -> [u8; 4] {
     } else {
         rgb([34.0, 38.0, 44.0], 0.9 + 0.1 * n(343, x, y))
     }
-}
-
-fn concrete(x: i32, y: i32) -> [u8; 4] {
-    let grain = 0.92 + 0.06 * n(344, x, y) + 0.05 * smooth(345, x, y, 4);
-    let form = if y == 7 { 0.9 } else { 1.0 };
-    let stone = if n(346, x, y) > 0.93 { 0.85 } else { 1.0 };
-    rgb([168.0, 166.0, 160.0], grain * form * stone)
 }
 
 fn motor(x: i32, y: i32) -> [u8; 4] {

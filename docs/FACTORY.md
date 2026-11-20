@@ -119,7 +119,8 @@ size.
   ingot, an acid barrel and a unit of water; the empty barrel comes back) and ten mixes of two pigments for twice as
   much (orange, purple, cyan, lime, pink, sky, grey, brown, maroon, navy), each tinting concrete the same way. A smelter fires basalt, granite, sandstone or slag
   into basalt tiles, granite, sandstone and slag bricks (one block each). An assembler also makes framed glass (4 glass, 2
-  rods for 4), metal panels (4 plates for 4), catwalks (a see-through grating you walk on: 4 rods, a plate for 4), railings
+  rods for 4), sixteen hues of **stained glass** (4 glass plus one or two minerals or metals for 4; translucent cubes that
+  let sky light, block light and laser beams straight through, and merge seamlessly with panes of the same colour), metal panels (4 plates for 4), catwalks (a see-through grating you walk on: 4 rods, a plate for 4), railings
   (non-solid, you walk through: 4 rods for 4) and panel lights (glass, plate, wire for 2; a soft light like a torch's).
   They are not in the build menu: belt them into a box, then take them from it.
 - **The upgrader** (Assembly research, 2×2×2, 30 kW; 12 iron plates, 10 gears, 16 copper wire, 2 motors) raises a

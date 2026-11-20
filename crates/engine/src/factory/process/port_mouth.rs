@@ -45,16 +45,35 @@ const LAMP: [f32; 3] = [0.6, 0.012, 0.05];
 
 /// Draws `p`'s port openings; `rel` is its anchor cell's centre relative to the camera.
 pub(in crate::factory) fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3) {
-    let near = rel.length() <= DETAIL_RANGE;
-    let stripe = tex::stripe(p.tier_colour());
-    for (k, (role, cell, side)) in p.port_faces().into_iter().enumerate() {
-        let (layer, flow) = match role {
-            Role::In => (tex::PORT_IN, Flow::In),
-            Role::Out => (tex::PORT_OUT, Flow::Out),
-            _ => (tex::PORT_SIDE, Flow::Byproduct),
+    draw_static(p, out, rel);
+    draw_dynamic(p, out, rel);
+}
+
+/// Static port lintels of `p` at offset-relative `rel`.
+pub(super) fn draw_static(p: &Processor, out: &mut Vec<f32>, rel: Vec3) {
+    for (role, cell, side) in p.port_faces() {
+        let layer = match role {
+            Role::In => tex::PORT_IN,
+            Role::Out => tex::PORT_OUT,
+            _ => tex::PORT_SIDE,
         };
         let port = Port { centre: rel + (cell - p.pos).as_vec3(), side };
-        port.mouth(out, layer, near);
+        port.lintel(out, layer);
+    }
+}
+
+/// Distance-dependent port openings of `p` (dark mouth, near jambs and linked lamps) at camera-relative `rel`.
+pub(super) fn draw_dynamic(p: &Processor, out: &mut Vec<f32>, rel: Vec3) {
+    let near = rel.x * rel.x + rel.y * rel.y + rel.z * rel.z <= DETAIL_RANGE * DETAIL_RANGE;
+    let stripe = tex::stripe(p.tier_colour());
+    for (k, (role, cell, side)) in p.port_faces().into_iter().enumerate() {
+        let flow = match role {
+            Role::In => Flow::In,
+            Role::Out => Flow::Out,
+            _ => Flow::Byproduct,
+        };
+        let port = Port { centre: rel + (cell - p.pos).as_vec3(), side };
+        port.dark(out, near);
         if near {
             port.frame(out, stripe);
             if k < 64 && p.linked & 1 << k != 0 {
@@ -84,13 +103,17 @@ impl Port {
         f32::from((self.side + 2) % 4) * FRAC_PI_2
     }
 
-    /// The dark in the doorway (near; far off a plain dark box) and the lintel over it, in the port's hatch colour.
-    fn mouth(&self, out: &mut Vec<f32>, layer: u16, near: bool) {
+    /// The dark in the doorway (near; far off a plain dark box).
+    fn dark(&self, out: &mut Vec<f32>, near: bool) {
         let dark = self.at(0.0, DARK_FLOOR + DARK[1] / 2.0, DARK_FACE - DARK[2] / 2.0);
         push_box(out, dark, self.yaw(), DARK, 0.0, [tex::BLACK_CONCRETE; 3], false);
         if near {
             mark_dark(out);
         }
+    }
+
+    /// The lintel over the doorway, in the port's hatch colour.
+    fn lintel(&self, out: &mut Vec<f32>, layer: u16) {
         let lintel = self.at(0.0, DARK_FLOOR + DARK[1] + LINTEL[1] / 2.0, FRAME_OUT);
         push_box(out, lintel, self.yaw(), LINTEL, 0.0, [tex::FRAME, layer, tex::FRAME], false);
     }

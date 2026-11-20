@@ -85,6 +85,14 @@ fn glass_lets_the_beam_through() {
     put(&mut sim, GLASS, at(12), 0);
     run(&mut sim, 1);
     assert_eq!(sim.factory.beams.links.len(), 1);
+    // All sixteen stained glass hues pass laser beams just like plain glass.
+    for i in 0..crate::block::STAINED_GLASS_COUNT as BlockId {
+        let id = crate::block::STAINED_GLASS_FIRST + i;
+        sim.apply(P, Action::BreakBlock { pos: at(12) });
+        put(&mut sim, id, at(12), 0);
+        run(&mut sim, 1);
+        assert_eq!(sim.factory.beams.links.len(), 1, "stained glass hue {i}");
+    }
 }
 
 #[test]

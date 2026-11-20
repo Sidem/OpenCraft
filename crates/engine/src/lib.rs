@@ -109,6 +109,7 @@ mod sim;
 mod site_hands;
 mod sound;
 mod stall_lesson;
+mod static_boxes;
 mod strategy;
 pub mod street;
 mod surroundings;
@@ -243,6 +244,10 @@ pub struct Game {
     show_hand: bool,
     /// The props under power wires that would touch the ground, routed and cached (`wire_props.rs`).
     wire_props: wire_props::WireProps,
+    /// Per-chunk cached static machine and wire box instances (`static_boxes/`).
+    static_boxes: static_boxes::StaticBoxes,
+    /// Interpolated render time (seconds) for shader-driven animations (`belt_scroll`).
+    render_time: f64,
     /// Box instances drawn see-through: a held machine's ghost and the belt stubs at ports (`port_view.rs`).
     ghosts: port_view::Ghosts,
     /// The X-ray goggles' view: the local on/off choice and this frame's records (`xray.rs`).
@@ -350,6 +355,8 @@ impl Game {
             halos: Vec::new(),
             show_hand: true,
             wire_props: Default::default(),
+            static_boxes: static_boxes::StaticBoxes::default(),
+            render_time: 0.0,
             ghosts: port_view::Ghosts::default(),
             xray: xray::Xray::default(),
             pickups: VecDeque::new(),

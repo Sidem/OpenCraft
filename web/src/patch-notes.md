@@ -4,6 +4,13 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-20 · v0.9.7 · Faster factories
+- **Big bases run much smoother.** Belts, machines, poles, pipes, tracks and power wires are now kept on the graphics card between frames instead of rebuilt from scratch every frame, and conveyor belt treads scroll directly in the shader. Only moving items, status lights and animated parts update each frame, cutting steady frame times on large factories by roughly a quarter (and more than halving the engine's frame work). Everything looks and behaves identically, including lamps lighting belts, X-ray goggles and strategy view.
+
+## 2026-11-20 · v0.9.6 · Stained glass and uniform coloured concrete
+- **Sixteen colours of stained glass.** Unlocked by the **Architecture** tech alongside framed glass and the first concretes, made in an assembler from 4 plain glass plus one or two minerals or metals (no dyes needed). Stained glass is genuinely translucent: you see the world, machines and lamps right through coloured leaded panes, neighbouring panes of the same colour fuse cleanly without internal seams, and both sunlight, lamp light and laser beams pass straight through.
+- **All sixteen coloured concretes now share one poured-concrete look.** The eleven Pigments-tech concretes (blue, orange, purple, cyan, lime, pink, sky, grey, brown, maroon and navy) now use the exact same high-resolution poured-concrete texture with board lines and tie-rod holes as plain concrete and the original five coloured concretes.
+
 ## 2026-11-20 · v0.9.5 · Visual HUD cards, machine switches, any wood and pole wiring
 - **Visual top-of-screen HUD cards.** Aiming at a machine, pole, belt, box, lab or ore deposit now shows coloured tier pills with upgrade kit icons, glowing status dots, isometric recipe flow diagrams, hotbar-style mini inventory slots, segmented efficiency and power/flow/compute bars, pole connection pips and compact keycap/mouse-button control strips instead of walls of text.
 - **On/Off switch in every active machine's menu.** Right-click any active machine (including Crafters, Smelters, Miners, Quarries, Generators, Optimizers, Swarm Hubs and Winches) to shut it off and drop its power and fuel draw to zero without tearing it down. Older worlds load with every machine on.

@@ -49,6 +49,7 @@ impl Factory {
         match self.at.get(&pos) {
             Some(&Slot::Rail(i)) if self.rails[i as usize].signal != on => {
                 self.rails[i as usize].signal = on;
+                self.layout_gen = self.layout_gen.wrapping_add(1);
                 true
             }
             _ => false,

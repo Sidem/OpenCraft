@@ -51,6 +51,7 @@ const CLASS: [u8; TABLE_LEN] = {
             Render::Opaque => 0,
             Render::Cutout if i != GLASS as usize && i != LADDER as usize && i != HOIST as usize => PASSES,
             Render::Liquid => PASSES | DIMS,
+            Render::Translucent => PASSES | SKY_PASSES,
             _ => PASSES | SKY_PASSES,
         };
         t[i] = passes | (DEFS[i].light << 4);

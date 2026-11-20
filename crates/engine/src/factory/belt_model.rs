@@ -5,13 +5,14 @@
 use std::f32::consts::FRAC_PI_2;
 
 use crate::block::tex;
+use crate::entities::push_item_model;
 use crate::item;
 use crate::math::Vec3;
 
-use super::belt::{ride_unit, Belt, BeltItem, BELT_HEIGHT, BELT_TIERS};
+use super::belt::{ride_unit, Belt, BeltItem, BELT_HEIGHT, BELT_TIERS, ITEM_DETAIL_RANGE};
 use super::belt_shape::Shape;
 use super::links::{Link, Slot};
-use super::render::push_box;
+use super::render::{mark_belt_scroll, push_box};
 use super::tier_mark;
 
 impl Belt {
@@ -44,18 +45,24 @@ impl Belt {
     }
 
     /// The belt without its items (also what the crosshair hits, `hitbox.rs`).
-    pub(super) fn frame(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
+    pub(super) fn frame(&self, out: &mut Vec<f32>, rel: Vec3, _time: f64) {
+        self.frame_static(out, rel);
+        self.write_studs(out, rel);
+    }
+
+    /// Static geometry of the belt frame (camera- and time-independent: belt tops carry the shader's scroll tag).
+    pub(super) fn frame_static(&self, out: &mut Vec<f32>, rel: Vec3) {
         let base = rel - Vec3::new(0.0, 0.5, 0.0);
-        let scroll = (time * self.speed() as f64).fract() as f32;
         let yaw = self.dir as f32 * FRAC_PI_2;
         let (s, c) = yaw.sin_cos();
         let at = |x: f32, y: f32, z: f32| base + Vec3::new((c * x - s * z) as f64, y as f64, (s * x + c * z) as f64);
         if let (Shape::Flat, Some(side)) = (self.shape, self.curve_from) {
-            return self.curve_model(out, base, scroll, side);
+            return self.curve_model(out, base, side);
         }
         if matches!(self.shape, Shape::Flat | Shape::Entry | Shape::Exit) {
             let top = [BELT_TIERS[self.tier as usize].top, tex::FRAME, tex::FRAME];
-            push_box(out, at(0.0, BELT_HEIGHT * 0.5, 0.0), yaw, [0.84, BELT_HEIGHT, 1.0], scroll, top, true);
+            push_box(out, at(0.0, BELT_HEIGHT * 0.5, 0.0), yaw, [0.84, BELT_HEIGHT, 1.0], 0.0, top, true);
+            mark_belt_scroll(out, self.tier);
             for side in [-0.46, 0.46] {
                 let rail = [tex::FRAME, tex::stripe(self.tier), tex::FRAME];
                 push_box(out, at(side, 0.13, 0.0), yaw, [0.08, 0.26, 1.0], 0.0, rail, true);
@@ -68,17 +75,75 @@ impl Belt {
                     push_box(out, at(0.0, 0.2, z), yaw, [0.83, 0.07, 0.08], 0.0, [tex::DRILL; 3], false);
                 }
             }
-            // A run shows its Mk every `BELT_EVERY` cells: studs along the tops of both rails.
-            let marked = (self.pos.x + self.pos.z).rem_euclid(tier_mark::BELT_EVERY) == 0;
-            if self.shape == Shape::Flat && marked && tier_mark::near(rel) {
-                let (paint, d) = ([tex::paint(self.tier); 3], tier_mark::DEPTH);
+        }
+        self.shape_model(out, &at, yaw);
+    }
+
+    /// Whether this belt draws Mk studs when near the camera (1 in `BELT_EVERY` flat belts, or any underpass piece).
+    pub(super) fn has_studs(&self) -> bool {
+        matches!(self.shape, Shape::Entry | Shape::Exit)
+            || (self.shape == Shape::Flat
+                && self.curve_from.is_none()
+                && (self.pos.x + self.pos.z).rem_euclid(tier_mark::BELT_EVERY) == 0)
+    }
+
+    /// Near-camera Mk studs for this belt (flat rail studs or underpass hood studs).
+    pub(super) fn write_studs(&self, out: &mut Vec<f32>, rel: Vec3) {
+        if !self.has_studs() {
+            return;
+        }
+        let base = rel - Vec3::new(0.0, 0.5, 0.0);
+        let yaw = self.dir as f32 * FRAC_PI_2;
+        let (s, c) = yaw.sin_cos();
+        let at = |x: f32, y: f32, z: f32| base + Vec3::new((c * x - s * z) as f64, y as f64, (s * x + c * z) as f64);
+        let (paint, d) = ([tex::paint(self.tier); 3], tier_mark::DEPTH);
+        match self.shape {
+            Shape::Flat if tier_mark::near(rel) => {
                 for (side, o) in
                     [-0.46, 0.46].into_iter().flat_map(|s| tier_mark::offsets(self.tier).map(move |o| (s, o)))
                 {
                     push_box(out, at(side, 0.26 + d / 2.0, o), yaw, [0.1, d, tier_mark::STUD], 0.0, paint, false);
                 }
             }
+            Shape::Entry | Shape::Exit if tier_mark::near(base) => {
+                let z = if self.shape == Shape::Entry { -0.25 } else { 0.25 };
+                let stud = [tier_mark::STUD, d, tier_mark::STUD];
+                for o in tier_mark::offsets(self.tier) {
+                    push_box(out, at(o, 0.67 + d / 2.0, z), yaw, stud, 0.0, paint, false);
+                }
+            }
+            _ => {}
         }
-        self.shape_model(out, &at, yaw, scroll);
+    }
+
+    /// Riding items on this belt, at camera-relative cell centre `rel`.
+    pub(super) fn write_items(&self, out: &mut Vec<f32>, rel: Vec3) {
+        if self.items.is_empty() {
+            return;
+        }
+        let base = rel - Vec3::new(0.0, 0.5, 0.0);
+        let yaw = self.dir as f32 * FRAC_PI_2;
+        let near = rel.x * rel.x + rel.y * rel.y + rel.z * rel.z <= ITEM_DETAIL_RANGE * ITEM_DETAIL_RANGE;
+        let straight_flat = self.shape == Shape::Flat && self.curve_from.is_none();
+        let dir = super::DIRS[self.dir as usize];
+        for it in &self.items {
+            if !straight_flat && !self.shows(it.p) {
+                continue;
+            }
+            let Some(def) = item::def(it.item) else { continue };
+            let (x, y, z) = if straight_flat {
+                let t = it.p - 0.5;
+                (dir.x as f32 * t, 0.0, dir.z as f32 * t)
+            } else {
+                self.item_at(it.p)
+            };
+            let unit = ride_unit(it.item);
+            let size = def.size.map(|s| s * unit);
+            let pos = base + Vec3::new(x as f64, (y + BELT_HEIGHT + size[1] * 0.5) as f64, z as f64);
+            // Only near the camera: a modelled item is many boxes, and far belts hold thousands of them.
+            if !near || !push_item_model(out, it.item, pos, yaw, unit as f64) {
+                push_box(out, pos, yaw, size, 0.0, def.tex, false);
+            }
+        }
     }
 }

@@ -27,6 +27,7 @@ export function boxViews(game: Game, memory: WebAssembly.Memory, floats: number)
     xrayRoundCount: game.xray_round_count(),
     xrayRadius: game.xray_radius(),
     xrayFade: game.xray_fade_from(),
+    beltScroll: [game.belt_scroll(0), game.belt_scroll(1), game.belt_scroll(2), game.belt_scroll(3)] as [number, number, number, number],
   };
 }
 
@@ -72,6 +73,8 @@ export interface FrameInfo {
   /** Blocks the view reaches, and the share of it where it starts to fade. */
   xrayRadius: number;
   xrayFade: number;
+  /** Fractional UV scroll for belt tiers Mk1..Mk4 at this frame's render time. */
+  beltScroll: [number, number, number, number];
   /** A belt line being dragged out: x, y, z and 1 (will be built) or 0 (past the belts in hand) per cell. */
   lineCells: Int32Array;
   /** Quarry boxes to outline, as lowest and highest cells (6 numbers each). */

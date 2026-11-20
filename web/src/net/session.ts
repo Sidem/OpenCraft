@@ -66,9 +66,14 @@ export async function hostWorld(game: Game, room: string, relay = false): Promis
   return leaveOnClose(host);
 }
 
-/** The link that joins room `code`. */
+const CANONICAL_PLAY_URL = 'https://sidem.github.io/OpenCraft/';
+
+/** The link that joins room `code`. Falls back to the canonical site inside itch.io's iframe host. */
 export function inviteLink(code: string): string {
-  return `${location.origin}${location.pathname}?join=${code}`;
+  const base = location.hostname.endsWith('.itch.zone')
+    ? CANONICAL_PLAY_URL
+    : `${location.origin}${location.pathname}`;
+  return `${base}?join=${code}`;
 }
 
 /** The room in a pasted invite link or code, or null if it holds none. */

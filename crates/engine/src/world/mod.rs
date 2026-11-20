@@ -39,6 +39,7 @@ pub struct MeshData {
     pub opaque_quads: u32,
     pub cutout_quads: u32,
     pub liquid_quads: u32,
+    pub translucent_quads: u32,
     /// Round trunks and canopies (`mesher/shaped.rs`): opaque quads, then cutout ones.
     pub shaped: Vec<u32>,
     pub shaped_opaque: u32,
@@ -78,6 +79,9 @@ pub struct World {
     /// Lit chunks for `light_at` (boxlight.rs), the least recently read evicted first.
     light_cache: FxHashMap<IVec3, boxlight::Entry>,
     light_clock: u64,
+    /// Bumped whenever any chunk's cached box light is computed, relit or dropped (`boxlight.rs`).
+    light_version: u64,
+    light_gen_seq: u32,
     /// New chunks `light_at` may still light this frame (reset by `begin_work`).
     light_budget: u8,
     air: Chunk,
@@ -118,6 +122,8 @@ impl World {
             lighting: Lighting::default(),
             light_cache: FxHashMap::default(),
             light_clock: 0,
+            light_version: 1,
+            light_gen_seq: 1,
             light_budget: boxlight::LIGHTS_PER_FRAME,
             air: Chunk::uniform(AIR),
             floor: Chunk::uniform(STONE),
@@ -344,6 +350,7 @@ impl World {
         (self.others, self.view_radius, self.events) = (others, view_radius, events);
         self.observer = observer;
         self.light_cache.clear();
+        self.light_version = self.light_version.wrapping_add(1);
         let mut changed = Vec::new();
         for (p, mut e) in chunks {
             let fresh = match self.saved.remove(&p) {

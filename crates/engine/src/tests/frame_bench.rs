@@ -28,33 +28,55 @@ fn bench_save_frame() {
     }
     let mut g = Game::from_save(&bytes, 8).expect("load");
     run_until_ready(&mut g);
-    g.update(1.0 / 60.0);
-    println!("instances {} chunks {}", g.instances.len() / factory::INSTANCE_FLOATS, g.sim.world.loaded_count());
+    // Warm up static box lighting & wire routing like a settled frame.
+    for _ in 0..80 {
+        g.update(1.0 / 60.0);
+        g.begin_work();
+        while g.work_step() {}
+        while g.next_event() != 0 {}
+        while g.next_static_box_event() != 0 {}
+    }
+    println!(
+        "dynamic instances {} static {} chunks {}",
+        g.instances.len() / factory::INSTANCE_FLOATS,
+        g.static_box_total(),
+        g.sim.world.loaded_count()
+    );
     let eye = g.render_eye;
     let time = g.sim.tick as f64 / 60.0;
-    ms("update(1/60) whole", 10, || g.update(1.0 / 60.0));
+    let range = g.sim.world.view_distance();
+    ms("update(1/60) whole", 20, || g.update(1.0 / 60.0));
+    let mut evs = 0;
+    while g.next_static_box_event() != 0 {
+        evs += 1;
+    }
+    println!("  -> static events over 20 steady frames: {evs}");
+    ms("wire_props.step", 20, || g.wire_props.step(&g.sim.world, &g.sim.factory, eye));
+    let (strat, chg) = (g.strategy.active(), g.minimap.atlas.changes as usize);
+    ms("static_boxes.update", 20, || {
+        let atlas = &g.minimap.atlas;
+        g.static_boxes.update(&g.sim.factory, &g.wire_props, &mut g.sim.world, eye, strat, chg, |cx, cz| {
+            atlas.tile(cx, cz).is_some()
+        });
+    });
     ms("stream_around_players", 10, || g.stream_around_players());
     ms("write_item_instances", 10, || g.write_item_instances(1.0 / 60.0, eye));
     ms("write_drone_instances", 10, || g.write_drone_instances(eye, 0.5));
     let mut out = Vec::new();
-    let range = g.sim.world.view_distance();
-    ms("factory.write_instances", 10, || {
+    ms("factory.write_dynamic_instances", 20, || {
         out.clear();
-        g.sim.factory.write_instances(&mut out, eye, time, range)
+        g.sim.factory.write_dynamic_instances(&g.static_boxes.index, &mut out, eye, time, range)
     });
-    println!("  -> {} boxes", out.len() / factory::INSTANCE_FLOATS);
-    let mut chunks = std::collections::HashSet::new();
-    let mut cells = std::collections::HashSet::new();
-    for rec in out.chunks_exact(factory::INSTANCE_FLOATS) {
-        let cell = (eye + crate::math::Vec3::new(rec[0] as f64, rec[1] as f64, rec[2] as f64)).floor();
-        cells.insert((cell.x, cell.y, cell.z));
-        chunks.insert((cell.x.div_euclid(32), cell.y.div_euclid(32), cell.z.div_euclid(32)));
-    }
-    println!("  -> {} distinct cells in {} chunks", cells.len(), chunks.len());
-    ms("light_boxes (warm cache)", 10, || {
-        let world = &mut g.sim.world;
-        factory::light_boxes(&mut out, eye, |cell| world.light_at(cell))
+    println!("  -> {} dynamic factory boxes", out.len() / factory::INSTANCE_FLOATS);
+    ms("light_boxes (dynamic, warm)", 20, || factory::light_boxes(&mut out, eye, |c| g.sim.world.light_at(c)));
+    let mut round = Vec::new();
+    ms("split_round (dynamic)", 20, || factory::split_round(&out, &mut round));
+    let mut full = Vec::new();
+    ms("factory.write_instances (ref)", 10, || {
+        full.clear();
+        g.sim.factory.write_instances(&mut full, eye, time, range)
     });
+    println!("  -> {} full factory boxes", full.len() / factory::INSTANCE_FLOATS);
     ms("hide_unexplored_instances", 10, || g.hide_unexplored_instances(eye));
     ms("write_strategy_fog", 10, || g.write_strategy_fog(eye));
     ms("refresh_some", 10, || g.minimap.atlas.refresh_some(&g.sim.world));

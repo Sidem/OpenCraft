@@ -17,7 +17,9 @@
 //!
 //! To let another block pass the beam: add it to `transparent`.
 
-use crate::block::{tex, BlockId, AIR, BLOCK_DEFS, DATA_RECEIVER, GLASS, LASER_EMITTER, LASER_MIRROR, LASER_RECEIVER};
+use crate::block::{
+    is_glass, tex, BlockId, AIR, BLOCK_DEFS, DATA_RECEIVER, LASER_EMITTER, LASER_MIRROR, LASER_RECEIVER,
+};
 use crate::math::{IVec3, Vec3};
 use crate::world::World;
 
@@ -84,7 +86,7 @@ pub fn emit_dir(p: &Processor) -> IVec3 {
 }
 
 fn transparent(block: BlockId) -> bool {
-    block == AIR || block == GLASS
+    block == AIR || is_glass(block)
 }
 
 /// The direction a beam travelling `step` leaves a mirror turned `dir`: an even facing swaps the horizontal

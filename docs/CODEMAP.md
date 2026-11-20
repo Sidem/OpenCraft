@@ -16,7 +16,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `api/`: the JS API, one `#[wasm_bindgen] impl Game` per area; methods only forward. `engine.d.ts` (generated) lists them.
   `input`, `view`, `render`, `inventory`, `machine`, `crafting`, `research`, `creative`, `content`, `hud`, `sites`, `save`,
   `net`, `minimap`, `prospect`, `analytics`, `towns`, `orbit`, `ruins`, `signs`, `opening`, `blueprint`, `hand_waste`,
-  `lessons`, `guide`, `surroundings`, `xray`, `led`, `debug` (give, teleport, run_ticks, scene building).
+  `lessons`, `guide`, `surroundings`, `xray`, `led`, `static_boxes`, `debug` (give, teleport, run_ticks, scene building).
 - `events.rs`: `SimEvent`s → item spawns, sounds, toasts, analytics. `authority.rs`: bodies, loose items, join/leave.
 
 ### Deterministic core (changes only through `Action`s at a tick)
@@ -55,7 +55,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `pods.rs` + `pods/channels.rs`, `hangar.rs`, `hoist.rs`, `docks.rs`, `depot.rs`, `ejector.rs`, `upgrader.rs`, `laser.rs`,
   `forester.rs` + `forester/` (`patch.rs`, `work.rs`, `fell.rs`, `view.rs`, `crane.rs`, `scene.rs`; `Look::Crane`).
 - Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs`, `render.rs` (instances; `push_round`, `push_cone`,
-  `push_framed`; `plume.rs`, `capsule.rs`; `render/fake_round.rs` and `tests/face_fight.rs` are checks), `hitbox.rs`, `smoke.rs`,
+  `push_framed`; `plume.rs`, `capsule.rs`; `render/fake_round.rs` and `tests/face_fight.rs` are checks), `static_view.rs` (chunk index and static/dynamic split), `hitbox.rs`, `smoke.rs`,
   `placed.rs` (what blueprints copy).
 
 ### Content tables (data; append ids, never renumber)
@@ -64,6 +64,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `forester.rs`, `woods.rs`, `ores.rs`, `merger.rs`, `led.rs` (ids 220–222, the lamp's three steps), `street.rs` (ids 223–227: head + four post ids by arm direction).
   Ground pigments: items 414–418 (`item/later.rs`), `recipes/pigment.rs` (hand grind rows), heap models in `item_models/stock.rs`.
   Pigments tech (tech 89): items 419–429, blocks 228–238 (`block/tints.rs`, the mixed-hue concretes), `recipes/dye.rs` (`HUES` palette, machine rows 155–176).
+  Stained glass: blocks 239–254 (`block/glass.rs`, translucent cubes), `recipes/glass.rs` (rows 177–192, Architecture).
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs`): `ItemId`; ids below 256 are blocks, wider blocks pair with items in `WIDE_BLOCK_ITEMS`. `wood.rs`: the ten woods.
 - `recipes/`: `mod.rs` (`RECIPES`; `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`; `machine_later.rs`), `process_notes.rs` (one line of real chemistry a chemical machine row; shown on its card and in the item guide), `rows.rs`, `tiers.rs`,
   `refit.rs`, `timing.rs`, `group.rs` + `menu_order.rs`, `item_groups.rs`, `recycling.rs`, `content.rs`; one file per era or
@@ -98,6 +99,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `held_light.rs`, `drone_view.rs` + `companion_view.rs`, `orbit_fx.rs`, `sound.rs`.
 - `minimap.rs` + `minimap/` (`atlas.rs`, `marks.rs`, `describe.rs`, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
 - `xray.rs`: the X-ray goggles' view (a local switch; the factory's boxes near the camera, drawn behind the terrain only).
+- `static_boxes/`: per-chunk static machine and wire box cache (pre-lit, cube/round split, GPU-resident).
 - `tier_palette.rs`: the two palettes of the tier colours Mk1–Mk5 (standard, colour-blind) and the player's local choice.
 - `item_guide.rs`: every way to get an item and what uses it. `analytics/` (`series.rs`, `machines.rs`, `power.rs`; never saved).
   `surroundings/` (ambient sound floats, `roof.rs`).

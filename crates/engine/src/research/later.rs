@@ -5,17 +5,24 @@
 
 use crate::block::{FORESTER, LANDING_PAD, LED, LONG_POLE, POD_LAUNCHER, STREET, TOWN_DEPOT};
 use crate::item::{BLUE_PACK, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK, XRAY_GOGGLES};
-use crate::recipes::{DECOR_FIRST, DECOR_ROWS, DROP_POD_RECIPE, DYE_FIRST, DYE_ROWS, LONG_POLE_ROW};
+use crate::recipes::{
+    DECOR_FIRST, DECOR_ROWS, DROP_POD_RECIPE, DYE_FIRST, DYE_ROWS, GLASS_FIRST, GLASS_ROWS, LONG_POLE_ROW,
+};
 
 use super::{r, Tech, Unlock};
 
-/// Every machine row of the decor set.
-const DECOR_UNLOCKS: [Unlock; DECOR_ROWS as usize] = {
-    let mut out = [Unlock::MachineRecipe(DECOR_FIRST); DECOR_ROWS as usize];
+/// Every machine row of the decor set plus the sixteen stained glass panes.
+const DECOR_UNLOCKS: [Unlock; (DECOR_ROWS + GLASS_ROWS) as usize] = {
+    let mut out = [Unlock::MachineRecipe(DECOR_FIRST); (DECOR_ROWS + GLASS_ROWS) as usize];
     let mut i = 0;
-    while i < out.len() {
+    while i < DECOR_ROWS as usize {
         out[i] = Unlock::MachineRecipe(DECOR_FIRST + i as u16);
         i += 1;
+    }
+    let mut j = 0;
+    while j < GLASS_ROWS as usize {
+        out[DECOR_ROWS as usize + j] = Unlock::MachineRecipe(GLASS_FIRST + j as u16);
+        j += 1;
     }
     out
 };
@@ -73,7 +80,7 @@ pub const LATER: [Tech; 8] = [
         blurb:
             "Build for looks. Assemblers tint concrete red, green, black, white or yellow with a pinch of the ground \
                 pigment (grind an iron or copper ingot, coal, quicklime or sulfur by hand); smelters fire basalt, granite, sandstone and slag into tiles \
-                and bricks; assemblers make framed glass, metal panels, catwalks, railings and panel lights.",
+                and bricks; assemblers make framed glass, sixteen hues of stained glass (tinted with minerals and metals), metal panels, catwalks, railings and panel lights.",
         needs: &[7, 8],
         packs: &[RED_PACK, GREEN_PACK],
         units: 40,

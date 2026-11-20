@@ -23,12 +23,23 @@ pub const CUTOUT: [bool; TABLE_LEN] = {
     t
 };
 
-/// Blocks the chunk mesher draws as cubes (opaque, cutout or liquid).
+/// Blocks the chunk mesher draws as cubes (opaque, cutout, liquid or translucent).
 pub const MESHED: [bool; TABLE_LEN] = {
     let mut t = [false; TABLE_LEN];
     let mut i = 0;
     while i < BLOCK_COUNT {
-        t[i] = matches!(DEFS[i].render, Render::Opaque | Render::Cutout | Render::Liquid);
+        t[i] = matches!(DEFS[i].render, Render::Opaque | Render::Cutout | Render::Liquid | Render::Translucent);
+        i += 1;
+    }
+    t
+};
+
+/// Translucent cubes (stained glass): drawn blended after opaque and boxes; adjacent equal blocks hide inner faces.
+pub const TRANSLUCENT: [bool; TABLE_LEN] = {
+    let mut t = [false; TABLE_LEN];
+    let mut i = 0;
+    while i < BLOCK_COUNT {
+        t[i] = matches!(DEFS[i].render, Render::Translucent);
         i += 1;
     }
     t

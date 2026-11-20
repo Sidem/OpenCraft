@@ -13,12 +13,39 @@ fn ao(side1: bool, side2: bool, corner: bool) -> u32 {
 }
 
 /// The merge key: 4 corners of `CORNER_BITS` (AO 2 bits, light 8 bits, then 2 bits only a liquid corner uses:
-/// the high bits of its drop, `water.rs`), then layer, cutout, liquid, flag.
+/// the high bits of its drop, `water.rs`), then layer, cutout, liquid, translucent, flag.
 pub(super) const CORNER_BITS: usize = 12;
 pub(super) const KEY_LAYER: usize = 4 * CORNER_BITS;
 pub(super) const KEY_CUTOUT: usize = KEY_LAYER + 9;
 pub(super) const KEY_LIQUID: usize = KEY_CUTOUT + 1;
+pub(super) const KEY_TRANSLUCENT: usize = KEY_LIQUID + 1;
 pub(super) const KEY_FLAG: u64 = 1 << 63;
+
+pub struct MeshOutput {
+    /// The vertices, opaque quads first, then cutout, liquid, translucent; then their light bytes in
+    /// the same order, packed four per `u32` (little-endian, so the bytes read in order).
+    pub verts: Vec<u32>,
+    pub opaque_quads: u32,
+    pub cutout_quads: u32,
+    pub liquid_quads: u32,
+    pub translucent_quads: u32,
+    /// The shaped list (`shaped.rs`): opaque quads, then cutout ones, three `u32` a vertex.
+    pub shaped: Vec<u32>,
+    pub shaped_opaque: u32,
+    pub shaped_cutout: u32,
+}
+
+#[cfg(test)]
+impl MeshOutput {
+    pub fn vertex_count(&self) -> usize {
+        (self.opaque_quads + self.cutout_quads + self.liquid_quads + self.translucent_quads) as usize * 4
+    }
+
+    /// The light byte of vertex `i`.
+    pub fn light(&self, i: usize) -> u8 {
+        (self.verts[self.vertex_count() + i / 4] >> (i % 4 * 8)) as u8
+    }
+}
 
 pub(super) fn corners_of(key: u64) -> [u32; 4] {
     std::array::from_fn(|i| (key >> (i * CORNER_BITS)) as u32 & ((1 << CORNER_BITS) - 1))

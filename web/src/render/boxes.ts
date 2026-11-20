@@ -9,10 +9,19 @@
 
 import { createProgram, uniforms } from './gl';
 import { uploadHeldLights } from './held-light';
+import { boxInFrustum } from './mat4';
 import { roundMesh } from './round-mesh';
 import { boxVert } from './box-glsl';
 import * as S from './shaders';
 import type { Sky } from './sky';
+
+const CHUNK = 32;
+/** Static box chunks are packed into 4×8×4-chunk (128×256×128) GPU regions so `drawStatic` makes only a handful of draw calls. */
+const REGION_SHIFT = 2;
+const REGION_CHUNKS = 1 << REGION_SHIFT;
+const REGION = CHUNK * REGION_CHUNKS;
+const ZERO_SCROLL: readonly [number, number, number, number] = [0, 0, 0, 0];
+const regionKey = (rx: number, rz: number) => (rx + 1048576) * 2097152 + (rz + 1048576);
 
 /** `u_ghost` (tint, opacity) for solid boxes, a ghost, and a ghost in the way of something. */
 const SOLID = [0, 0, 0, 0] as const;
@@ -22,42 +31,67 @@ const GHOST_BLOCKED = [1.0, 0.3, 0.25, 0.4] as const;
 const XRAY = [0.3, 0.9, 1.0, 0.62] as const;
 
 /** One mesh drawn once an instance: its vertex array, instance buffer and how many indices (or vertices) it has. */
-interface Pass {
-  vao: WebGLVertexArrayObject;
-  instances: WebGLBuffer;
-  capacity: number;
-  count: number;
-  indexed: boolean;
+interface Pass { vao: WebGLVertexArrayObject; instances: WebGLBuffer; capacity: number; count: number; indexed: boolean; }
+type Fog = { color: [number, number, number]; range: [number, number] };
+type Vec4 = readonly [number, number, number, number];
+
+/** One cached 32³ chunk of static boxes, already shifted into its parent region's local coordinates. */
+interface StaticChunk {
+  rk: number;
+  minX: number; minY: number; minZ: number; maxX: number; maxY: number; maxZ: number;
+  cubes: Float32Array; cubeCount: number; rounds: Float32Array; roundCount: number;
+}
+
+/** One GPU-resident 128×256×128 region combining its constituent static box chunks into 1 cube + 1 round VBO. */
+interface StaticRegion {
+  rk: number; rx: number; rz: number;
+  minX: number; minY: number; minZ: number; maxX: number; maxY: number; maxZ: number;
+  chunks: Map<number, StaticChunk>;
+  cubeVao: WebGLVertexArrayObject | null; cubeVbo: WebGLBuffer | null; cubeCount: number; cubeCap: number;
+  roundVao: WebGLVertexArrayObject | null; roundVbo: WebGLBuffer | null; roundCount: number; roundCap: number;
 }
 
 export class BoxPipeline {
   private readonly prog: WebGLProgram;
   private readonly u;
+  private readonly cubeVerts: WebGLBuffer;
+  private readonly roundVerts: WebGLBuffer;
+  private readonly roundIdx: WebGLBuffer;
   private readonly cube: Pass;
   private readonly round: Pass;
+  private readonly staticChunks = new Map<number, StaticChunk>();
+  private readonly staticRegions = new Map<number, StaticRegion>();
+  private readonly dirtyRegions = new Set<StaticRegion>();
+  private readonly visibleStatic: StaticRegion[] = [];
+  private packScratch = new Float32Array(0);
 
   constructor(private readonly gl: WebGL2RenderingContext, private readonly instanceFloats: number, roundBit: number) {
     this.prog = createProgram(gl, boxVert, S.litFrag, ['CUTOUT', 'BOXES', `ROUND_BIT ${roundBit}u`]);
-    this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_held', 'u_round', 'u_ghost', 'u_xray'] as const);
-    this.cube = this.pass(boxCorners(), null);
+    this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_beltScroll', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_held', 'u_round', 'u_ghost', 'u_xray'] as const);
+    const cubeCorners = boxCorners();
+    this.cubeVerts = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.cubeVerts);
+    gl.bufferData(gl.ARRAY_BUFFER, cubeCorners, gl.STATIC_DRAW);
     const { corners, indices } = roundMesh();
-    this.round = this.pass(corners, indices);
+    this.roundVerts = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.roundVerts);
+    gl.bufferData(gl.ARRAY_BUFFER, corners, gl.STATIC_DRAW);
+    this.roundIdx = gl.createBuffer()!;
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.roundIdx);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+    this.cube = this.pass(this.cubeVerts, null, cubeCorners.length / 4);
+    this.round = this.pass(this.roundVerts, this.roundIdx, indices.length);
   }
 
-  /** A vertex array over `corners` (and `indices`, if any) with per-instance centre/size/rotation/textures. */
-  private pass(corners: Float32Array, indices: Uint16Array | null): Pass {
+  /** A vertex array over shared unit geometry `verts` (and `idx`, if indexed) with per-instance attributes. */
+  private makeVao(verts: WebGLBuffer, idx: WebGLBuffer | null, instances: WebGLBuffer): WebGLVertexArrayObject {
     const gl = this.gl;
     const vao = gl.createVertexArray()!;
     gl.bindVertexArray(vao);
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()!);
-    gl.bufferData(gl.ARRAY_BUFFER, corners, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, verts);
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
-    if (indices) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer()!);
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-    }
-    const instances = gl.createBuffer()!;
+    if (idx) gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idx);
     gl.bindBuffer(gl.ARRAY_BUFFER, instances);
     for (const [loc, offset] of [[1, 0], [2, 16], [3, 32], [4, 48]]) {
       gl.enableVertexAttribArray(loc);
@@ -65,28 +99,136 @@ export class BoxPipeline {
       gl.vertexAttribDivisor(loc, 1);
     }
     gl.bindVertexArray(null);
-    return { vao, instances, capacity: 0, count: indices ? indices.length : corners.length / 4, indexed: !!indices };
+    return vao;
   }
 
-  /**
-   * Draws `count` instances from `boxes` and `roundCount` from `round` (views into wasm memory, or any arrays).
-   * Expects the block texture array bound to unit 0. Returns the number of draw calls made.
-   */
-  draw(
-    viewProj: Float32Array,
-    sky: Sky,
-    fog: { color: [number, number, number]; range: [number, number] },
-    boxes: Float32Array,
-    count: number,
-    round: Float32Array,
-    roundCount: number,
-    ghost: readonly [number, number, number, number] = SOLID,
-  ): number {
-    if (count === 0) return 0;
+  private pass(verts: WebGLBuffer, idx: WebGLBuffer | null, count: number): Pass {
+    const instances = this.gl.createBuffer()!;
+    const vao = this.makeVao(verts, idx, instances);
+    return { vao, instances, capacity: 0, count, indexed: idx !== null };
+  }
+
+  /** Creates or updates one cached static box chunk (packed into its 128×256×128 GPU region on draw). */
+  upsertStaticChunk(
+    key: number, x: number, y: number, z: number, bounds: ArrayLike<number>,
+    cubes: Float32Array, cubeCount: number, rounds: Float32Array, roundCount: number,
+  ): void {
+    if (cubeCount === 0 && roundCount === 0) {
+      this.removeStaticChunk(key);
+      return;
+    }
+    const rx = x >> REGION_SHIFT, rz = z >> REGION_SHIFT, rk = regionKey(rx, rz);
+    const dx = (x - rx * REGION_CHUNKS) * CHUNK, dy = y * CHUNK, dz = (z - rz * REGION_CHUNKS) * CHUNK;
+    const stride = this.instanceFloats;
+    const shiftCopy = (src: Float32Array, count: number): Float32Array => {
+      if (count === 0) return new Float32Array(0);
+      const dst = src.slice(0, count * stride);
+      for (let i = 0; i < dst.length; i += stride) {
+        dst[i] += dx; dst[i + 1] += dy; dst[i + 2] += dz;
+      }
+      return dst;
+    };
+    const chunk: StaticChunk = {
+      rk,
+      minX: bounds[0] + dx, minY: bounds[1] + dy, minZ: bounds[2] + dz,
+      maxX: bounds[3] + dx, maxY: bounds[4] + dy, maxZ: bounds[5] + dz,
+      cubes: shiftCopy(cubes, cubeCount), cubeCount,
+      rounds: shiftCopy(rounds, roundCount), roundCount,
+    };
+    let region = this.staticRegions.get(rk);
+    if (!region) {
+      region = {
+        rk, rx, rz, minX: 0, minY: 0, minZ: 0, maxX: 0, maxY: 0, maxZ: 0,
+        chunks: new Map(), cubeVao: null, cubeVbo: null, cubeCount: 0, cubeCap: 0,
+        roundVao: null, roundVbo: null, roundCount: 0, roundCap: 0,
+      };
+      this.staticRegions.set(rk, region);
+    }
+    this.staticChunks.set(key, chunk);
+    region.chunks.set(key, chunk);
+    this.dirtyRegions.add(region);
+  }
+
+  /** Removes a static box chunk and marks its parent GPU region dirty. */
+  removeStaticChunk(key: number): void {
+    const c = this.staticChunks.get(key);
+    if (!c) return;
+    this.staticChunks.delete(key);
+    const region = this.staticRegions.get(c.rk);
+    if (!region) return;
+    region.chunks.delete(key);
+    this.dirtyRegions.add(region);
+  }
+
+  /** Repacks and uploads only regions touched by chunk upserts/removals since the previous frame. */
+  private flushStaticRegions(): void {
+    const gl = this.gl, stride = this.instanceFloats;
+    const upload = (
+      vao: WebGLVertexArrayObject | null, vbo: WebGLBuffer | null, cap: number,
+      total: number, chunks: Map<number, StaticChunk>, pick: (c: StaticChunk) => Float32Array,
+      verts: WebGLBuffer, idx: WebGLBuffer | null,
+    ): [WebGLVertexArrayObject | null, WebGLBuffer | null, number] => {
+      if (total === 0) return [vao, vbo, cap];
+      const floats = total * stride, bytes = floats * 4;
+      if (this.packScratch.length < floats) this.packScratch = new Float32Array(Math.max(floats, this.packScratch.length * 2));
+      let off = 0;
+      for (const c of chunks.values()) {
+        const a = pick(c);
+        if (a.length === 0) continue;
+        this.packScratch.set(a, off);
+        off += a.length;
+      }
+      if (!vbo) {
+        vbo = gl.createBuffer()!;
+        vao = this.makeVao(verts, idx, vbo);
+      }
+      gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+      if (bytes > cap) {
+        gl.bufferData(gl.ARRAY_BUFFER, this.packScratch.subarray(0, floats), gl.STATIC_DRAW);
+        cap = bytes;
+      } else {
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.packScratch, 0, floats);
+      }
+      return [vao, vbo, cap];
+    };
+    for (const r of this.dirtyRegions) {
+      if (r.chunks.size === 0) {
+        if (r.cubeVao) gl.deleteVertexArray(r.cubeVao);
+        if (r.cubeVbo) gl.deleteBuffer(r.cubeVbo);
+        if (r.roundVao) gl.deleteVertexArray(r.roundVao);
+        if (r.roundVbo) gl.deleteBuffer(r.roundVbo);
+        this.staticRegions.delete(r.rk);
+        continue;
+      }
+      let cubeCount = 0, roundCount = 0;
+      let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+      for (const c of r.chunks.values()) {
+        cubeCount += c.cubeCount; roundCount += c.roundCount;
+        if (c.minX < minX) minX = c.minX;
+        if (c.minY < minY) minY = c.minY;
+        if (c.minZ < minZ) minZ = c.minZ;
+        if (c.maxX > maxX) maxX = c.maxX;
+        if (c.maxY > maxY) maxY = c.maxY;
+        if (c.maxZ > maxZ) maxZ = c.maxZ;
+      }
+      r.minX = minX; r.minY = minY; r.minZ = minZ; r.maxX = maxX; r.maxY = maxY; r.maxZ = maxZ;
+      [r.cubeVao, r.cubeVbo, r.cubeCap] = upload(r.cubeVao, r.cubeVbo, r.cubeCap, cubeCount, r.chunks, (c) => c.cubes, this.cubeVerts, null);
+      r.cubeCount = cubeCount;
+      [r.roundVao, r.roundVbo, r.roundCap] = upload(r.roundVao, r.roundVbo, r.roundCap, roundCount, r.chunks, (c) => c.rounds, this.roundVerts, this.roundIdx);
+      r.roundCount = roundCount;
+    }
+    this.dirtyRegions.clear();
+  }
+
+  private bindShared(
+    viewProj: Float32Array, sky: Sky, fog: { color: [number, number, number]; range: [number, number] },
+    ghost: readonly [number, number, number, number], beltScroll: readonly [number, number, number, number],
+  ): void {
     const gl = this.gl;
     gl.useProgram(this.prog);
     gl.uniform4f(this.u.u_ghost, ...ghost);
     gl.uniformMatrix4fv(this.u.u_viewProj, false, viewProj);
+    gl.uniform4f(this.u.u_beltScroll, ...beltScroll);
     gl.uniform1i(this.u.u_tex, 0);
     gl.uniform1i(this.u.u_glow, S.GLOW_UNIT);
     gl.uniform3f(this.u.u_fogColor, ...fog.color);
@@ -95,6 +237,56 @@ export class BoxPipeline {
     gl.uniform3f(this.u.u_direct, ...sky.direct);
     gl.uniform2f(this.u.u_fog, ...fog.range);
     uploadHeldLights(gl, this.u.u_held);
+  }
+
+  /** Draws all frustum-visible static box regions with zero per-frame GPU upload. */
+  drawStatic(
+    viewProj: Float32Array, planes: Float32Array, eye: readonly [number, number, number],
+    sky: Sky, fog: { color: [number, number, number]; range: [number, number] },
+    beltScroll: readonly [number, number, number, number],
+  ): number {
+    if (this.dirtyRegions.size > 0) this.flushStaticRegions();
+    if (this.staticRegions.size === 0) return 0;
+    const [ex, ey, ez] = eye;
+    const vis = this.visibleStatic;
+    vis.length = 0;
+    for (const r of this.staticRegions.values()) {
+      const ox = r.rx * REGION - ex, oy = -ey, oz = r.rz * REGION - ez;
+      if (boxInFrustum(planes, ox + r.minX, oy + r.minY, oz + r.minZ, ox + r.maxX, oy + r.maxY, oz + r.maxZ)) vis.push(r);
+    }
+    if (vis.length === 0) return 0;
+    const gl = this.gl;
+    this.bindShared(viewProj, sky, fog, SOLID, beltScroll);
+    let calls = 0;
+    gl.uniform1i(this.u.u_round, 0);
+    for (const r of vis) {
+      if (r.cubeCount === 0 || !r.cubeVao) continue;
+      gl.uniform3f(this.u.u_offset, r.rx * REGION - ex, -ey, r.rz * REGION - ez);
+      gl.bindVertexArray(r.cubeVao);
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, this.cube.count, r.cubeCount);
+      calls++;
+    }
+    gl.uniform1i(this.u.u_round, 1);
+    for (const r of vis) {
+      if (r.roundCount === 0 || !r.roundVao) continue;
+      gl.uniform3f(this.u.u_offset, r.rx * REGION - ex, -ey, r.rz * REGION - ez);
+      gl.bindVertexArray(r.roundVao);
+      gl.drawElementsInstanced(gl.TRIANGLES, this.round.count, gl.UNSIGNED_SHORT, 0, r.roundCount);
+      calls++;
+    }
+    gl.bindVertexArray(null);
+    return calls;
+  }
+
+  /** Draws `count` instances from `boxes` and `roundCount` from `round` (views into wasm memory). Expects textures on unit 0. */
+  draw(
+    viewProj: Float32Array, sky: Sky, fog: Fog, boxes: Float32Array, count: number,
+    round: Float32Array, roundCount: number, ghost: Vec4 = SOLID, beltScroll: Vec4 = ZERO_SCROLL,
+  ): number {
+    if (count === 0) return 0;
+    const gl = this.gl;
+    this.bindShared(viewProj, sky, fog, ghost, beltScroll);
+    gl.uniform3f(this.u.u_offset, 0, 0, 0);
     gl.uniform1i(this.u.u_round, 0);
     this.drawPass(this.cube, boxes, count);
     if (roundCount === 0) return 1;
@@ -103,48 +295,26 @@ export class BoxPipeline {
     return 2;
   }
 
-  /**
-   * Draws see-through boxes (a held machine's ghost, belt stubs at ports: engine `port_view.rs`) over what is drawn:
-   * tinted, blended, without writing depth, so what stands behind them still shows. Red while `blocked`.
-   */
+  /** Draws see-through boxes (a held machine's ghost, belt stubs at ports: `port_view.rs`), blended without depth write. */
   drawGhost(
-    viewProj: Float32Array,
-    sky: Sky,
-    fog: { color: [number, number, number]; range: [number, number] },
-    boxes: Float32Array,
-    count: number,
-    round: Float32Array,
-    roundCount: number,
-    blocked: boolean,
+    viewProj: Float32Array, sky: Sky, fog: Fog, boxes: Float32Array, count: number,
+    round: Float32Array, roundCount: number, blocked: boolean, beltScroll: Vec4 = ZERO_SCROLL,
   ): number {
     if (count === 0) return 0;
     const gl = this.gl;
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.depthMask(false);
-    const calls = this.draw(viewProj, sky, fog, boxes, count, round, roundCount, blocked ? GHOST_BLOCKED : GHOST);
+    const calls = this.draw(viewProj, sky, fog, boxes, count, round, roundCount, blocked ? GHOST_BLOCKED : GHOST, beltScroll);
     gl.depthMask(true);
     gl.disable(gl.BLEND);
     return calls;
   }
 
-  /**
-   * The X-ray goggles' view: the engine's factory boxes near the eye (`xray.rs`), drawn where the terrain hides them.
-   * Call after the terrain and before the solid boxes: the depth buffer then holds only terrain, and the depth test is
-   * *greater*, so a box in the open (nearer than the terrain behind it) draws nothing, and one inside a hill or behind a
-   * wall draws tinted, flat and fading out towards `radius`. Writes no depth; the solid pass that follows paints over
-   * any part that is in fact visible.
-   */
+  /** X-ray goggles' view (`xray.rs`): draws near factory boxes where terrain hides them (depth test GREATER, no depth write). */
   drawXray(
-    viewProj: Float32Array,
-    sky: Sky,
-    fog: { color: [number, number, number]; range: [number, number] },
-    boxes: Float32Array,
-    count: number,
-    round: Float32Array,
-    roundCount: number,
-    radius: number,
-    fadeFrom: number,
+    viewProj: Float32Array, sky: Sky, fog: Fog, boxes: Float32Array, count: number,
+    round: Float32Array, roundCount: number, radius: number, fadeFrom: number, beltScroll: Vec4 = ZERO_SCROLL,
   ): number {
     if (count === 0) return 0;
     const gl = this.gl;
@@ -154,7 +324,7 @@ export class BoxPipeline {
     gl.depthFunc(gl.GREATER);
     gl.useProgram(this.prog);
     gl.uniform2f(this.u.u_xray, radius, fadeFrom);
-    const calls = this.draw(viewProj, sky, fog, boxes, count, round, roundCount, XRAY);
+    const calls = this.draw(viewProj, sky, fog, boxes, count, round, roundCount, XRAY, beltScroll);
     gl.uniform2f(this.u.u_xray, 0, 0);
     gl.depthFunc(gl.LEQUAL);
     gl.depthMask(true);

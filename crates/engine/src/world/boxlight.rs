@@ -39,32 +39,73 @@ pub(super) struct Entry {
     pub(super) lit: Lit,
     used: u64,
     stale: bool,
+    /// Non-zero once `lit` is `Some`, bumped every time `lit` is recomputed (`static_boxes` staleness check).
+    gen: u32,
 }
 
 impl World {
+    /// Monotonic counter bumped whenever any chunk's box light is computed, relit, cleared or unblocked.
+    pub fn light_version(&self) -> u64 {
+        self.light_version
+    }
+
+    /// Remaining per-frame chunk lighting budget (`LIGHTS_PER_FRAME`, reset by `begin_work`).
+    pub fn light_budget(&self) -> u8 {
+        self.light_budget
+    }
+
+    /// The generation of chunk `c`'s cached light (`0` if absent or unlit sentinel).
+    pub fn chunk_light_gen(&self, c: IVec3) -> u32 {
+        self.light_cache.get(&c).map_or(0, |e| e.gen)
+    }
+
+    /// True if `c` is cached as an unlit sentinel (`lit: None`, waiting for neighbour chunks to load).
+    pub fn is_unlit_sentinel(&self, c: IVec3) -> bool {
+        self.light_cache.get(&c).is_some_and(|e| e.lit.is_none())
+    }
+
     /// The light byte (sky in the low nibble, block light in the high one, each 0..=15) of the cell at `p`.
     pub fn light_at(&mut self, p: IVec3) -> u8 {
-        if p.y < 0 || p.y >= WORLD_HEIGHT {
-            return DAYLIGHT;
+        self.light_at_tracked(p).0
+    }
+
+    /// Like [`World::light_at`], also returning `true` when `DAYLIGHT` was returned only because this frame's
+    /// `light_budget` ran out (so a static box cache should retry on a later frame).
+    pub fn light_at_tracked(&mut self, p: IVec3) -> (u8, bool) {
+        if !(0..WORLD_HEIGHT).contains(&p.y) {
+            return (DAYLIGHT, false);
         }
         let c = chunk_of(p);
         self.light_clock += 1;
-        if !self.light_cache.contains_key(&c) {
-            if self.light_budget == 0 {
-                return DAYLIGHT; // lit on a later frame
-            }
-            let lit = self.light_chunk(c);
-            self.light_budget -= u8::from(lit.is_some());
-            if self.light_cache.len() >= LIGHT_CHUNKS {
-                let stalest = self.light_cache.iter().min_by_key(|(_, e)| e.used).map(|(&k, _)| k);
-                stalest.map(|k| self.light_cache.remove(&k));
-            }
-            self.light_cache.insert(c, Entry { lit, used: 0, stale: false });
+        if let Some(entry) = self.light_cache.get_mut(&c) {
+            entry.used = self.light_clock;
+            let (x, y, z) = local_of(p);
+            return (entry.lit.as_ref().map_or(DAYLIGHT, |cells| cells[index(x, y, z)]), false);
         }
-        let entry = self.light_cache.get_mut(&c).expect("cached above");
-        entry.used = self.light_clock;
+        if self.light_budget == 0 {
+            return (DAYLIGHT, true); // lit on a later frame
+        }
+        let lit = self.light_chunk(c);
+        let gen = if lit.is_some() {
+            self.light_budget -= 1;
+            self.next_light_gen()
+        } else {
+            0
+        };
+        if self.light_cache.len() >= LIGHT_CHUNKS {
+            let stalest = self.light_cache.iter().min_by_key(|(_, e)| e.used).map(|(&k, _)| k);
+            stalest.map(|k| self.light_cache.remove(&k));
+        }
         let (x, y, z) = local_of(p);
-        entry.lit.as_ref().map_or(DAYLIGHT, |cells| cells[index(x, y, z)])
+        let out = lit.as_ref().map_or(DAYLIGHT, |cells| cells[index(x, y, z)]);
+        self.light_cache.insert(c, Entry { lit, used: self.light_clock, stale: false, gen });
+        (out, false)
+    }
+
+    fn next_light_gen(&mut self) -> u32 {
+        self.light_gen_seq = self.light_gen_seq.wrapping_add(1).max(1);
+        self.light_version = self.light_version.wrapping_add(1);
+        self.light_gen_seq
     }
 
     /// Block `p` changed from `old` to `new`: the chunks its light can reach are meshed again and their
@@ -91,8 +132,16 @@ impl World {
                 }
             }
         }
-        for (_, e) in self.light_cache.iter_mut().filter(|(c, _)| reached.contains(c)) {
-            e.stale = true;
+        let mut missed = false;
+        for c in &reached {
+            if let Some(e) = self.light_cache.get_mut(c) {
+                e.stale = true;
+            } else {
+                missed = true;
+            }
+        }
+        if missed {
+            self.light_version = self.light_version.wrapping_add(1);
         }
     }
 
@@ -113,10 +162,12 @@ impl World {
             return false;
         };
         let lit = self.light_chunk(at);
+        let gen = if lit.is_some() { Some(self.next_light_gen()) } else { None };
         if let Some(e) = self.light_cache.get_mut(&at) {
             e.stale = false;
-            if lit.is_some() {
-                e.lit = lit;
+            if let (Some(cells), Some(g)) = (lit, gen) {
+                e.lit = Some(cells);
+                e.gen = g;
             }
         }
         true

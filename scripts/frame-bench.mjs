@@ -145,8 +145,13 @@ async function load(query = '') {
     const drain = () => { for (let k; (k = g.next_event()) !== 0; ) {
       const [x, y, z] = [g.event_x(), g.event_y(), g.event_z()];
       if (k === 1) r.upsertChunk(x, y, z, new Uint32Array(wasm.memory.buffer, g.mesh_ptr(), g.mesh_len()), g.mesh_opaque_quads(), g.mesh_cutout_quads(), g.mesh_liquid_quads(),
-        new Uint32Array(wasm.memory.buffer, g.mesh_shaped_ptr(), g.mesh_shaped_len()), g.mesh_shaped_opaque(), g.mesh_shaped_cutout());
+        g.mesh_translucent_quads(), new Uint32Array(wasm.memory.buffer, g.mesh_shaped_ptr(), g.mesh_shaped_len()), g.mesh_shaped_opaque(), g.mesh_shaped_cutout());
       else r.removeChunk(x, y, z);
+    } const f = g.instance_floats(); for (let k; (k = g.next_static_box_event()) !== 0; ) {
+      const [x, y, z] = [g.static_box_x(), g.static_box_y(), g.static_box_z()];
+      if (k === 1) r.upsertStaticBoxes(x, y, z, g.static_box_bounds(), new Float32Array(wasm.memory.buffer, g.static_box_ptr(), g.static_box_count() * f), g.static_box_count(),
+        new Float32Array(wasm.memory.buffer, g.static_round_ptr(), g.static_round_count() * f), g.static_round_count());
+      else r.removeStaticBoxes(x, y, z);
     } };
     do { g.update(1 / 60); g.begin_work(); while (g.work_step()); drain(); await new Promise((s) => setTimeout(s, 50)); } while (g.chunks_pending() > 0 && performance.now() < end);
     drain();

@@ -18,6 +18,8 @@ layout(location = 3) in vec4 a_i2;     // texture layer top, side, bottom; mode 
 layout(location = 4) in vec4 a_i3;     // pitch, roll, top-width taper (a round body's top-radius share), glow (0 or 1)
 
 uniform mat4 u_viewProj;
+uniform vec3 u_offset;
+uniform vec4 u_beltScroll;
 uniform vec3 u_skyLight;
 uniform bool u_round; // this pass draws the round bodies
 
@@ -47,6 +49,9 @@ void main() {
   if (u_round) local.xz *= taper; else local.x *= taper;
   // Whole texture on every face (items), or texels at world scale like terrain (machine parts).
   float worldUv = float(mode & 1u);
+  uint beltTier = (mode >> 10u) & 7u;
+  float beltScroll = beltTier == 1u ? u_beltScroll.x : beltTier == 2u ? u_beltScroll.y : beltTier == 3u ? u_beltScroll.z : beltTier == 4u ? u_beltScroll.w : 0.0;
+  float scroll = a_i1.w + beltScroll;
   vec3 q = mix(a_corner.xyz, local, worldUv) + 0.5;
   vec2 uv;
   // Round once a quarter of the way (a box's four sides), every other copy mirrored so the copies meet without a seam
@@ -54,11 +59,11 @@ void main() {
   // side along its axis (a stem fed through a harvester head), a box's top across it (a belt).
   if (side) {
     float around = (a_corner.w - 6.0) * 4.0, copy = floor(around), along = around - copy;
-    uv = vec2(mix(mod(copy, 2.0) < 0.5 ? along : 1.0 - along, around * 0.25 * 3.14159265 * a_i1.x, worldUv), a_i1.w - q.y);
+    uv = vec2(mix(mod(copy, 2.0) < 0.5 ? along : 1.0 - along, around * 0.25 * 3.14159265 * a_i1.x, worldUv), scroll - q.y);
   }
   else if (face == 0) uv = vec2(-q.z, -q.y);
   else if (face == 1) uv = vec2(q.z, -q.y);
-  else if (face == 2) uv = vec2(q.x, q.z + (u_round ? 0.0 : a_i1.w));
+  else if (face == 2) uv = vec2(q.x, q.z + (u_round ? 0.0 : scroll));
   else if (face == 3) uv = vec2(q.x, -q.z);
   else if (face == 4) uv = vec2(q.x, -q.y);
   else uv = vec2(-q.x, -q.y);
@@ -73,7 +78,7 @@ void main() {
   // A round body's side leans in by how much narrower its top is than its foot.
   vec3 sideN = vec3(a_corner.x * 2.0 * max(a_i1.y, 1e-4), 0.5 * a_i1.x * (1.0 - a_i3.z), a_corner.z * 2.0 * max(a_i1.y, 1e-4));
   vec3 n = rot * (side ? normalize(sideN) : NORMALS[face]);
-  uint light = mode >> 2u;
+  uint light = (mode >> 2u) & 255u;
   // A status light, lamp, beam or flame lights itself (factory/render.rs GLOWING); a beacon (2) is also seen through the fog.
   float glow = min(a_i3.w, 1.0);
   v_haze = a_i3.w > 1.5 ? 0.0 : 1.0;
@@ -90,7 +95,7 @@ void main() {
   v_sun = sunLight(n, light) * (1.0 - glow);
   v_uvl = vec3(uv, layer);
   v_tint = mix(lightTint(light, u_skyLight), vec3(1.0), glow);
-  v_rel = a_i0.xyz + rot * local;
+  v_rel = u_offset + a_i0.xyz + rot * local;
   gl_Position = u_viewProj * vec4(v_rel, 1.0);
 }
 `;

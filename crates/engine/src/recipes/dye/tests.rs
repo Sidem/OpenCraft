@@ -50,7 +50,12 @@ fn reachable() -> HashSet<ItemId> {
 #[test]
 fn the_rows_are_where_saved_machines_expect_them() {
     assert_eq!(DYE.len(), DYE_ROWS as usize);
-    assert_eq!(MACHINE_RECIPES.len(), DYE_FIRST as usize + DYE.len(), "the dye rows end the table");
+    let glass = crate::recipes::glass::STAINED_GLASS.len();
+    assert_eq!(
+        MACHINE_RECIPES.len(),
+        DYE_FIRST as usize + DYE.len() + glass,
+        "only stained glass follows the dye rows"
+    );
     assert_eq!(MACHINE_RECIPES[DYE_FIRST as usize - 1].category, Category::Refit, "REFIT_LATER ends right before them");
     assert_eq!(DYE_ROWS, 2 * DYE_PLANT_ROWS);
     assert_eq!(HUES.len(), usize::from(DYE_PLANT_ROWS));

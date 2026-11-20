@@ -20,6 +20,7 @@ pub mod dye;
 mod electronics;
 mod first;
 mod gear;
+pub mod glass;
 mod gold;
 mod group;
 mod heavy;

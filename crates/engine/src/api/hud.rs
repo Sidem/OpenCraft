@@ -369,7 +369,7 @@ pub(crate) fn block_controls(id: BlockId) -> String {
     let def = block::def(id);
     let lmb = (def.break_time >= 0.0).then(|| match id {
         _ if block::is_rusted(id) => "Salvage",
-        block::GLASS | block::FRAMED_GLASS | block::THATCH => "Break",
+        b if block::is_glass(b) || b == block::FRAMED_GLASS || b == block::THATCH => "Break",
         block::LOG => "Chop",
         _ => match def.sound {
             block::sound::STONE => "Mine",

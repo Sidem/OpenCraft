@@ -268,7 +268,13 @@ pub const fn tint_layer(i: u16) -> u16 {
     TINT_FIRST + i
 }
 pub const TINT_LAST: u16 = tint_layer(crate::block::TINT_COUNT as u16 - 1);
-pub const COUNT: usize = TINT_LAST as usize + 1;
+/// Stained glass panes (`block/glass.rs`): sixteen translucent layers under 512 (`textures/decor.rs`, art pack `decor.py`).
+pub const STAINED_GLASS_FIRST: u16 = TINT_LAST + 1;
+pub const fn stained_glass_layer(i: u16) -> u16 {
+    STAINED_GLASS_FIRST + i
+}
+pub const STAINED_GLASS_LAST: u16 = stained_glass_layer(crate::block::STAINED_GLASS_COUNT as u16 - 1);
+pub const COUNT: usize = STAINED_GLASS_LAST as usize + 1;
 
 /// The case layer of the kit of tier `tier` (1 is Mk2, the green kit).
 pub const fn kit_paint(tier: u8) -> u16 {

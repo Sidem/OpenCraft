@@ -46,7 +46,7 @@ fn copy_near_keeps_what_is_in_the_radius_and_reports_the_cap() {
 #[test]
 fn nothing_is_copied_without_worn_goggles_or_while_switched_off() {
     let mut g = base_with_near_and_far_belts();
-    assert!(g.instance_count() > 0, "the belts are drawn the usual way");
+    assert!(g.instance_count() + g.static_box_total() > 0, "the belts are drawn the usual way");
     assert_eq!((g.xray_worn(), g.xray_active(), g.xray_count()), (false, false, 0));
     assert!(g.toggle_xray().contains("Head slot"), "the key says what is missing");
     assert!(g.xray_enabled(), "and changes nothing");

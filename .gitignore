@@ -31,3 +31,12 @@ Thumbs.db
 # Art tool review output (screenshots, sheets)
 /artifacts/
 __pycache__/
+
+# Planning, roadmap, devplan and settled decisions docs: local only
+/docs/DEV_PLAN.md
+/docs/DECISIONS.md
+/docs/ROADMAP.md
+/docs/ROADMAP_CHEMISTRY.md
+/docs/ROADMAP_ORDER.md
+/docs/ROADMAP_REQUESTS.md
+/docs/ROADMAP_SPACE.md

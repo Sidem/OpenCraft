@@ -22,7 +22,7 @@ const now = () => performance.now();
 let guard = 0;
 while (!g.ready() && guard++ < 2000) { g.update(1 / 60); g.begin_work(); while (g.work_step()); drain(); }
 function drain() {
-  let meshes = 0, quads = 0;
+  let meshes = 0, quads = 0, staticEv = 0;
   for (;;) {
     const kind = g.next_event();
     if (kind === 0) break;
@@ -32,9 +32,19 @@ function drain() {
       meshes++;
     }
   }
-  return [meshes, quads];
+  const f = g.instance_floats();
+  for (;;) {
+    const kind = g.next_static_box_event();
+    if (kind === 0) break;
+    if (kind === 1) {
+      new Float32Array(wasm.memory.buffer, g.static_box_ptr(), g.static_box_count() * f);
+      new Float32Array(wasm.memory.buffer, g.static_round_ptr(), g.static_round_count() * f);
+    }
+    staticEv++;
+  }
+  return [meshes, quads, staticEv];
 }
-console.log(`start (${g.player_x().toFixed(0)}, ${g.player_y().toFixed(0)}, ${g.player_z().toFixed(0)}) chunks ${g.chunks_loaded()} instances ${g.instance_count()}`);
+console.log(`start (${g.player_x().toFixed(0)}, ${g.player_y().toFixed(0)}, ${g.player_z().toFixed(0)}) chunks ${g.chunks_loaded()} instances ${g.instance_count()} static ${g.static_box_total()}`);
 
 if (!g.flying()) g.toggle_fly();
 g.set_look(Number(yaw), 0);
@@ -48,16 +58,16 @@ for (let i = 0; i < frameCount; i++) {
   g.begin_work();
   while (g.work_step() && now() - t1 < WORK_BUDGET_MS);
   const t2 = now();
-  const [meshes] = drain();
+  const [meshes, , staticEv] = drain();
   const t3 = now();
   g.clear_sounds();
-  frames.push({ pos: [g.player_x(), g.player_z()], update: t1 - t0, work: t2 - t1, drain: t3 - t2, total: t3 - t0, meshes, instances: g.instance_count() });
+  frames.push({ pos: [g.player_x(), g.player_z()], update: t1 - t0, work: t2 - t1, drain: t3 - t2, total: t3 - t0, meshes, staticEv, instances: g.instance_count() });
 }
 const pct = (key, p) => frames.map((f) => f[key]).sort((a, b) => a - b)[Math.min(frames.length - 1, Math.floor(frames.length * p))];
 const row = (key) => `${key.padEnd(7)} avg ${(frames.reduce((s, f) => s + f[key], 0) / frames.length).toFixed(2)}  p50 ${pct(key, 0.5).toFixed(2)}  p99 ${pct(key, 0.99).toFixed(2)}  max ${pct(key, 1).toFixed(2)} ms`;
 for (const k of ['update', 'work', 'drain', 'total']) console.log(row(k));
 const over = frames.filter((f) => f.total > 16.6).length;
-console.log(`frames over 16.6 ms: ${over}/${frames.length}; over 8 ms: ${frames.filter((f) => f.total > 8).length}; meshes ${frames.reduce((s, f) => s + f.meshes, 0)}; instances avg ${Math.round(frames.reduce((s, f) => s + f.instances, 0) / frames.length)}`);
+console.log(`frames over 16.6 ms: ${over}/${frames.length}; over 8 ms: ${frames.filter((f) => f.total > 8).length}; meshes ${frames.reduce((s, f) => s + f.meshes, 0)}; staticEv ${frames.reduce((s, f) => s + f.staticEv, 0)}; instances avg ${Math.round(frames.reduce((s, f) => s + f.instances, 0) / frames.length)}`);
 console.log(`end (${g.player_x().toFixed(0)}, ${g.player_y().toFixed(0)}, ${g.player_z().toFixed(0)}) chunks ${g.chunks_loaded()} pending ${g.chunks_pending()}`);
 const worst = frames.map((f, i) => [f.total, i, f]).sort((a, b) => b[0] - a[0]).slice(0, 5);
 if (process.env.SPIKES) frames.forEach((f, i) => f.update > 6 && console.log(`  update spike #${i}: ${f.update.toFixed(1)} ms at (${f.pos.map(Math.round)})`));

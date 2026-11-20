@@ -57,6 +57,8 @@ impl Game {
             c.checksums.clear();
         }
         self.surveyed = None;
+        self.static_boxes.reset();
+        self.wire_props.reset();
         Ok(())
     }
 }

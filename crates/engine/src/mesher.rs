@@ -32,7 +32,9 @@
 //! chunk (`tree_grid.rs`), go into a fourth, "shaped" list with its own vertex format (`shaped.rs`). Logs hide no
 //! faces beside them (`HIDES`).
 
-use crate::block::{is_leaves, is_log, BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT};
+use crate::block::{
+    is_leaves, is_log, BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT, TRANSLUCENT,
+};
 use crate::chunk::{index, Chunk};
 use shaped::{HIDES, SHAPED};
 
@@ -44,7 +46,8 @@ pub mod shaped;
 mod tree_grid;
 mod water;
 pub use cover::{bears_cover, Cover};
-use quad::{corner, corners_of, emit_quad, CORNER_BITS, KEY_CUTOUT, KEY_FLAG, KEY_LAYER, KEY_LIQUID};
+pub use quad::MeshOutput;
+use quad::{corner, corners_of, emit_quad, CORNER_BITS, KEY_CUTOUT, KEY_FLAG, KEY_LAYER, KEY_LIQUID, KEY_TRANSLUCENT};
 pub use tree_grid::REACH as TREE_REACH;
 pub use water::height as water_height;
 
@@ -74,40 +77,17 @@ pub const fn neighbor_index(dx: i32, dy: i32, dz: i32) -> usize {
     ((dx + 1) + (dy + 1) * 3 + (dz + 1) * 9) as usize
 }
 
-pub struct MeshOutput {
-    /// The vertices, opaque quads first, then cutout quads, then liquid quads; then their light bytes in
-    /// the same order, packed four per `u32` (little-endian, so the bytes read in order).
-    pub verts: Vec<u32>,
-    pub opaque_quads: u32,
-    pub cutout_quads: u32,
-    pub liquid_quads: u32,
-    /// The shaped list (`shaped.rs`): opaque quads, then cutout ones, three `u32` a vertex.
-    pub shaped: Vec<u32>,
-    pub shaped_opaque: u32,
-    pub shaped_cutout: u32,
-}
-
-#[cfg(test)]
-impl MeshOutput {
-    pub fn vertex_count(&self) -> usize {
-        (self.opaque_quads + self.cutout_quads + self.liquid_quads) as usize * 4
-    }
-
-    /// The light byte of vertex `i`.
-    pub fn light(&self, i: usize) -> u8 {
-        (self.verts[self.vertex_count() + i / 4] >> (i % 4 * 8)) as u8
-    }
-}
-
 pub struct Mesher {
     pad: Vec<BlockId>,
     mask: Vec<u64>,
     opaque: Vec<u32>,
     cutout: Vec<u32>,
     liquid: Vec<u32>,
+    translucent: Vec<u32>,
     opaque_light: Vec<u8>,
     cutout_light: Vec<u8>,
     liquid_light: Vec<u8>,
+    translucent_light: Vec<u8>,
     shaped: shaped::Shaped,
     trees: tree_grid::TreeGrid,
     /// The world block at the chunk's lowest corner: leaf cards scatter by world cell.
@@ -138,9 +118,11 @@ impl Mesher {
             opaque: Vec::new(),
             cutout: Vec::new(),
             liquid: Vec::new(),
+            translucent: Vec::new(),
             opaque_light: Vec::new(),
             cutout_light: Vec::new(),
             liquid_light: Vec::new(),
+            translucent_light: Vec::new(),
             shaped: shaped::Shaped::default(),
             trees: tree_grid::TreeGrid::default(),
             origin: [0; 3],
@@ -158,9 +140,11 @@ impl Mesher {
         self.opaque.clear();
         self.cutout.clear();
         self.liquid.clear();
+        self.translucent.clear();
         self.opaque_light.clear();
         self.cutout_light.clear();
         self.liquid_light.clear();
+        self.translucent_light.clear();
         self.shaped.clear();
         if !Self::is_trivially_empty(n) {
             self.fill_padded(n);
@@ -178,13 +162,15 @@ impl Mesher {
                 foliage::mesh_leaves(&self.trees, light, self.origin, &mut self.shaped);
             }
         }
-        let count = self.opaque.len() + self.cutout.len() + self.liquid.len();
+        let count = self.opaque.len() + self.cutout.len() + self.liquid.len() + self.translucent.len();
         let mut verts = Vec::with_capacity(count + count.div_ceil(4));
-        verts.extend_from_slice(&self.opaque);
-        verts.extend_from_slice(&self.cutout);
-        verts.extend_from_slice(&self.liquid);
-        let bytes =
-            self.opaque_light.iter().chain(&self.cutout_light).chain(&self.liquid_light).copied().collect::<Vec<u8>>();
+        for v in [&self.opaque, &self.cutout, &self.liquid, &self.translucent] {
+            verts.extend_from_slice(v);
+        }
+        let mut bytes = Vec::with_capacity(count);
+        for l in [&self.opaque_light, &self.cutout_light, &self.liquid_light, &self.translucent_light] {
+            bytes.extend_from_slice(l);
+        }
         verts.extend(bytes.chunks(4).map(|c| c.iter().rev().fold(0u32, |w, &b| (w << 8) | u32::from(b))));
         let quads = |v: &Vec<u32>| (v.len() / 4) as u32;
         let shaped_quads = |v: &Vec<u32>| (v.len() / 12) as u32;
@@ -196,6 +182,7 @@ impl Mesher {
             opaque_quads: quads(&self.opaque),
             cutout_quads: quads(&self.cutout),
             liquid_quads: quads(&self.liquid),
+            translucent_quads: quads(&self.translucent),
             shaped,
             shaped_opaque: shaped_quads(&self.shaped.opaque),
             shaped_cutout: shaped_quads(&self.shaped.cutout),
@@ -261,7 +248,9 @@ impl Mesher {
                     if MESHED[b as usize] && !SHAPED[b as usize] {
                         let q = (p as isize + sn) as usize;
                         let liquid = LIQUID[b as usize];
-                        if !(HIDES[pad[q] as usize] || liquid && LIQUID[pad[q] as usize]) {
+                        let translucent = TRANSLUCENT[b as usize];
+                        if !(HIDES[pad[q] as usize] || liquid && LIQUID[pad[q] as usize] || translucent && pad[q] == b)
+                        {
                             // A liquid under an open cell: its top face and the top edges of its sides sit lower.
                             let above = pad[p + P2] as usize;
                             let surface = liquid && !LIQUID[above] && !OPAQUE[above];
@@ -289,6 +278,7 @@ impl Mesher {
                             key = KEY_FLAG
                                 | (u64::from(CUTOUT[b as usize]) << KEY_CUTOUT)
                                 | (u64::from(liquid) << KEY_LIQUID)
+                                | (u64::from(translucent) << KEY_TRANSLUCENT)
                                 | (layer << KEY_LAYER)
                                 | corners;
                             any = true;
@@ -335,7 +325,9 @@ impl Mesher {
                         mask[bu + (bv + dv) * N..bu + w + (bv + dv) * N].fill(0);
                     }
 
-                    let out = if key & (1 << KEY_LIQUID) != 0 {
+                    let out = if key & (1 << KEY_TRANSLUCENT) != 0 {
+                        (&mut self.translucent, &mut self.translucent_light)
+                    } else if key & (1 << KEY_LIQUID) != 0 {
                         (&mut self.liquid, &mut self.liquid_light)
                     } else if key & (1 << KEY_CUTOUT) != 0 {
                         (&mut self.cutout, &mut self.cutout_light)

@@ -73,7 +73,7 @@ impl Set {
         for g in ghosts.filter(|g| g.block != block::AIR) {
             set.factory.place_preview(g.block, g.pos, g.facing, g.tier);
             // A block the world's mesh draws whole (stone, a storage box) has no model: a cube stands for it.
-            if block::def(g.block).render == Render::Opaque {
+            if matches!(block::def(g.block).render, Render::Opaque | Render::Translucent) {
                 set.cubes.push((g.block, g.pos));
             }
         }

@@ -71,22 +71,29 @@ impl Power {
 }
 
 impl Factory {
+    /// Grid accent boxes for pole `i` at offset-relative `rel`.
+    pub(super) fn write_pole_accent(&self, out: &mut Vec<f32>, i: usize, rel: Vec3) {
+        let p = &self.poles[i];
+        if p.is_cable() {
+            return;
+        }
+        if p.is_long() {
+            let c = rel + super::pole::LONG_FOOTPRINT.centre(0);
+            return super::pole_tower::long_accent(out, c, self.power.pole_layer(i as u32));
+        }
+        let layer = [self.power.pole_layer(i as u32); 3];
+        let rise = super::pole::POLE_RISE;
+        push_box(out, rel + Vec3::new(0.0, 0.16 + rise, 0.0), 0.0, [0.19, 0.12, 0.19], 0.0, layer, false);
+        push_box(out, rel + Vec3::new(0.0, 0.34 + rise, 0.0), 0.0, [0.40, 0.10, 0.14], 0.0, layer, false);
+    }
+
     /// A collar on the post and a sleeve on the crossarm of every pole within `range`, in its grid's colour.
     pub(super) fn write_accents(&self, out: &mut Vec<f32>, eye: Vec3, range: f64) {
         for (i, p) in self.poles.iter().enumerate().filter(|(_, p)| !p.is_cable()) {
             let rel = p.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye;
-            if rel.x * rel.x + rel.y * rel.y + rel.z * rel.z > range * range {
-                continue;
+            if rel.x * rel.x + rel.y * rel.y + rel.z * rel.z <= range * range {
+                self.write_pole_accent(out, i, rel);
             }
-            if p.is_long() {
-                let c = rel + super::pole::LONG_FOOTPRINT.centre(0);
-                super::pole_tower::long_accent(out, c, self.power.pole_layer(i as u32));
-                continue;
-            }
-            let layer = [self.power.pole_layer(i as u32); 3];
-            let rise = super::pole::POLE_RISE;
-            push_box(out, rel + Vec3::new(0.0, 0.16 + rise, 0.0), 0.0, [0.19, 0.12, 0.19], 0.0, layer, false);
-            push_box(out, rel + Vec3::new(0.0, 0.34 + rise, 0.0), 0.0, [0.40, 0.10, 0.14], 0.0, layer, false);
         }
     }
 }

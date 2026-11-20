@@ -4,11 +4,76 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark" />
-    <title>OpenCraft</title>
+    <meta name="theme-color" content="#161b18" />
+    <title>OpenCraft — Free Browser Voxel Sandbox &amp; Factory Automation Game</title>
+    <meta
+      name="description"
+      content="Play OpenCraft free in your browser: a peaceful 3D voxel sandbox and factory automation game with miners, belts, trains, drones, power, and 2–4 player co-op. No download or account required."
+    />
+    <meta
+      name="keywords"
+      content="OpenCraft, voxel sandbox, factory builder, automation game, browser game, free browser game, co-op voxel game, peaceful factory game, WebGL2, Rust WebAssembly"
+    />
+    <link rel="canonical" href="https://sidem.github.io/OpenCraft/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OpenCraft" />
+    <meta property="og:title" content="OpenCraft — Free Browser Voxel Sandbox &amp; Factory Automation Game" />
+    <meta
+      property="og:description"
+      content="Mine, build, and automate in a peaceful 3D voxel world right in your browser. Conveyors, smelters, trains, drones, nuclear power, and 2–4 player co-op. No install."
+    />
+    <meta property="og:url" content="https://sidem.github.io/OpenCraft/" />
+    <meta property="og:image" content="https://sidem.github.io/OpenCraft/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="OpenCraft voxel factory with glowing conveyor belts, machines, and forested block hills" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="OpenCraft — Free Browser Voxel Sandbox &amp; Factory Automation Game" />
+    <meta
+      name="twitter:description"
+      content="Peaceful 3D voxel sandbox meets factory automation in your browser. Belts, trains, drones, and 2–4 player co-op—free, open-source, no download."
+    />
+    <meta name="twitter:image" content="https://sidem.github.io/OpenCraft/og-image.jpg" />
+    <meta name="twitter:image:alt" content="OpenCraft voxel factory with glowing conveyor belts, machines, and forested block hills" />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2360a040' d='M8 1l7 3.5-7 3.5-7-3.5z'/%3E%3Cpath fill='%23806040' d='M1 4.5l7 3.5v7l-7-3.5z'/%3E%3Cpath fill='%23604830' d='M15 4.5l-7 3.5v7l7-3.5z'/%3E%3C/svg%3E"
     />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": ["VideoGame", "WebApplication"],
+        "name": "OpenCraft",
+        "alternateName": "OpenCraft Voxel Factory Sandbox",
+        "url": "https://sidem.github.io/OpenCraft/",
+        "image": "https://sidem.github.io/OpenCraft/og-image.jpg",
+        "description": "A free, open-source browser voxel sandbox and factory automation game. Mine and reshape a 3D block world, then automate it with miners, conveyor belts, smelters, power grids, trains, drones, chemistry, nuclear power, towns, and orbit. Peaceful with no enemies, solo or 2–4 player WebRTC co-op.",
+        "applicationCategory": "Game",
+        "applicationSubCategory": "Factory Automation Sandbox",
+        "genre": ["Sandbox", "Factory Automation", "Voxel", "Simulation", "Building", "Co-op"],
+        "gamePlatform": ["Web Browser", "Desktop Web"],
+        "operatingSystem": "Windows, macOS, Linux (Desktop WebGL2 Browser)",
+        "playMode": ["SinglePlayer", "CoOp", "MultiPlayer"],
+        "numberOfPlayers": {
+          "@type": "QuantitativeValue",
+          "minValue": 1,
+          "maxValue": 4
+        },
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock"
+        },
+        "license": "https://opensource.org/licenses/MIT",
+        "codeRepository": "https://github.com/Sidem/OpenCraft",
+        "sameAs": [
+          "https://github.com/Sidem/OpenCraft",
+          "https://hexlife.itch.io/opencraft"
+        ]
+      }
+    </script>
   </head>
   <body>
     <canvas id="game"></canvas>
@@ -31,8 +96,8 @@
       <div id="toasts"></div>
       <div id="hotbar"></div>
       <pre id="debug" class="hidden"></pre>
-      <div id="muted" class="hidden">Sound off Â· K</div>
-      <div id="resume-hint" class="hidden">Click to keep playing Â· Esc for the menu</div>
+      <div id="muted" class="hidden">Sound off · K</div>
+      <div id="resume-hint" class="hidden">Click to keep playing · Esc for the menu</div>
     </div>
 
     <!-- Launcher and pause menu: ui/menu.ts. Each nav button's data-tab names the data-page it shows. -->
@@ -67,6 +132,7 @@
               <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
               OpenCraft on GitHub
             </a>
+            <a href="https://hexlife.itch.io/opencraft" target="_blank" rel="noopener">Play on itch.io</a>
             <a href="https://github.com/Sidem/OpenCraft/issues" target="_blank" rel="noopener">Report a problem</a>
           </footer>
         </aside>
@@ -177,6 +243,22 @@
         </main>
       </div>
     </div>
+
+    <noscript>
+      <div style="max-width:44rem;margin:2rem auto;padding:1.5rem;font:16px/1.6 system-ui,sans-serif;color:#e9e7e1;background:#161b18;border-radius:12px;">
+        <h1>OpenCraft — Free Browser Voxel Sandbox &amp; Factory Automation Game</h1>
+        <p>
+          OpenCraft requires JavaScript, WebAssembly, and WebGL2 in a desktop browser (keyboard and mouse).
+          Mine and reshape a 3D block world, then automate it with miners, conveyor belts, smelters, power lines,
+          trains, drones, chemistry, nuclear power, towns, and orbit. Peaceful (no enemies), open-ended, and playable
+          solo or in 2–4 player online co-op with no install and no account.
+        </p>
+        <p>
+          <a href="https://github.com/Sidem/OpenCraft" style="color:#f59e42;">Source code &amp; manual on GitHub</a> ·
+          <a href="https://hexlife.itch.io/opencraft" style="color:#f59e42;">Play on itch.io</a>
+        </p>
+      </div>
+    </noscript>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

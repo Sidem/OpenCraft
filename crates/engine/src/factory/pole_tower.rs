@@ -8,7 +8,48 @@
 use crate::block::tex;
 use crate::math::Vec3;
 
+use super::pole::{Pole, INSULATOR_X, INSULATOR_Y, LONG_FOOTPRINT, POLE_RISE};
+use super::pole_mount::mount_model;
 use super::render::{push_box, push_round, Axis};
+use super::tier_mark;
+
+impl Pole {
+    /// Camera-independent pole geometry (post, base/mount, stripe, crossarm, insulators, or long-distance tower).
+    pub(super) fn write_static(&self, out: &mut Vec<f32>, rel: Vec3) {
+        if self.is_cable() {
+            return;
+        }
+        if self.is_long() {
+            return long_model(out, rel + LONG_FOOTPRINT.centre(0));
+        }
+        if self.wall == 0 {
+            push_box(out, rel + Vec3::new(0.0, -0.42, 0.0), 0.0, [0.38, 0.15, 0.38], 0.0, [tex::FRAME; 3], false);
+        } else {
+            mount_model(out, rel, self.wall);
+        }
+        let post = 0.85 + POLE_RISE as f32;
+        let frame = [tex::FRAME; 3];
+        push_box(out, rel + Vec3::new(0.0, -0.04 + POLE_RISE / 2.0, 0.0), 0.0, [0.13, post, 0.13], 0.0, frame, true);
+        if self.tier > 0 {
+            let band = [tex::stripe(self.tier); 3];
+            push_box(out, rel + Vec3::new(0.0, -0.28, 0.0), 0.0, [0.17, 0.14, 0.17], 0.0, band, false);
+        }
+        let top = POLE_RISE;
+        push_box(out, rel + Vec3::new(0.0, 0.34 + top, 0.0), 0.0, [0.72, 0.08, 0.11], 0.0, frame, false);
+        for x in [-INSULATOR_X, INSULATOR_X] {
+            let (glass, wire) = ([tex::FLASK_GLASS; 3], [tex::COPPER_WIRE; 3]);
+            push_box(out, rel + Vec3::new(x, INSULATOR_Y - 0.1 + top, 0.0), 0.0, [0.12, 0.17, 0.12], 0.0, glass, false);
+            push_box(out, rel + Vec3::new(x, INSULATOR_Y + top, 0.0), 0.0, [0.08, 0.05, 0.08], 0.0, wire, false);
+        }
+    }
+
+    /// Near-camera Mk collars on an ordinary pole.
+    pub(super) fn write_dynamic(&self, out: &mut Vec<f32>, rel: Vec3) {
+        if !self.is_cable() && !self.is_long() {
+            tier_mark::collars(out, rel + Vec3::new(0.0, -0.08, 0.0), 0.13, self.tier);
+        }
+    }
+}
 
 /// How high the earth-wire peak stands above the footprint's centre (the tower's wire point, for side tests and props).
 pub const TOP: f64 = 1.95;

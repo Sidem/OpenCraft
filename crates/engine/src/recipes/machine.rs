@@ -13,6 +13,7 @@
 use super::automate::AUTOMATE;
 use super::decor::DECOR;
 use super::dye::DYE;
+use super::glass::STAINED_GLASS;
 use super::machine_later::LATER;
 use super::orbit::ORBIT;
 use super::refit::{REFIT, REFIT_LATER};
@@ -97,8 +98,9 @@ pub const MACHINE_RECIPES: &[MachineRecipe] =
                 + DECOR.len()
                 + REFIT_LATER.len()
                 + DYE.len()
+                + STAINED_GLASS.len()
         },
-    >(&[MAIN, LATER, ORBIT, AUTOMATE, REFIT, SCRAP, DECOR, REFIT_LATER, DYE]);
+    >(&[MAIN, LATER, ORBIT, AUTOMATE, REFIT, SCRAP, DECOR, REFIT_LATER, DYE, STAINED_GLASS]);
 
 const MAIN: &[MachineRecipe] = &[
     MachineRecipe { category: Smelting, inputs: &[(b(IRON_ORE), 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },

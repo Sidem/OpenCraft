@@ -183,6 +183,10 @@ DECOR = [
     *[Entry(layer, name, lambda s=s, t=t: decor.coloured_concrete(t, s), tiles=True) for s, (layer, name, t) in enumerate((
         (333, "red_concrete", decor.RED_C), (334, "green_concrete", decor.GREEN_C), (335, "black_concrete", decor.BLACK),
         (336, "white_concrete", decor.WHITE), (337, "yellow_concrete", decor.YELLOW_C)))],
+    *[Entry(480 + i, f"{name}_concrete", lambda s=i + 5, t=t: decor.coloured_concrete(t, s), tiles=True)
+      for i, (name, t) in enumerate(decor.TINT_CONCRETES)],
+    *[Entry(491 + i, f"{name}_stained_glass", lambda s=i, t=t: decor.stained_glass(t, s))
+      for i, (name, t) in enumerate(decor.GLASS_HUES)],
     Entry(338, "basalt_tiles", decor.basalt_tiles, tiles=True),
     Entry(339, "granite_bricks", lambda: decor.brick_face(rocks.GRANITE, 1), tiles=True),
     Entry(340, "sandstone_bricks", lambda: decor.brick_face(rocks.SANDSTONE, 2), tiles=True),

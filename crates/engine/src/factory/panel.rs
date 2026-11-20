@@ -138,6 +138,7 @@ impl Factory {
         };
         *dir = (*dir + 1) % 4;
         self.dirty = true;
+        self.layout_gen = self.layout_gen.wrapping_add(1);
         true
     }
 
@@ -161,6 +162,7 @@ impl Factory {
             b.shape = Shape::Flat;
         }
         self.dirty = true;
+        self.layout_gen = self.layout_gen.wrapping_add(1);
         true
     }
 

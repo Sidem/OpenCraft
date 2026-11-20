@@ -80,45 +80,65 @@ fn ports(kind: RouterKind) -> [Port; 4] {
 
 /// The router's model at camera-relative `rel` (its cell's centre).
 pub fn draw(r: &Router, out: &mut Vec<f32>, rel: Vec3, time: f64) {
+    draw_static(r, out, rel);
+    draw_dynamic(r, out, rel, time);
+}
+
+/// Static gatehouse of router `r` at offset-relative `rel`: corner posts, roof, port colour bands, headers and hoods.
+pub fn draw_static(r: &Router, out: &mut Vec<f32>, rel: Vec3) {
     let [front, left, right] = r.out_dirs();
     let sides = [front, left, right, (front + 2) % 4];
-    // The roof's top layer points its arrow at row 0 when turned the router's own way.
     let body = f32::from(r.dir) * FRAC_PI_2;
     let top = [tex::SPLITTER_TOP, tex::FILTER_TOP, tex::MERGER_TOP][r.kind as usize];
-    let near = rel.length() <= ITEM_DETAIL_RANGE;
     let up = |h: f32| rel + Vec3::new(0.0, f64::from(h - 0.5), 0.0);
     for (sx, sz) in [(-1.0, -1.0), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0)] {
         let at = up(POST_FLOOR + POST[1] / 2.0) + Vec3::new(sx, 0.0, sz) * f64::from(EDGE);
         push_box(out, at, 0.0, POST, 0.0, [tex::FRAME, tex::stripe(0), tex::FRAME], false);
     }
     push_box(out, up(ROOF_FOOT + ROOF[1] / 2.0), body, ROOF, 0.0, [top, tex::FRAME, tex::FRAME], false);
-    let served = served_side(r, sides);
-    for (k, (&side, port)) in sides.iter().zip(ports(r.kind)).enumerate() {
+    for (&side, port) in sides.iter().zip(ports(r.kind)) {
         let away = DIRS[side as usize].as_vec3();
         let header = up(HEADER_FOOT + HEADER[1] / 2.0) + away * f64::from(EDGE);
         let band = up(ROOF_FOOT + ROOF[1] / 2.0) + away * f64::from(BAND_OUT);
         push_box(out, band, yaw(side), BAND, 0.0, [tex::FRAME; 3], false);
         mark_beacon_tinted(out, arrow_look(if port == Port::In { Flow::In } else { Flow::Out }));
         match port {
-            Port::Out => {
-                push_box(out, header, yaw(side), HEADER, 0.0, [tex::FRAME; 3], false);
-                if near && r.kind == RouterKind::Filter && k < 3 {
-                    sign(out, &r.rules, k, header + away * f64::from(HEADER[2] / 2.0), side, time);
-                }
-            }
+            Port::Out => push_box(out, header, yaw(side), HEADER, 0.0, [tex::FRAME; 3], false),
             Port::In => {
-                let filter = r.kind == RouterKind::Filter;
-                let look = [if filter { tex::COPPER_INGOT } else { tex::FRAME }; 3];
+                let look = [if r.kind == RouterKind::Filter { tex::COPPER_INGOT } else { tex::FRAME }; 3];
                 let hood = header + away * f64::from(HOOD_OUT);
                 push_shape(out, Form::Lean(HOOD_LEAN), hood, yaw(side), HEADER, look, false);
-                if near && filter {
-                    let lamp = up(HEADER_FOOT - 0.03) + away * f64::from(EDGE - 0.04);
-                    push_box(out, lamp, yaw(side), [0.5, 0.03, 0.05], 0.0, [tex::FRAME; 3], false);
-                    mark_beacon_tinted(out, SCANNER);
-                }
             }
         }
-        if near && side == served {
+    }
+}
+
+/// Near-camera and animated parts of router `r` at camera-relative `rel`: floor plate, held item, served chevron,
+/// and filter scanner/signs (drawn only within `ITEM_DETAIL_RANGE`).
+pub fn draw_dynamic(r: &Router, out: &mut Vec<f32>, rel: Vec3, time: f64) {
+    if rel.x * rel.x + rel.y * rel.y + rel.z * rel.z > ITEM_DETAIL_RANGE * ITEM_DETAIL_RANGE {
+        return;
+    }
+    let [front, left, right] = r.out_dirs();
+    let sides = [front, left, right, (front + 2) % 4];
+    let body = f32::from(r.dir) * FRAC_PI_2;
+    let up = |h: f32| rel + Vec3::new(0.0, f64::from(h - 0.5), 0.0);
+    let served = served_side(r, sides);
+    for (k, (&side, port)) in sides.iter().zip(ports(r.kind)).enumerate() {
+        let away = DIRS[side as usize].as_vec3();
+        let header = up(HEADER_FOOT + HEADER[1] / 2.0) + away * f64::from(EDGE);
+        match port {
+            Port::Out if r.kind == RouterKind::Filter && k < 3 => {
+                sign(out, &r.rules, k, header + away * f64::from(HEADER[2] / 2.0), side, time);
+            }
+            Port::In if r.kind == RouterKind::Filter => {
+                let lamp = up(HEADER_FOOT - 0.03) + away * f64::from(EDGE - 0.04);
+                push_box(out, lamp, yaw(side), [0.5, 0.03, 0.05], 0.0, [tex::FRAME; 3], false);
+                mark_beacon_tinted(out, SCANNER);
+            }
+            _ => {}
+        }
+        if side == served {
             let (flow, along, tip) = match port {
                 Port::In => (Flow::In, (side + 2) % 4, CHEVRON_IN),
                 Port::Out => (Flow::Out, side, CHEVRON_OUT),
@@ -126,9 +146,6 @@ pub fn draw(r: &Router, out: &mut Vec<f32>, rel: Vec3, time: f64) {
             let at = up(ROOF_FOOT + ROOF[1] + 0.025) + away * f64::from(tip);
             chevron(out, at, along, CHEVRON_SCALE, arrow_look(flow));
         }
-    }
-    if !near {
-        return;
     }
     push_box(out, up(PLATE[1] / 2.0), body, PLATE, 0.0, [tex::IRON_PLATE, tex::FRAME, tex::FRAME], false);
     if let Some(def) = item::def(r.held).filter(|_| r.held != ItemId::NONE) {
