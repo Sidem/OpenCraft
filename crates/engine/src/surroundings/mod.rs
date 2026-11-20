@@ -11,12 +11,14 @@ pub mod roof;
 use crate::block::{self, AIR};
 use crate::factory::Factory;
 use crate::math::{IVec3, Vec3};
+use crate::settlements::Settlements;
 use crate::world::World;
 use crate::worldgen::{SEA_LEVEL, WORLD_HEIGHT};
 
 /// Indices into the floats. `BIOME` is the `Biome` variant's number (0 plains, 1 desert, 2 highlands, 3 lowlands,
 /// 4 basalt fields); `SKY`, `OPEN`, `SEA`, `FRESH`, `TREES` and `DIN` run 0 to 1; `HEIGHT` is blocks above sea
-/// level (negative below) and `DEPTH` blocks below the ground's surface (0 at or above it).
+/// level (negative below), `DEPTH` blocks below the ground's surface (0 at or above it), and `TOWN` is the stage
+/// (1..=5) of the nearest awake town within `TOWN_RADIUS` (0 when none).
 pub const BIOME: usize = 0;
 pub const SKY: usize = 1;
 pub const OPEN: usize = 2;
@@ -26,7 +28,8 @@ pub const SEA: usize = 5;
 pub const FRESH: usize = 6;
 pub const TREES: usize = 7;
 pub const DIN: usize = 8;
-pub const FLOATS: usize = 9;
+pub const TOWN: usize = 9;
+pub const FLOATS: usize = 10;
 
 /// How far up the sky is looked for, and how far sideways a wall closes the ground in.
 const SKY_REACH: i32 = 64;
@@ -50,9 +53,11 @@ const FRESH_FULL: f32 = 3.0;
 const TREES_FULL: f32 = 14.0;
 const DIN_FULL: f32 = 3.0;
 const DIN_RADIUS: f64 = 28.0;
+/// Horizontal distance from an awake town depot within which the player counts as inside the town.
+const TOWN_RADIUS: f64 = 80.0;
 
 /// Reads the surroundings of `eye`. Blocks that are not loaded count as air.
-pub fn survey(world: &World, factory: &Factory, eye: Vec3) -> [f32; FLOATS] {
+pub fn survey(world: &World, factory: &Factory, settlements: &Settlements, eye: Vec3) -> [f32; FLOATS] {
     let cell = eye.floor();
     let at = |x: i32, y: i32, z: i32| world.get_block(IVec3::new(x, y, z)).unwrap_or(AIR);
     let mut out = [0.0; FLOATS];
@@ -121,6 +126,18 @@ pub fn survey(world: &World, factory: &Factory, eye: Vec3) -> [f32; FLOATS] {
     out[FRESH] = (fresh / FRESH_FULL).min(1.0);
     out[TREES] = (trees / TREES_FULL).min(1.0);
     out[DIN] = (factory.din_near(eye, DIN_RADIUS) as f32 / DIN_FULL).min(1.0);
+    out[TOWN] = settlements
+        .towns
+        .iter()
+        .filter(|t| !t.dormant)
+        .filter_map(|t| {
+            let dx = f64::from(t.pos.x) + 1.5 - eye.x;
+            let dz = f64::from(t.pos.z) + 1.5 - eye.z;
+            let d2 = dx * dx + dz * dz;
+            (d2 <= TOWN_RADIUS * TOWN_RADIUS).then_some((d2, t.built.max(1) as f32))
+        })
+        .min_by(|a, b| a.0.total_cmp(&b.0))
+        .map_or(0.0, |(_, stage)| stage);
     out[SKY] = out[SKY].max(0.0);
     out
 }

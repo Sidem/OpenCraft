@@ -4,6 +4,9 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-20 · v0.9.8 · Eight new soundtracks
+- **More music for places, towns, factories and orbit.** Eight new pieces join the soundtrack: **Tide & Timber** on the sea and coast, **Canopy & Moss** in wet lowlands and forests, **Obsidian Forge** on basalt fields, **Lantern Market** inside towns, **Orbital Drift** under the night sky and high altitude once you reach the Gold/Orbit science era, and **three distinct factory tracks** that play near a running factory and shift with your research era — **Copper & Cogs** (Red/Green science), **Iron Cadence** (Blue science) and **Silicon Pulse** (Violet/Gold science). Tracks still stream on demand when they play, so startup stays fast.
+
 ## 2026-11-20 · v0.9.7 · Faster factories
 - **Big bases run much smoother.** Belts, machines, poles, pipes, tracks and power wires are now kept on the graphics card between frames instead of rebuilt from scratch every frame, and conveyor belt treads scroll directly in the shader. Only moving items, status lights and animated parts update each frame, cutting steady frame times on large factories by roughly a quarter (and more than halving the engine's frame work). Everything looks and behaves identically, including lamps lighting belts, X-ray goggles and strategy view.
 

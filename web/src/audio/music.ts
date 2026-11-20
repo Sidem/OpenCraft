@@ -20,7 +20,7 @@ export const MODES: readonly ModeInfo[] = [
   {
     id: 'context',
     label: 'By place',
-    help: 'The music follows where you are: day, night, caves, deserts and highlands. A piece plays now and then, with a short quiet between.',
+    help: 'The music follows where you are and your tech era: biomes, sea, caves, towns, factories and orbit. A piece plays now and then, with a short quiet between.',
   },
   { id: 'calm', label: 'Always calm', help: 'Soft, slow pieces one after another. Good for building and tending a factory.' },
   { id: 'lively', label: 'Always adventurous', help: 'Fuller pieces with more going on, one after another. Good for exploring.' },
@@ -68,6 +68,28 @@ function loadSettings(): MusicSettings {
 }
 
 const clamp = (v: number) => Math.round(Math.min(100, Math.max(0, v)));
+
+/** What `Music.poll` reads from the game (surroundings, time of day and completed research era). */
+export interface MusicGame {
+  surroundings(): Float32Array;
+  time_of_day(): number;
+  tech_count(): number;
+  tech_done(t: number): boolean;
+  tech_endless(t: number): boolean;
+  tech_packs(t: number): Uint16Array;
+}
+
+/** Highest science-pack tier (0 free .. 5 gold/orbit) among completed non-endless technologies. */
+function researchEra(game: MusicGame): number {
+  let era = 0;
+  const n = game.tech_count();
+  for (let t = 0; t < n; t++) {
+    if (!game.tech_done(t) || game.tech_endless(t)) continue;
+    const packs = game.tech_packs(t).length;
+    if (packs > era) era = packs;
+  }
+  return era;
+}
 
 export class Music {
   readonly settings = loadSettings();
@@ -148,7 +170,7 @@ export class Music {
   }
 
   /** Call every frame with the game: reads the place twice a second and starts or fades pieces as the director says. */
-  poll(game: { surroundings(): Float32Array; time_of_day(): number }, dt: number): void {
+  poll(game: MusicGame, dt: number): void {
     if (!this.ctx || !this.out) return;
     const hushed = !this.audible || this.hushed || (this.away && this.settings.muteInBackground);
     this.pauseWhile(hushed);
@@ -160,7 +182,7 @@ export class Music {
     const s = game.surroundings();
     this.duck = duckFor(s[S.din]);
     this.apply();
-    const play = this.director.update(elapsed, contextFor(s, game.time_of_day()));
+    const play = this.director.update(elapsed, contextFor(s, game.time_of_day(), researchEra(game)));
     if (play) this.begin(play.piece as Piece, play.crossfade);
   }
 

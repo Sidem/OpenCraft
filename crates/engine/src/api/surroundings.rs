@@ -7,10 +7,10 @@ use crate::Game;
 
 #[wasm_bindgen]
 impl Game {
-    /// Nine floats describing where the camera is (biome, sky, openness, height, depth, sea, fresh water, trees,
-    /// machine din); the host polls this a few times a second.
+    /// Ten floats describing where the camera is (biome, sky, openness, height, depth, sea, fresh water, trees,
+    /// machine din, nearest awake town stage); the host polls this a few times a second.
     pub fn surroundings(&self) -> Vec<f32> {
-        surroundings::survey(&self.sim.world, &self.sim.factory, self.render_eye).to_vec()
+        surroundings::survey(&self.sim.world, &self.sim.factory, &self.sim.settlements, self.render_eye).to_vec()
     }
 
     /// Where rain and snow stop around the camera: the grid's corner (x, z), then the landing height of each column

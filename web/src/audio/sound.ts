@@ -23,7 +23,7 @@ import {
   type SoundSettings,
 } from './settings';
 import { Ambience } from './ambience';
-import { Music } from './music';
+import { Music, type MusicGame } from './music';
 import { ACTION_BASE, EVENT_ACTIONS, PREVIEW_DISTANCE, PREVIEW_VOLUME } from './sound-actions';
 import { blip, breakSound, denied, hitSound, mulberry32, ping, powerDown, powerUp, splash, tick, whoosh, type HitMods } from './synth';
 import { launch, podDown, podUp } from './synth-orbit';
@@ -123,7 +123,7 @@ export class SoundSystem {
   }
 
   /** Call every frame (not while hidden): ambience and music read the player's place a few times a second. */
-  poll(game: { surroundings(): Float32Array; time_of_day(): number }, dt: number): void {
+  poll(game: MusicGame, dt: number): void {
     this.ambience.poll(game, dt);
     this.music.poll(game, dt);
   }

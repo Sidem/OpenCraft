@@ -10,7 +10,7 @@ fn world() -> Game {
 }
 
 fn read(g: &Game, eye: Vec3) -> [f32; FLOATS] {
-    survey(&g.sim.world, &g.sim.factory, eye)
+    survey(&g.sim.world, &g.sim.factory, &g.sim.settlements, eye)
 }
 
 /// An eye a few blocks above the ground at (x, z).
@@ -169,4 +169,18 @@ fn only_working_machines_make_din_and_it_fades_with_distance() {
     let farther = read(&g, Vec3::new(at.x + 14.0, at.y, at.z))[DIN];
     assert!(near > 0.2 && farther > 0.0 && farther < near, "near {near}, farther {farther}");
     assert_eq!(read(&g, Vec3::new(at.x + 200.0, at.y, at.z))[DIN], 0.0);
+}
+
+#[test]
+fn town_reading_reports_nearest_awake_town_stage() {
+    let mut g = world();
+    let eye = above_ground(&g, 0, 0);
+    assert_eq!(read(&g, eye)[TOWN], 0.0);
+    let mut town = crate::settlements::Town::new(IVec3::new(10, 64, 10), 0);
+    town.built = 3;
+    g.sim.settlements.towns.push(town);
+    assert_eq!(read(&g, eye)[TOWN], 3.0);
+    assert_eq!(read(&g, Vec3::new(200.0, eye.y, 200.0))[TOWN], 0.0);
+    g.sim.settlements.towns[0].dormant = true;
+    assert_eq!(read(&g, eye)[TOWN], 0.0);
 }

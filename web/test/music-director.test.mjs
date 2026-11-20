@@ -45,17 +45,32 @@ function walk(director, seconds, placeAt, onTick) {
 
 const make = (seed = 1, mode = 'context') => new MusicDirector(PIECES, seeded(seed), mode);
 
-test('the library covers every place and both moods', () => {
-  for (const place of ['day', 'night', 'underground', 'desert', 'highlands', 'sea']) {
-    assert.ok(PIECES.some((p) => p.contexts.includes(place) || p.contexts.includes('any')), `a piece for ${place}`);
+test('the library covers every place, era and both moods', () => {
+  const all = [
+    'day',
+    'night',
+    'underground',
+    'desert',
+    'highlands',
+    'lowlands',
+    'basalt',
+    'sea',
+    'town',
+    'factory_early',
+    'factory_mid',
+    'factory_high',
+    'space',
+  ];
+  for (const place of all) {
+    assert.ok(PIECES.some((p) => p.contexts.includes(place)), `a dedicated piece for ${place}`);
   }
   for (const mood of ['calm', 'lively']) assert.ok(PIECES.some((p) => p.mood === mood), `a ${mood} piece`);
   assert.equal(new Set(PIECES.map((p) => p.id)).size, PIECES.length, 'ids are unique');
 });
 
-test('a reading falls in one place: caves, then night, then the biome, then the sea', () => {
+test('a reading falls in one place: caves, factory by era, town, night/space, biome, then sea', () => {
   const reading = (o) => {
-    const s = new Array(9).fill(0);
+    const s = new Array(10).fill(0);
     s[S.sky] = 1;
     for (const [k, v] of Object.entries(o)) s[S[k]] = v;
     return s;
@@ -64,11 +79,20 @@ test('a reading falls in one place: caves, then night, then the biome, then the 
   const MIDNIGHT = 0;
   assert.equal(contextFor(reading({}), NOON), 'day');
   assert.equal(contextFor(reading({}), MIDNIGHT), 'night');
+  assert.equal(contextFor(reading({}), MIDNIGHT, 5), 'space', 'orbit era night plays space');
+  assert.equal(contextFor(reading({ height: 80 }), NOON, 5), 'space', 'orbit era high altitude plays space');
   assert.equal(contextFor(reading({ biome: 1 }), NOON), 'desert');
   assert.equal(contextFor(reading({ biome: 2 }), NOON), 'highlands');
+  assert.equal(contextFor(reading({ biome: 3 }), NOON), 'lowlands');
+  assert.equal(contextFor(reading({ biome: 4 }), NOON), 'basalt');
   assert.equal(contextFor(reading({ biome: 1 }), MIDNIGHT), 'night');
   assert.equal(contextFor(reading({ sea: 1 }), NOON), 'sea');
-  assert.equal(contextFor(reading({ sky: 0, depth: 20, biome: 1 }), MIDNIGHT), 'underground');
+  assert.equal(contextFor(reading({ town: 2 }), NOON), 'town');
+  assert.equal(contextFor(reading({ din: 0.7 }), NOON, 2), 'factory_early');
+  assert.equal(contextFor(reading({ din: 0.7 }), NOON, 3), 'factory_mid');
+  assert.equal(contextFor(reading({ din: 0.7 }), NOON, 4), 'factory_high');
+  assert.equal(contextFor(reading({ din: 0.3 }), NOON, 4), 'day', 'quiet machines do not override nature');
+  assert.equal(contextFor(reading({ sky: 0, depth: 20, biome: 1, din: 1 }), MIDNIGHT, 5), 'underground');
   assert.equal(contextFor(reading({ sky: 0, depth: 2 }), NOON), 'day', 'a shallow overhang is not a cave');
 });
 
@@ -105,14 +129,35 @@ test('a place that flickers every two seconds never moves the music', () => {
 });
 
 test('a place with no piece of its own keeps the piece that is playing', () => {
-  const { starts } = walk(make(4), 300, (t) => (t < 100 ? 'day' : 'sea'));
+  const subset = PIECES.filter((p) => !p.contexts.includes('sea'));
+  const d = new MusicDirector(subset, seeded(4), 'context');
+  const { starts } = walk(d, 300, (t) => (t < 100 ? 'day' : 'sea'));
   assert.ok(starts.every((s) => !s.crossfade), 'the day piece plays on at the coast');
 });
 
 test('a place with no piece of its own is served by a fallback piece', () => {
-  const { starts } = walk(make(4), 200, () => 'sea');
+  const subset = PIECES.filter((p) => !p.contexts.includes('sea'));
+  const d = new MusicDirector(subset, seeded(4), 'context');
+  const { starts } = walk(d, 200, () => 'sea');
   assert.ok(starts.length >= 1);
-  assert.ok(starts.every((s) => PIECES.find((p) => p.id === s.id).contexts.includes('any')));
+  assert.ok(starts.every((s) => subset.find((p) => p.id === s.id).contexts.includes('any')));
+});
+
+test('new contexts pick their dedicated tracks (sea, factory eras, town, space, forest, basalt)', () => {
+  const expected = {
+    sea: 'sea',
+    lowlands: 'forest',
+    basalt: 'basalt',
+    town: 'town',
+    factory_early: 'industrial_early',
+    factory_mid: 'industrial',
+    factory_high: 'industrial_hightech',
+    space: 'space',
+  };
+  for (const [ctx, id] of Object.entries(expected)) {
+    const { starts } = walk(make(13), 200, () => ctx);
+    assert.ok(starts.length >= 1 && starts.every((s) => s.id === id), `${ctx} picks ${id}`);
+  }
 });
 
 test('an always mode plays only its mood, with a short breath between pieces', () => {
