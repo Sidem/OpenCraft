@@ -229,7 +229,7 @@ export class SkyPass {
     gl.bindVertexArray(this.vao);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (view && quality > 0 && sky.day < 0.98) {
-      this.stars.draw(view.frame.rotation, { forward: f, right: s, up, tanX: tx, tanY: ty }, 1 - sky.day, view.settings.lines, view.settings.twinkle, gl.drawingBufferHeight, view.time, cloud);
+      this.stars.draw(view.frame.rotation, { forward: f, right: s, up, tanX: tx, tanY: ty }, 1 - sky.day, view.settings.lines, view.settings.twinkle, gl.drawingBufferHeight, view.time, view.frame.moon, cloud);
     }
     gl.depthMask(true);
     gl.enable(gl.DEPTH_TEST);
@@ -288,24 +288,27 @@ void main() {
     col += vec3(star * 0.8);
   } else {
     // The Milky Way (the stars are drawn after this pass, stars.ts), then the moon as a lit ball with its phase.
+    // The moon's disc occults the Milky Way behind it, while only the sunlit portion adds light through the foreground sky
+    // so the unlit side blends invisibly into the sky (day and night) as in real life.
+    vec2 p = vec2(dot(dir, u_moonR), dot(dir, u_moonU)) / 0.0316;
+    float r2 = dot(p, p);
+    float mz = dot(dir, u_moon);
+    float moonDisc = mz > 0.0 && r2 < 1.2 ? smoothstep(1.0, 0.94, sqrt(r2)) : 0.0;
     if (u_quality == 2 && night > 0.5) {
       vec3 e = u_eq * dir;
       vec2 uv = vec2(0.5 - atan(e.y, e.x) * 0.15915494, 0.5 - asin(clamp(e.z, -1.0, 1.0)) * 0.31830989);
       vec3 mw = pow(textureLod(u_milky, uv, u_mwLod).rgb, vec3(1.8));
       mw = mix(vec3(dot(mw, vec3(0.3, 0.55, 0.15))), mw, 0.6); // the naked eye sees it paler than the camera does
-      col += mw * vec3(0.4, 0.46, 0.6) * smoothstep(0.75, 1.0, night) * smoothstep(-0.02, 0.2, dir.y);
+      col += mw * vec3(0.4, 0.46, 0.6) * smoothstep(0.75, 1.0, night) * smoothstep(-0.02, 0.2, dir.y) * (1.0 - moonDisc);
     }
-    vec2 p = vec2(dot(dir, u_moonR), dot(dir, u_moonU)) / 0.0316;
-    float r2 = dot(p, p);
-    float mz = dot(dir, u_moon);
     float seen = mix(0.6, 1.0, night);
     col += vec3(0.45, 0.55, 0.9) * pow(max(mz, 0.0), 160.0) * 0.1 * (1.0 - u_moonL.z) * 0.5 * night;
-    if (mz > 0.0 && r2 < 1.2) {
+    if (moonDisc > 0.0) {
       vec3 n = vec3(p, -sqrt(max(1.0 - r2, 0.0))); // the face turned to us points back along the line of sight
-      float lit = smoothstep(-0.03, 0.1, dot(n, u_moonL));
+      float lit = smoothstep(0.0, 0.12, dot(n, u_moonL));
       float maria = 0.8 + 0.2 * smoothstep(0.35, 0.65, fract(sin(dot(floor(p * 5.0), vec2(12.9898, 78.233))) * 43758.5453));
-      vec3 disc = vec3(0.88, 0.9, 1.0) * maria * lit + vec3(0.05, 0.065, 0.1) * (1.0 - lit); // earthshine on the dark part
-      col = mix(col, disc, smoothstep(1.0, 0.94, sqrt(r2)) * seen);
+      vec3 litMoon = vec3(0.88, 0.9, 1.0) * maria * lit * moonDisc * seen;
+      col += (1.0 - col) * litMoon;
     }
   }
   // The red dusk (a setting): a glow low on the horizon towards the sun, a rose band opposite it.

@@ -96,6 +96,60 @@ impl Ring {
         }
     }
 
+    /// Bark from `p_join` (radius `r_join`, ring perpendicular to the stretch so a neighbour across a chunk border
+    /// meets it bit-for-bit) to `p_mid` (radius `r_mid`, ring lying on the miter plane perpendicular to `miter_axis`).
+    #[inline(never)]
+    #[allow(clippy::too_many_arguments)]
+    pub fn strip_miter(
+        &self,
+        p_join: [f32; 3],
+        r_join: f32,
+        p_mid: [f32; 3],
+        r_mid: f32,
+        miter_axis: [f32; 3],
+        sides: usize,
+        tiles: f32,
+        out: &mut Shaped,
+    ) {
+        let d = [p_mid[0] - p_join[0], p_mid[1] - p_join[1], p_mid[2] - p_join[2]];
+        let len = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt();
+        if len < 1e-4 {
+            return;
+        }
+        let (a, axis, e1, e2) = basis(d.map(|v| v / len));
+        let mut ma = unit(miter_axis);
+        if dot(ma, axis) < 0.0 {
+            ma = ma.map(|v| -v);
+        }
+        // Parallel-transport (e1, e2) onto the miter plane so bark quads never twist across the bend.
+        let proj = dot(e1, ma);
+        let me1 = unit([e1[0] - ma[0] * proj, e1[1] - ma[1] * proj, e1[2] - ma[2] * proj]);
+        let me2 = cross(ma, me1);
+        let forward = dot(axis, d) > 0.0;
+        let ends = if forward {
+            [(p_join, r_join, axis, e1, e2), (p_mid, r_mid, ma, me1, me2)]
+        } else {
+            [(p_mid, r_mid, ma, me1, me2), (p_join, r_join, axis, e1, e2)]
+        };
+        let slope = (ends[0].1 - ends[1].1) / len;
+        let k = 1.0 / (1.0 + slope * slope).sqrt();
+        let step = MAX_SIDES / sides;
+        let mut ring = [[[0u32; 3]; MAX_SIDES + 1]; 2];
+        for (e, (p, r, ax, u1, u2)) in ends.into_iter().enumerate() {
+            for (i, slot) in ring[e].iter_mut().take(sides + 1).enumerate() {
+                let (c, s) = TURN[(i * step) % MAX_SIDES];
+                let radial: [f32; 3] = std::array::from_fn(|j| u1[j] * c + u2[j] * s);
+                let pos = std::array::from_fn(|j| p[j] + radial[j] * r);
+                let normal = std::array::from_fn(|j| radial[j] * k + ax[j] * slope * k);
+                *slot = self.vert(pos, normal, tiles * i as f32 / sides as f32, KIND_SIDE + a as u32);
+            }
+        }
+        let [low, high] = &ring;
+        for i in 0..sides {
+            out.packed(false, [low[i], low[i + 1], high[i + 1], high[i]], self.side_layer);
+        }
+    }
+
     /// A flat cut at `p` facing `facing` (a unit vector), `r` blocks across: end grain.
     #[inline(never)]
     pub fn cap(&self, p: [f32; 3], facing: [f32; 3], r: f32, sides: usize, out: &mut Shaped) {

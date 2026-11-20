@@ -302,3 +302,199 @@ fn a_branch_across_a_chunk_border_meets_itself() {
     assert!(sides[0].len() >= 4, "the join's ring (4 sides at least) lies on the border: {:?}", sides[0]);
     assert_eq!(sides[0], sides[1], "both chunks draw the same ring there");
 }
+
+#[test]
+fn a_stepping_living_branch_has_no_cut_end_caps_and_no_trunk_bloat() {
+    // Trunk at (8, 3..11, 8) on stone with a rising staircase branch surrounded by leaves (reproduces cherry/oak elbows).
+    let m = mesh_single(|c| {
+        c.set(8, 2, 8, STONE);
+        for y in 3..11 {
+            c.set(8, y, 8, LOG);
+        }
+        for (x, y) in [(9, 6), (9, 7), (10, 7), (10, 8), (11, 8)] {
+            c.set(x, y, 8, LOG);
+        }
+        for y in 6..12 {
+            for z in 6..11 {
+                for x in 6..14 {
+                    if c.get(x, y, z) == AIR {
+                        c.set(x, y, z, LEAVES);
+                    }
+                }
+            }
+        }
+    });
+    let ends = quads(&m).into_iter().filter(|q| q.1 >= 4).count();
+    assert_eq!(ends, 0, "living tree with stepping branch must have zero flat cut-log end caps");
+    // Check that the branch elbow (10, 7, 8) stays thin rather than bloating to trunk thickness (0.40).
+    let mut c = Chunk::uniform(AIR);
+    c.set(8, 2, 8, STONE);
+    for y in 3..11 {
+        c.set(8, y, 8, LOG);
+    }
+    for (x, y) in [(9, 6), (9, 7), (10, 7), (10, 8), (11, 8)] {
+        c.set(x, y, 8, LOG);
+    }
+    for y in 6..12 {
+        for z in 6..11 {
+            for x in 6..14 {
+                if c.get(x, y, z) == AIR {
+                    c.set(x, y, z, LEAVES);
+                }
+            }
+        }
+    }
+    let air = Chunk::uniform(AIR);
+    let mut refs = [&air; 27];
+    refs[neighbor_index(0, 0, 0)] = &c;
+    let mut g = crate::mesher::tree_grid::TreeGrid::default();
+    g.fill(&refs);
+    let mut nodes = super::node::Nodes::default();
+    let elbow = nodes.of(&g, [10, 7, 8]);
+    assert!(!elbow.trunk && elbow.radius < 0.25, "branch elbow bloated: radius {}", elbow.radius);
+}
+
+#[test]
+fn branches_beside_a_trunk_never_form_a_2x2_saucer_or_vertical_ladder() {
+    // A 1×1 trunk with two adjacent limbs forming a 2×2 patch at y = 6 and parallel stacked limbs at y = 6, 7.
+    let mut c = Chunk::uniform(AIR);
+    c.set(8, 2, 8, STONE);
+    for y in 3..11 {
+        c.set(8, y, 8, LOG);
+    }
+    for (x, y, z) in [(9, 6, 8), (8, 6, 9), (9, 6, 9), (10, 6, 8), (9, 7, 8), (10, 7, 8)] {
+        c.set(x, y, z, LOG);
+    }
+    for y in 5..12 {
+        for z in 6..12 {
+            for x in 6..13 {
+                if c.get(x, y, z) == AIR {
+                    c.set(x, y, z, LEAVES);
+                }
+            }
+        }
+    }
+    let air = Chunk::uniform(AIR);
+    let mut refs = [&air; 27];
+    refs[neighbor_index(0, 0, 0)] = &c;
+    let mut g = crate::mesher::tree_grid::TreeGrid::default();
+    g.fill(&refs);
+    let mut nodes = super::node::Nodes::default();
+    assert_eq!(nodes.of(&g, [8, 6, 8]).width, 1, "branches beside a 1×1 trunk must not swell into a 2×2 saucer");
+    let low = nodes.of(&g, [9, 6, 8]);
+    let mut near = Vec::new();
+    super::node::joins(&g, &low, &mut nodes, &mut near);
+    assert!(
+        !near.iter().any(|o| o.corner == [9, 7, 8]),
+        "parallel stacked limbs beside a trunk must not connect with a vertical ladder rung"
+    );
+}
+
+#[test]
+fn real_grown_trees_of_every_species_have_no_cut_log_caps() {
+    use crate::math::IVec3;
+    use crate::worldgen::WorldGen;
+    // Generate a real seed-1337 world (version 12: all grown tree species) and mesh chunks with living trees.
+    let mut wg = WorldGen::new(1337);
+    let mut tree_chunks = 0;
+    for cz in -3..=3 {
+        for cx in -3..=3 {
+            let chunks: [Chunk; 27] = std::array::from_fn(|i| {
+                let (dx, dy, dz) = ((i % 3) as i32 - 1, (i / 3 % 3) as i32 - 1, (i / 9) as i32 - 1);
+                wg.generate(IVec3::new(cx + dx, 2 + dy, cz + dz))
+            });
+            let refs: [&Chunk; 27] = std::array::from_fn(|i| &chunks[i]);
+            let m = Mesher::new().mesh(&refs, &DAYLIGHT, None);
+            if m.shaped_opaque > 0 && m.shaped_cutout > 0 {
+                tree_chunks += 1;
+                let end_quads: Vec<_> =
+                    quads(&m).into_iter().take(m.shaped_opaque as usize).filter(|q| q.1 >= 4).collect();
+                if !end_quads.is_empty() {
+                    let p = end_quads[0].0[0];
+                    let (lx, ly, lz) =
+                        ((p[0] as i32 - 200) / 100, (p[1] as i32 - 200) / 100, (p[2] as i32 - 200) / 100);
+                    let mut g = crate::mesher::tree_grid::TreeGrid::default();
+                    g.fill(&refs);
+                    let mut nodes = super::node::Nodes::default();
+                    let n = nodes.of(&g, [lx, ly, lz]);
+                    let mut near = Vec::new();
+                    super::node::joins(&g, &n, &mut nodes, &mut near);
+                    let below = g.at(lx, ly - 1, lz);
+                    let above = g.at(lx, ly + 1, lz);
+                    panic!(
+                        "chunk ({cx}, 2, {cz}) has {} end quads; first ({lx},{ly},{lz}) block={} leafy={} trunk={} r={} near={} below={} above={} kind={}",
+                        end_quads.len(),
+                        crate::block::DEFS[n.block as usize].name,
+                        n.leafy,
+                        n.trunk,
+                        n.radius,
+                        near.len(),
+                        crate::block::DEFS[below as usize].name,
+                        crate::block::DEFS[above as usize].name,
+                        end_quads[0].1
+                    );
+                }
+            }
+        }
+    }
+    assert!(tree_chunks >= 10, "expected to test many real grown tree chunks, got {tree_chunks}");
+}
+
+#[test]
+fn every_tree_species_grows_without_cut_log_caps() {
+    use crate::math::IVec3;
+    use crate::worldgen::{grow, height_of, KINDS};
+    for kind in 0..KINDS.len() {
+        for seed in [1u32, 17, 42, 99, 2026] {
+            let mut cols: [Chunk; 2] = [Chunk::uniform(AIR), Chunk::uniform(AIR)];
+            for y in 0..=3 {
+                for z in 0..32 {
+                    for x in 0..32 {
+                        cols[0].set(x, y, z, STONE);
+                    }
+                }
+            }
+            let h = height_of(kind, seed.wrapping_mul(0x9E37_79B1));
+            grow(kind, IVec3::new(16, 3, 16), h, seed, |p, b, _| {
+                if (0..32).contains(&p.x) && (0..32).contains(&p.z) && (0..64).contains(&p.y) {
+                    cols[(p.y / 32) as usize].set(p.x as usize, (p.y % 32) as usize, p.z as usize, b);
+                }
+            });
+            let air = Chunk::uniform(AIR);
+            for cy in 0..2 {
+                let mut refs = [&air; 27];
+                refs[neighbor_index(0, 0, 0)] = &cols[cy];
+                if cy == 0 {
+                    refs[neighbor_index(0, 1, 0)] = &cols[1];
+                } else {
+                    refs[neighbor_index(0, -1, 0)] = &cols[0];
+                }
+                let m = Mesher::new().mesh(&refs, &DAYLIGHT, None);
+                let end_quads: Vec<_> =
+                    quads(&m).into_iter().take(m.shaped_opaque as usize).filter(|q| q.1 >= 4).collect();
+                if !end_quads.is_empty() {
+                    let p = end_quads[0].0[0];
+                    let (lx, ly, lz) =
+                        ((p[0] as i32 - 200) / 100, (p[1] as i32 - 200) / 100, (p[2] as i32 - 200) / 100);
+                    let mut g = crate::mesher::tree_grid::TreeGrid::default();
+                    g.fill(&refs);
+                    let mut nodes = super::node::Nodes::default();
+                    let n = nodes.of(&g, [lx, ly, lz]);
+                    let mut near = Vec::new();
+                    super::node::joins(&g, &n, &mut nodes, &mut near);
+                    panic!(
+                        "species {kind} seed {seed} cy={cy} has {} end quads; first ({lx},{ly},{lz}) block={} leafy={} trunk={} w={} r={:.2} near={} kind={}",
+                        end_quads.len(),
+                        crate::block::DEFS[n.block as usize].name,
+                        n.leafy,
+                        n.trunk,
+                        n.width,
+                        n.radius,
+                        near.len(),
+                        end_quads[0].1
+                    );
+                }
+            }
+        }
+    }
+}

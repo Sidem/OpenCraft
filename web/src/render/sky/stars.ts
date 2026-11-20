@@ -34,7 +34,7 @@ export class StarsPass {
 
   constructor(private readonly gl: WebGL2RenderingContext) {
     this.prog = createProgram(gl, vert, frag);
-    this.u = uniforms(gl, this.prog, ['u_eq', 'u_right', 'u_up', 'u_fwd', 'u_tan', 'u_night', 'u_time', 'u_twinkle', 'u_px', 'u_lines', 'u_cloudOn', 'u_cloud', 'u_cloudTex'] as const);
+    this.u = uniforms(gl, this.prog, ['u_eq', 'u_right', 'u_up', 'u_fwd', 'u_tan', 'u_night', 'u_time', 'u_twinkle', 'u_px', 'u_lines', 'u_moon', 'u_cloudOn', 'u_cloud', 'u_cloudTex'] as const);
     this.vao = gl.createVertexArray()!;
   }
 
@@ -51,9 +51,10 @@ export class StarsPass {
   }
 
   /** Adds the stars (and the lines when `lines`) to the frame; `night` is 0 by day and 1 at night, `time` in seconds. */
-  draw(eq: Float32Array | number[], cam: SkyCamera, night: number, lines: boolean, twinkle: boolean, height: number, time: number, cloud?: { cover: number; wind: number }): void {
+  draw(eq: Float32Array | number[], cam: SkyCamera, night: number, lines: boolean, twinkle: boolean, height: number, time: number, moon: [number, number, number], cloud?: { cover: number; wind: number }): void {
     const gl = this.gl, u = this.u;
     gl.useProgram(this.prog);
+    gl.uniform3f(u.u_moon, ...moon);
     gl.uniform1i(u.u_cloudOn, cloud ? 1 : 0);
     if (cloud) {
       gl.uniform2f(u.u_cloud, cloud.cover, cloud.wind);
@@ -125,7 +126,7 @@ layout(location = 1) in vec4 a_col;
 uniform int u_cloudOn;
 uniform vec2 u_cloud; // cover and wind (clouds.ts): a star behind cloud goes out
 uniform mat3 u_eq; // world to equatorial (astro.ts: the turn's rows); world = eq * u_eq
-uniform vec3 u_right, u_up, u_fwd;
+uniform vec3 u_right, u_up, u_fwd, u_moon;
 uniform vec2 u_tan;
 uniform float u_night, u_time, u_twinkle, u_px;
 uniform int u_lines;
@@ -141,6 +142,7 @@ void main() {
     v_a = 0.22 * smoothstep(0.7, 0.95, u_night) * low;
     return;
   }
+  low *= smoothstep(0.99952, 0.99948, dot(d, u_moon)); // occult stars behind the moon's disc (angular radius 0.0316)
   float m = a_star.w;
   float b = clamp(1.05 - 0.1 * m, 0.3, 1.0);
   float th = 0.55 + 0.06 * m; // bright stars come out first at dusk

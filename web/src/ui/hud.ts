@@ -100,7 +100,7 @@ export class Hud {
   private lastDetail = 0;
   private detailKey = '';
   private cardCache = '';
-  private controlsKey = '';
+  private controlsKey: string | null = null;
 
   private readonly target = $<HTMLDivElement>('target');
   private readonly targetName = $<HTMLSpanElement>('target-name');
@@ -147,7 +147,7 @@ export class Hud {
     this.heldName = new HeldName(game);
     bar.append(this.heldName.el);
     keyLabels.subscribe(() => {
-      this.controlsKey = '';
+      this.controlsKey = null;
       this.cardCache = '';
     });
   }
@@ -227,7 +227,7 @@ export class Hud {
       this.target.classList.add('hidden');
       this.detailKey = '';
       this.cardCache = '';
-      this.controlsKey = '';
+      this.showControls([]);
     }
 
     const helpers = g.helper_status();

@@ -24,12 +24,12 @@ const FLARE: f32 = 1.35;
 const FLARE_HEIGHT: f32 = 0.3;
 /// A join where one side is this much thicker than the other is drawn by the thin side alone.
 const THIN: f32 = 1.5;
-/// A limb's free end tapers to a point this much longer than it is thick.
-const TIP: f32 = 0.4;
+/// A limb's free end tapers to a point this much longer than half its radius.
+const TIP: f32 = 0.32;
 /// A join steeper than this (the sine of its slope) counts as upright: a trunk's, with a foot and a flat top.
 const UPRIGHT: f32 = 0.8;
-/// A run through a node bending less than this (the cosine between its two ways) is drawn as one stretch.
-const STRAIGHT: f32 = -0.9;
+/// A run through a node bending less than this (the cosine between its two ways) is drawn as one straight stretch.
+const STRAIGHT: f32 = -0.94;
 
 /// Every log node owned by the chunk (by its lowest corner) as wood, into `out`'s opaque list.
 pub fn mesh_logs(g: &TreeGrid, pad: &[crate::block::BlockId], light: &[u8], out: &mut Shaped) {
@@ -77,11 +77,15 @@ fn draw(g: &TreeGrid, pad: &[crate::block::BlockId], light: &[u8], n: &Node, nea
         up |= d[1] > UPRIGHT;
         down |= d[1] < -UPRIGHT;
         let (sides, tiles) = ring::detail(n.radius.max(o.radius));
-        if o.radius * THIN < n.radius {
-            continue; // the thin side draws it
+        // Vertical trunk steps (e.g. a 2×2 redwood narrowing to 1×1) always taper across their midpoint, never skipped.
+        let trunk_step = n.trunk && o.trunk && d[1].abs() > UPRIGHT;
+        if !trunk_step && o.radius * THIN < n.radius {
+            continue; // the thin side draws all the way into our centre
         }
-        let seg = if n.radius * THIN < o.radius {
-            Seg { to: o.centre, r0: n.radius, r1: n.radius, sides, tiles }
+        let seg = if !trunk_step && n.radius * THIN < o.radius {
+            // Subtle branch collar where a living limb enters a much thicker trunk.
+            let r1 = if n.leafy { (n.radius * 1.28).min(o.radius * 0.88) } else { n.radius };
+            Seg { to: o.centre, r0: n.radius, r1, sides, tiles }
         } else {
             let mid = std::array::from_fn(|k| (n.centre[k] + o.centre[k]) * 0.5);
             Seg { to: mid, r0: n.radius, r1: (n.radius + o.radius) * 0.5, sides, tiles }
@@ -115,60 +119,100 @@ fn draw(g: &TreeGrid, pad: &[crate::block::BlockId], light: &[u8], n: &Node, nea
         }
         return;
     }
-    // A trunk's foot on the ground, flared; an upright free end: a living limb's tapers (up or hanging down), full
-    // thickness is cut flat.
-    let living = r < node::radii(n.block).1 * 0.99;
+    // Ground root flare, or true free upright ends (never draw a bottom cut cap on an interior branch elbow!).
     if up && !down {
         let ground = OPAQUE[below as usize] && !is_log(below);
         if ground {
             let rings = [(bottom, r * FLARE), (bottom + FLARE_HEIGHT, r), (n.centre[1], r)];
             upright(&f, n, &rings, own_sides, own_tiles, out);
-        } else if living && near.len() == 1 {
-            f.strip(n.centre, r, at_y(n.centre[1] - TIP - r), 0.02, own_sides, own_tiles, out);
-        } else {
-            upright(&f, n, &[(bottom, r), (n.centre[1], r)], own_sides, own_tiles, out);
-            if !HIDES[below as usize] {
-                f.cap(at_y(bottom), [0.0, -1.0, 0.0], r, own_sides, out);
+        } else if near.len() == 1 {
+            if n.leafy {
+                f.strip(n.centre, r, at_y(n.centre[1] - TIP - r * 0.5), 0.02, own_sides, own_tiles, out);
+            } else {
+                upright(&f, n, &[(bottom, r), (n.centre[1], r)], own_sides, own_tiles, out);
+                if !HIDES[below as usize] {
+                    f.cap(at_y(bottom), [0.0, -1.0, 0.0], r, own_sides, out);
+                }
             }
         }
     }
-    if down && !up && near.len() == 1 {
-        if living {
-            f.strip(n.centre, r, at_y(n.centre[1] + TIP + r), 0.02, own_sides, own_tiles, out);
-        } else {
+    if down && !up && (near.len() == 1 || segs.len() == 1) {
+        if n.leafy {
+            f.strip(n.centre, r, at_y(n.centre[1] + TIP + r * 0.5), 0.02, own_sides, own_tiles, out);
+        } else if near.len() == 1 {
             upright(&f, n, &[(n.centre[1], r), (top, r)], own_sides, own_tiles, out);
             if !HIDES[above as usize] {
                 f.cap(at_y(top), [0.0, 1.0, 0.0], r, own_sides, out);
             }
         }
     }
-    // A straight or gently bending run through the node: one stretch from end to end.
-    if let [a, b] = &segs[..] {
-        let (da, db) = (unit(sub(a.to, n.centre)), unit(sub(b.to, n.centre)));
-        if dot(da, db) < STRAIGHT && a.sides == b.sides && a.tiles == b.tiles {
-            f.strip(a.to, a.r1, b.to, b.r1, a.sides, a.tiles, out);
-            return;
+    // Draw the node's segments cleanly: straight/mitered through a 2-way run, or main stem + embedded branches at forks.
+    match &segs[..] {
+        [] => {}
+        [s] => {
+            f.strip(n.centre, s.r0, s.to, s.r1, s.sides, s.tiles, out);
+            // A free end of a slanting or level branch: living limbs always taper cleanly, bare logs are cut flat.
+            if near.len() == 1 {
+                let d = unit(sub(s.to, n.centre));
+                if d[1].abs() <= UPRIGHT {
+                    if n.leafy {
+                        let tip = std::array::from_fn(|k| n.centre[k] - d[k] * (TIP + r * 0.5));
+                        f.strip(n.centre, r, tip, 0.02, s.sides, s.tiles, out);
+                    } else {
+                        let end = std::array::from_fn(|k| n.centre[k] - d[k] * 0.5);
+                        f.strip(n.centre, r, end, r, s.sides, s.tiles, out);
+                        f.cap(end, d.map(|v| -v), r, s.sides, out);
+                    }
+                }
+            }
+        }
+        [a, b] => draw_pair(&f, n, a, b, out),
+        many => {
+            let mut best = (0usize, 1usize, 1.0f32);
+            for (i, si) in many.iter().enumerate() {
+                let di = unit(sub(si.to, n.centre));
+                for (j, sj) in many.iter().enumerate().skip(i + 1) {
+                    let c = dot(di, unit(sub(sj.to, n.centre)));
+                    if c < best.2 {
+                        best = (i, j, c);
+                    }
+                }
+            }
+            if best.2 < -0.5 {
+                draw_pair(&f, n, &many[best.0], &many[best.1], out);
+                for (k, s) in many.iter().enumerate() {
+                    if k != best.0 && k != best.1 {
+                        f.strip(n.centre, s.r0, s.to, s.r1, s.sides, s.tiles, out);
+                    }
+                }
+            } else {
+                let back = r * 0.15;
+                for s in many {
+                    let d = unit(sub(s.to, n.centre));
+                    let from = std::array::from_fn(|k| n.centre[k] - d[k] * back);
+                    f.strip(from, s.r0, s.to, s.r1, s.sides, s.tiles, out);
+                }
+            }
         }
     }
-    let back = if segs.len() >= 2 { r * 0.7 } else { 0.0 };
-    for s in &segs {
-        let d = unit(sub(s.to, n.centre));
-        let from = std::array::from_fn(|k| n.centre[k] - d[k] * back);
-        f.strip(from, s.r0, s.to, s.r1, s.sides, s.tiles, out);
-    }
-    // A free end of a slanting or level branch: a living tree's limb (thinned among leaves) tapers to a point, longer
-    // the thicker it is; full-thickness wood (a beam someone built, a dead tree) is cut flat.
-    if let [s] = &segs[..] {
-        let d = unit(sub(s.to, n.centre));
-        if d[1].abs() <= UPRIGHT {
-            if r < node::radii(n.block).1 * 0.99 {
-                let tip = std::array::from_fn(|k| n.centre[k] - d[k] * (TIP + r));
-                f.strip(n.centre, r, tip, 0.02, s.sides, s.tiles, out);
-            } else {
-                let end = std::array::from_fn(|k| n.centre[k] - d[k] * 0.5);
-                f.strip(n.centre, r, end, r, s.sides, s.tiles, out);
-                f.cap(end, d.map(|v| -v), r, s.sides, out);
-            }
+}
+
+/// Draws two segments meeting at `n.centre`: one direct strip when nearly straight, else two mitered strips flush on
+/// the bisecting plane so curved branches have no protruding cylinder butts or open elbow gaps.
+fn draw_pair(f: &Ring, n: &Node, a: &Seg, b: &Seg, out: &mut Shaped) {
+    let (da, db) = (unit(sub(a.to, n.centre)), unit(sub(b.to, n.centre)));
+    let cos = dot(da, db);
+    if cos < STRAIGHT && a.sides == b.sides && a.tiles == b.tiles {
+        f.strip(a.to, a.r1, b.to, b.r1, a.sides, a.tiles, out);
+    } else if cos < 0.25 {
+        let miter = unit(sub(db, da));
+        f.strip_miter(a.to, a.r1, n.centre, a.r0, miter, a.sides, a.tiles, out);
+        f.strip_miter(b.to, b.r1, n.centre, b.r0, miter, b.sides, b.tiles, out);
+    } else {
+        let back = n.radius * 0.15;
+        for (s, d) in [(a, da), (b, db)] {
+            let from = std::array::from_fn(|k| n.centre[k] - d[k] * back);
+            f.strip(from, s.r0, s.to, s.r1, s.sides, s.tiles, out);
         }
     }
 }

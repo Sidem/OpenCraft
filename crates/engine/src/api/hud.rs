@@ -242,18 +242,20 @@ impl Game {
             lines.retain(|l| !l.is_empty());
             return lines.join("\n");
         }
+        let keys = block_controls(hit.id);
+        let with_keys = |text: String| if keys.is_empty() { text } else { format!("{text}\n{keys}") };
         if let Some(text) = ore_guide::stain_reading(self.sim.world.generator(), hit.block, hit.id) {
-            return text;
+            return with_keys(text);
         }
         if !block::is_ore(hit.id) && hit.id != SPENT_ROCK {
-            return String::new();
+            return keys;
         }
-        let Some(d) = owner_of(&mut self.sim.world, hit.block) else { return String::new() };
+        let Some(d) = owner_of(&mut self.sim.world, hit.block) else { return keys };
         let untracked = self.sim.factory.deposits.get(&d.key).is_none();
         if untracked && self.surveyed.as_ref().is_none_or(|s| s.deposit.key != d.key) {
             self.surveyed = Some(DepositState::survey(&mut self.sim.world, d));
         }
-        let Some(st) = self.sim.factory.deposits.get(&d.key).or(self.surveyed.as_ref()) else { return String::new() };
+        let Some(st) = self.sim.factory.deposits.get(&d.key).or(self.surveyed.as_ref()) else { return keys };
         let int = |n: u64| factory::fmt_int(n);
         let right = format!(
             "{} / {} blocks · {} units",
@@ -269,7 +271,7 @@ impl Game {
             if hit.id == SPENT_ROCK { "warn" } else { "ok" },
         );
         if hit.id == SPENT_ROCK {
-            return format!("{}\n{bar}", factory::hud_status("warn", "Worked-out rock"));
+            return with_keys(format!("{}\n{bar}", factory::hud_status("warn", "Worked-out rock")));
         }
         let grade = st.grade();
         let chips = vec![
@@ -278,7 +280,7 @@ impl Game {
             format!("Mk1 {}%", (MINER_TIERS[0].recovery * 100.0).round() as u32),
             format!("Mk2 {}%", (MINER_TIERS[1].recovery * 100.0).round() as u32),
         ];
-        format!("{bar}\n{}", factory::hud_stats(&chips).unwrap_or_default())
+        with_keys(format!("{bar}\n{}", factory::hud_stats(&chips).unwrap_or_default()))
     }
 
     pub fn hint_count(&self) -> u32 {
@@ -356,16 +358,41 @@ impl Game {
         let b = self.sim.factory.car_bounds(car)?;
         let cell = IVec3::new(b[0].floor() as i32, b[1].floor() as i32, b[2].floor() as i32);
         let low = cell.as_vec3();
-        Some((
-            cell,
-            [
-                (b[0] - low.x) as f32,
-                (b[1] - low.y) as f32,
-                (b[2] - low.z) as f32,
-                b[3] as f32,
-                b[4] as f32,
-                b[5] as f32,
-            ],
-        ))
+        let rel = [(b[0] - low.x) as f32, (b[1] - low.y) as f32, (b[2] - low.z) as f32];
+        Some((cell, [rel[0], rel[1], rel[2], b[3] as f32, b[4] as f32, b[5] as f32]))
     }
 }
+
+/// Action chips for a non-machine, non-tree block: the fitting left-click verb when breakable, plus any right-click
+/// interaction on doors, signs, LED lamps, logbooks and vault doors.
+pub(crate) fn block_controls(id: BlockId) -> String {
+    let def = block::def(id);
+    let lmb = (def.break_time >= 0.0).then(|| match id {
+        _ if block::is_rusted(id) => "Salvage",
+        block::GLASS | block::FRAMED_GLASS | block::THATCH => "Break",
+        block::LOG => "Chop",
+        _ => match def.sound {
+            block::sound::STONE => "Mine",
+            block::sound::DIRT | block::sound::GRASS | block::sound::SAND => "Dig",
+            block::sound::LEAVES => "Cut",
+            _ => "Break",
+        },
+    });
+    let rmb = match id {
+        block::LOGBOOK => Some("Read"),
+        block::VAULT_DOOR => Some("Unlock"),
+        block::SIGN => Some("Edit"),
+        _ if block::is_led(id) => Some("Adjust"),
+        _ if block::toggled(id).is_some() => Some(if block::is_open_door(id) { "Close" } else { "Open" }),
+        _ => None,
+    };
+    match (lmb, rmb) {
+        (Some(l), Some(r)) => factory::hud_keys(&[("LMB", l), ("RMB", r)]),
+        (Some(l), None) => factory::hud_keys(&[("LMB", l)]),
+        (None, Some(r)) => factory::hud_keys(&[("RMB", r)]),
+        (None, None) => String::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests;

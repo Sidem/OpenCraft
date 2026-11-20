@@ -10,8 +10,8 @@ use rustc_hash::FxHashMap;
 
 use super::super::tree_grid::TreeGrid;
 use crate::block::{
-    is_leaves, is_log, BlockId, ACACIA_LOG, BAMBOO, BAOBAB_LOG, BIRCH_LOG, CHERRY_LOG, EUCALYPTUS_LOG, PALM_LOG,
-    PINE_LOG, REDWOOD_LOG, SNAG_LOG,
+    is_leaves, is_log, BlockId, ACACIA_LOG, BAMBOO, BAOBAB_LOG, BIRCH_LOG, CHERRY_LOG, EUCALYPTUS_LOG, OPAQUE,
+    PALM_LOG, PINE_LOG, REDWOOD_LOG, SNAG_LOG,
 };
 
 /// A node's radius per log in a square trunk: 2×2 is this much, 3×3 half again.
@@ -28,6 +28,10 @@ pub struct Node {
     pub centre: [f32; 3],
     pub radius: f32,
     pub block: BlockId,
+    /// Part of a living tree (leaves nearby): free ends taper cleanly instead of showing flat cut end grain.
+    pub leafy: bool,
+    /// Part of a vertical trunk column (not a lateral limb or stepping branch elbow).
+    pub trunk: bool,
 }
 
 impl Node {
@@ -85,10 +89,13 @@ fn node_of(g: &TreeGrid, c: [i32; 3]) -> Node {
             centre: [corner[0] as f32 + half, c[1] as f32 + 0.5, corner[2] as f32 + half],
             radius: SQUARE_RADIUS * width as f32,
             block,
+            leafy: is_leafy(g, corner),
+            trunk: true,
         };
     }
     let centre = std::array::from_fn(|k| c[k] as f32 + 0.5 + bend(g, c)[k]);
-    Node { corner: c, width: 1, centre, radius: thickness(g, c, block), block }
+    let (radius, leafy, trunk) = thickness(g, c, block);
+    Node { corner: c, width: 1, centre, radius, block, leafy, trunk }
 }
 
 /// How far a single log in a run of single logs (joining exactly two) sits off its cell's middle: `SMOOTH` of the way
@@ -100,7 +107,7 @@ fn bend(g: &TreeGrid, c: [i32; 3]) -> [f32; 3] {
     for i in 0..27 {
         let d = [i % 3 - 1, i / 3 % 3 - 1, i / 9 - 1];
         let b = [c[0] + d[0], c[1] + d[1], c[2] + d[2]];
-        if d != [0; 3] && log(g, b) && direct(g, c, d) {
+        if d != [0; 3] && log(g, b) && linked(g, c, d) {
             if n == 2 || square(g, b).is_some() {
                 return [0.0; 3];
             }
@@ -127,7 +134,7 @@ pub fn joins(g: &TreeGrid, n: &Node, nodes: &mut Nodes, out: &mut Vec<Node>) {
                 for dx in -1..=1 {
                     let d = [dx, dy, dz];
                     let b = [a[0] + dx, a[1] + dy, a[2] + dz];
-                    if d == [0; 3] || n.holds(b) || !log(g, b) || !direct(g, a, d) {
+                    if d == [0; 3] || n.holds(b) || !log(g, b) || !linked(g, a, d) {
                         continue;
                     }
                     let other = nodes.of(g, b);
@@ -142,6 +149,89 @@ pub fn joins(g: &TreeGrid, n: &Node, nodes: &mut Nodes, out: &mut Vec<Node>) {
 
 fn log(g: &TreeGrid, c: [i32; 3]) -> bool {
     is_log(g.at(c[0], c[1], c[2]))
+}
+
+/// Whether a non-trunk cell `c` has any direct non-trunk log neighbour besides `skip` (i.e. continues outward as its
+/// own limb rather than being only the rising root step of `skip`).
+fn has_outward_branch(g: &TreeGrid, c: [i32; 3], skip: [i32; 3]) -> bool {
+    for dy in -1..=1 {
+        for dz in -1..=1 {
+            for dx in -1..=1 {
+                let d = [dx, dy, dz];
+                let o = [c[0] + dx, c[1] + dy, c[2] + dz];
+                if d != [0; 3] && o != skip && log(g, o) && !is_trunk_col(g, o) && direct(g, c, d) {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// Whether `a` and `a + d` form a skeleton edge: direct neighbours, minus ladder rungs and D-handles between branches.
+/// Symmetric (`linked(g, a, d) == linked(g, a + d, -d)`), so neighbouring chunks always agree across their border.
+fn linked(g: &TreeGrid, a: [i32; 3], d: [i32; 3]) -> bool {
+    if !direct(g, a, d) {
+        return false;
+    }
+    let b = [a[0] + d[0], a[1] + d[1], a[2] + d[2]];
+    let (ta, tb) = (is_trunk_col(g, a), is_trunk_col(g, b));
+    // Rising limb beside a trunk: if `b` sits above a non-trunk step `b_lo` that has no outward continuation of its own
+    // (just rising from `t_lo` to `b`), break the upper trunk shortcut `(t, b)` so the limb sweeps smoothly up from
+    // `t_lo -> b_lo -> b` instead of leaving `b_lo` as a horizontal dead-end spike.
+    if d[1] == 0 && (ta != tb) {
+        let (t, br) = if ta { (a, b) } else { (b, a) };
+        let (t_lo, b_lo) = ([t[0], t[1] - 1, t[2]], [br[0], br[1] - 1, br[2]]);
+        if is_trunk_col(g, t_lo) && log(g, b_lo) && !is_trunk_col(g, b_lo) && !has_outward_branch(g, b_lo, br) {
+            return false;
+        }
+    }
+    // Break vertical rungs between parallel branches or beside a trunk (D-handles), except where `lo` is the rising
+    // root step of `hi` (handled above by breaking the upper trunk shortcut instead).
+    if d[0] == 0 && d[2] == 0 && d[1].abs() == 1 && !ta && !tb {
+        let (lo, hi) = if a[1] < b[1] { (a, b) } else { (b, a) };
+        let lo_has_out = has_outward_branch(g, lo, hi);
+        let mut parallel = false;
+        for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+            let (lo_n, hi_n) = ([lo[0] + dx, lo[1], lo[2] + dz], [hi[0] + dx, hi[1], hi[2] + dz]);
+            if log(g, lo_n) && log(g, hi_n) {
+                if is_trunk_col(g, lo_n) && is_trunk_col(g, hi_n) && !lo_has_out {
+                    return true; // keep `(lo, hi)` since `(hi_n, hi)` was dropped above
+                }
+                parallel = true;
+            }
+        }
+        if parallel {
+            return false;
+        }
+    }
+    // Break exactly one outer cross-rung of any horizontal 2×2 branch square in living crowns so touching limbs stay
+    // separate without ever disconnecting a corner node.
+    if d[1] == 0 && d[0].abs() + d[2].abs() == 1 && !ta && !tb && is_leafy(g, a) && is_leafy(g, b) {
+        for s in [-1, 1] {
+            let (px, pz) = (-d[2] * s, d[0] * s);
+            let (ap, bp) = ([a[0] + px, a[1], a[2] + pz], [b[0] + px, b[1], b[2] + pz]);
+            if log(g, ap) && log(g, bp) && is_worst_square_edge(g, a, b, ap, bp) {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+/// Whether `(a, b)` is the unique highest-key (outermost) edge of the horizontal 2×2 square `{a, b, ap, bp}`.
+/// Uses only coordinates relative to the square's lowest corner `(x0, z0)`, so neighbouring chunks always agree.
+fn is_worst_square_edge(g: &TreeGrid, a: [i32; 3], b: [i32; 3], ap: [i32; 3], bp: [i32; 3]) -> bool {
+    let x0 = a[0].min(b[0]).min(ap[0]).min(bp[0]);
+    let z0 = a[2].min(b[2]).min(ap[2]).min(bp[2]);
+    let key = |p: [i32; 3], q: [i32; 3]| {
+        let (dp, dq) = (trunk_d2(g, p), trunk_d2(g, q));
+        let z_edge = i32::from(p[0] == q[0]);
+        let off = if z_edge == 1 { p[0] - x0 } else { p[2] - z0 };
+        (dp.saturating_add(dq), dp.max(dq), z_edge, off)
+    };
+    let mine = key(a, b);
+    mine > key(ap, bp) && mine > key(a, ap) && mine > key(b, bp)
 }
 
 /// Whether `a` and `a + d` touch with no log on a shorter path between them (always for a face).
@@ -159,18 +249,17 @@ fn direct(g: &TreeGrid, a: [i32; 3], d: [i32; 3]) -> bool {
     true
 }
 
-/// The square of upright logs `c` is part of (3×3 before 2×2), by its lowest corner, if any.
+/// The square of upright logs `c` is part of (3×3 before 2×2), by its lowest corner, if any. Requires a full matching
+/// square directly above or directly below so a 1×1 trunk with branches beside it never swells into a 2×2 saucer.
 fn square(g: &TreeGrid, c: [i32; 3]) -> Option<([i32; 3], i32)> {
+    let full = |corner: [i32; 3], w: i32| (0..w * w).all(|i| log(g, [corner[0] + i % w, corner[1], corner[2] + i / w]));
     for w in [3, 2] {
         for oz in (0..w).rev() {
             for ox in (0..w).rev() {
                 let corner = [c[0] - ox, c[1], c[2] - oz];
-                let all = (0..w * w).all(|i| log(g, [corner[0] + i % w, c[1], corner[2] + i / w]));
-                let upright = (0..w * w).any(|i| {
-                    let (x, z) = (corner[0] + i % w, corner[2] + i / w);
-                    log(g, [x, c[1] + 1, z]) || log(g, [x, c[1] - 1, z])
-                });
-                if all && upright {
+                if full(corner, w)
+                    && (full([corner[0], c[1] + 1, corner[2]], w) || full([corner[0], c[1] - 1, corner[2]], w))
+                {
                     return Some((corner, w));
                 }
             }
@@ -179,53 +268,125 @@ fn square(g: &TreeGrid, c: [i32; 3]) -> Option<([i32; 3], i32)> {
     None
 }
 
-/// A single log's radius: its species' twig, thickening towards its trunk's with the logs above and around it (the
-/// wood it carries, as a real tree's pipes add up), so a trunk tapers to its top. A limb (a log with none straight
-/// above or below it) tapers from where it leaves its trunk to a twig `LIMB_REACH` blocks out. Wood with no leaves
-/// near (a bare trunk low down, a dead tree, logs someone built with) keeps its full thickness.
-fn thickness(g: &TreeGrid, c: [i32; 3], b: BlockId) -> f32 {
-    let (tip, base) = radii(b);
-    let (mut load, mut leafy) = (0.0, false);
-    for dy in 0..=4 {
-        for dz in -2..=2i32 {
-            for dx in -2..=2i32 {
-                let at = g.at(c[0] + dx, c[1] + dy, c[2] + dz);
-                if is_log(at) {
-                    load += 1.0 / (1 + dx.abs() + dz.abs()) as f32;
-                }
-                leafy |= is_leaves(at);
+/// Whether `c` belongs to a vertical trunk column (a square trunk, a branchless stem like palm/bamboo, standing on
+/// solid ground, or part of a vertical stack of at least 3 logs) rather than a lateral branch or stepping elbow.
+fn is_trunk_col(g: &TreeGrid, c: [i32; 3]) -> bool {
+    let b = g.at(c[0], c[1], c[2]);
+    if !is_log(b) {
+        return false;
+    }
+    if matches!(b, PALM_LOG | BAMBOO) || square(g, c).is_some() {
+        return true;
+    }
+    let below = g.at(c[0], c[1] - 1, c[2]);
+    if !is_log(below) && OPAQUE[below as usize] {
+        return true;
+    }
+    let mut run = 1;
+    for s in [-1, 1] {
+        for step in 1..=2 {
+            if log(g, [c[0], c[1] + s * step, c[2]]) {
+                run += 1;
+            } else {
+                break;
             }
         }
     }
+    run >= 3
+}
+
+/// Whether `c` sits near leaves (a living tree rather than bare/cut wood or a dead snag).
+fn is_leafy(g: &TreeGrid, c: [i32; 3]) -> bool {
+    for dy in -1..=4 {
+        for dz in -3..=3 {
+            for dx in -3..=3 {
+                if is_leaves(g.at(c[0] + dx, c[1] + dy, c[2] + dz)) {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// Squared horizontal distance to the nearest trunk column cell (within 3 blocks), or `u32::MAX` if none.
+fn trunk_d2(g: &TreeGrid, c: [i32; 3]) -> u32 {
+    let mut best = u32::MAX;
+    for dy in -2..=2 {
+        for dz in -3..=3i32 {
+            for dx in -3..=3i32 {
+                let d2 = (dx * dx + dz * dz) as u32;
+                if d2 < best && is_trunk_col(g, [c[0] + dx, c[1] + dy, c[2] + dz]) {
+                    best = d2;
+                }
+            }
+        }
+    }
+    best
+}
+
+/// A single log's `(radius, leafy, trunk)`: a trunk tapers upward with the wood load above it; any non-trunk branch
+/// (including rising branch elbows) tapers smoothly outward from the nearest trunk column to its species' twig.
+/// Wood with no leaves near (bare low trunk, dead tree, player-built logs) keeps its full thickness.
+fn thickness(g: &TreeGrid, c: [i32; 3], b: BlockId) -> (f32, bool, bool) {
+    let (tip, base) = radii(b);
+    let trunk = is_trunk_col(g, c);
+    let leafy = is_leafy(g, c);
     if !leafy {
-        return base;
+        return (base, false, trunk);
     }
-    if !is_log(g.at(c[0], c[1] + 1, c[2])) && !is_log(g.at(c[0], c[1] - 1, c[2])) {
-        return limb(g, c, tip, base);
+    if !trunk {
+        let mut r = limb(g, c, tip, base);
+        // Free living twig tips stay slender so they never look like thick wooden spears.
+        let mut degree = 0;
+        for i in 0..27 {
+            let d = [i % 3 - 1, i / 3 % 3 - 1, i / 9 - 1];
+            if d != [0; 3] && log(g, [c[0] + d[0], c[1] + d[1], c[2] + d[2]]) && linked(g, c, d) {
+                degree += 1;
+                if degree > 1 {
+                    break;
+                }
+            }
+        }
+        if degree <= 1 {
+            r = r.min(tip + (base * LIMB_SHARE - tip) * 0.25);
+        }
+        return (r, true, false);
     }
-    tip + (base - tip) * (load / LOAD_FULL).min(1.0)
+    let mut load = 0.0;
+    for dy in 0..=4 {
+        for dz in -2..=2i32 {
+            for dx in -2..=2i32 {
+                if is_log(g.at(c[0] + dx, c[1] + dy, c[2] + dz)) {
+                    load += 1.0 / (1 + dx.abs() + dz.abs()) as f32;
+                }
+            }
+        }
+    }
+    (tip + (base - tip) * (load / LOAD_FULL).min(1.0), true, true)
 }
 
 /// How far out a limb thins to a twig, and its thickness where it leaves the trunk as a share of the trunk's.
 const LIMB_REACH: f32 = 4.0;
-const LIMB_SHARE: f32 = 0.55;
+const LIMB_SHARE: f32 = 0.52;
 
-/// A limb log's radius, from how far it is (across) from the nearest upright log: a trunk, or a limb's rising part.
-/// Rings outward, so a limb by its trunk stops at the first.
+/// A limb log's radius, smoothly tapering by Euclidean horizontal distance from the nearest true trunk column.
 fn limb(g: &TreeGrid, c: [i32; 3], tip: f32, base: f32) -> f32 {
-    let upright =
-        |x: i32, y: i32, z: i32| is_log(g.at(x, y, z)) && (is_log(g.at(x, y + 1, z)) || is_log(g.at(x, y - 1, z)));
-    for k in 1..=LIMB_REACH as i32 {
-        for dy in -2..=2 {
-            for dz in -k..=k {
-                for dx in -k..=k {
-                    if (dx.abs() == k || dz.abs() == k) && upright(c[0] + dx, c[1] + dy, c[2] + dz) {
-                        let t = (k - 1) as f32 / LIMB_REACH;
-                        return tip + (base * LIMB_SHARE - tip) * (1.0 - t);
-                    }
+    let mut best_d2 = f32::MAX;
+    for dy in -2..=2 {
+        for dz in -4..=4i32 {
+            for dx in -4..=4i32 {
+                let d2 = (dx * dx + dz * dz) as f32;
+                if d2 < best_d2 && is_trunk_col(g, [c[0] + dx, c[1] + dy, c[2] + dz]) {
+                    best_d2 = d2;
                 }
             }
         }
     }
-    tip
+    if best_d2 == f32::MAX {
+        return tip;
+    }
+    let dist = (best_d2.sqrt() - 1.0).max(0.0);
+    let t = (dist / LIMB_REACH).min(1.0);
+    tip + (base * LIMB_SHARE - tip) * (1.0 - t)
 }
