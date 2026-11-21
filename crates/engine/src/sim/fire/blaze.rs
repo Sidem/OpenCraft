@@ -269,12 +269,12 @@ impl Sim {
     fn burn_crown(&mut self, foot: IVec3, centre: [f32; 2]) -> u32 {
         let logs = self.collect_tree_logs(foot, centre);
         let log_set: HashSet<IVec3> = logs.iter().copied().collect();
-        // BFS through leaves up to `LEAF_SUPPORT_STEPS` from our logs (never scans empty air).
+        // BFS through leaves up to `LEAF_SUPPORT_STEPS + 2` from our logs so outer canopy corners don't linger floating.
         let mut leaves: Vec<IVec3> = Vec::new();
         let mut leaf_set: HashSet<IVec3> = HashSet::new();
         let mut other_logs: Vec<IVec3> = Vec::new();
         let mut frontier: Vec<IVec3> = logs.clone();
-        for _ in 0..LEAF_SUPPORT_STEPS {
+        for _ in 0..(LEAF_SUPPORT_STEPS + 2) {
             let mut next = Vec::new();
             for p in frontier {
                 for d in FACES {

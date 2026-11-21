@@ -395,3 +395,31 @@ fn flamethrower_cone_grows_with_distance_to_four_block_diameter() {
     assert!(sim.world.is_cover_cleared(base.x + 2, base.z + 6), "far cone reaches ~2 blocks radius on both sides");
     assert!(!sim.world.is_cover_cleared(base.x + 2, base.z + 12), "weeds well outside the cone stay untouched");
 }
+
+#[test]
+fn floating_leftover_leaves_burn_with_flamethrower() {
+    let mut sim = Sim::new(7, 2);
+    let base = IVec3::new(740, 120, 740);
+    flat_grass(&mut sim, base, 10);
+    // Place a small floating cluster of leftover leaves in the sky with no trunk anywhere nearby.
+    let clump = [
+        base + IVec3::new(4, 5, 0),
+        base + IVec3::new(5, 5, 0),
+        base + IVec3::new(4, 6, 0),
+        base + IVec3::new(4, 5, 1),
+    ];
+    for p in clump {
+        sim.world.set_block_anywhere_later(p, LEAVES);
+    }
+
+    sim.apply(P, Action::Give { item: FLAMETHROWER, count: 1 });
+    sim.apply(P, Action::Give { item: NAPHTHA_BARREL, count: 1 });
+    sim.apply(P, Action::SelectSlot { slot: 0 });
+    let origin = Vec3::new(base.x as f64 + 0.5, base.y as f64 + 2.0, base.z as f64 + 0.5);
+    let target = Vec3::new(base.x as f64 + 4.5, base.y as f64 + 5.5, base.z as f64 + 0.5);
+    sim.apply(P, Action::Flame { origin, dir: target - origin });
+
+    for p in clump {
+        assert_eq!(sim.block(p), AIR, "floating leaf at {p:?} burned away");
+    }
+}

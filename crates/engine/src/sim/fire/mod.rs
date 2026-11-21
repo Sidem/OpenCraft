@@ -204,7 +204,7 @@ impl Sim {
             if let Some(log) = self.find_tree_near_leaf(pos) {
                 return self.ignite_tree(log, heat);
             }
-            return false;
+            return self.burn_loose_leaves(pos, 2.0);
         }
         if is_sapling(b) {
             return self.burn_sapling(pos);
@@ -285,6 +285,8 @@ impl Sim {
             } else if is_leaves(b) {
                 if let Some(log) = self.find_tree_near_leaf(hit.block) {
                     self.ignite_tree(log, MAX_HEAT);
+                } else {
+                    self.burn_loose_leaves(hit.block, cone_r);
                 }
             } else if is_sapling(b) {
                 self.burn_sapling(hit.block);

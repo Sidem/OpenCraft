@@ -2,13 +2,23 @@
 //! `world/cover_clear.rs` bits and leaves a brief glowing ember spot that goes out on its own without ever igniting
 //! neighbouring ground plants.
 
-use super::{MAX_FRONT, SCORCH_TICKS};
-use crate::block::{is_sapling, BlockId, AIR, GRASS, LIQUID, PALE_SOIL, RUSTY_SOIL};
+use super::{MAX_FRONT, MAX_HEAT, SCORCH_TICKS};
+use crate::block::{is_leaves, is_sapling, is_tree_wood, BlockId, AIR, GRASS, LIQUID, PALE_SOIL, RUSTY_SOIL};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::{hash3, IVec3};
 use crate::sim::Sim;
 
 const CARDINALS: [(i32, i32); 4] = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+const FACES: [IVec3; 6] = [
+    IVec3::new(1, 0, 0),
+    IVec3::new(-1, 0, 0),
+    IVec3::new(0, 1, 0),
+    IVec3::new(0, -1, 0),
+    IVec3::new(0, 0, 1),
+    IVec3::new(0, 0, -1),
+];
+/// Max floating/orphaned leaf blocks cleared in one flame cone hit.
+const MAX_LOOSE_LEAVES: usize = 48;
 
 /// One short-lived localized ground ember left where the flamethrower scorched turf (never propagates to neighbours).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -43,6 +53,52 @@ fn is_turf(b: BlockId) -> bool {
 }
 
 impl Sim {
+    /// Burns orphaned/floating leaf blocks with no trunk nearby: clears connected leaves within `radius.max(2.0)`
+    /// (up to `MAX_LOOSE_LEAVES`) via `set_block_anywhere_later`. If any neighbour turns out to be grown tree wood,
+    /// ignites that tree instead of burning live canopy leaves individually.
+    pub(crate) fn burn_loose_leaves(&mut self, start: IVec3, radius: f64) -> bool {
+        if !is_leaves(self.block(start)) {
+            return false;
+        }
+        let max_r = radius.max(2.0).ceil() as i32;
+        let max_r2 = (radius.max(2.0) + 0.5).powi(2);
+        let mut queue = vec![start];
+        let mut seen = vec![start];
+        let mut i = 0;
+        while i < queue.len() && queue.len() < MAX_LOOSE_LEAVES {
+            let p = queue[i];
+            i += 1;
+            for d in FACES {
+                let n = p + d;
+                if (n.x - start.x).abs() > max_r || (n.y - start.y).abs() > max_r || (n.z - start.z).abs() > max_r {
+                    continue;
+                }
+                let d2 = f64::from((n.x - start.x).pow(2) + (n.y - start.y).pow(2) + (n.z - start.z).pow(2));
+                if d2 > max_r2 {
+                    continue;
+                }
+                let blk = self.block(n);
+                if is_tree_wood(blk) {
+                    self.ignite_tree(n, MAX_HEAT);
+                    return true;
+                }
+                if is_leaves(blk) && !seen.contains(&n) {
+                    seen.push(n);
+                    queue.push(n);
+                }
+            }
+        }
+        let mut burned = false;
+        for p in queue {
+            let old = self.block(p);
+            if is_leaves(old) && self.world.set_block_anywhere_later(p, AIR) {
+                self.block_changed_but_leaves(p, old);
+                burned = true;
+            }
+        }
+        burned
+    }
+
     /// Clears ground plants and saplings in a circular flame footprint of `radius` around `center` (matching the
     /// expanding visual flame cone; never spreads beyond the lit disc).
     pub(crate) fn scorch_disc(&mut self, center: IVec3, radius: f64) {
