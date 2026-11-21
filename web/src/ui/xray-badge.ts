@@ -28,9 +28,9 @@ export class XrayBadge {
     keyLabels.subscribe(() => this.drawCap());
     this.drawCap();
     game.set_xray_enabled(load());
-    // The badge joins the top-centre status column (under the helpers' status); the rim covers the whole view.
+    // The badge sits at the top of the left HUD column (hud-columns.css); the rim covers the whole view.
     document.getElementById('hud')!.append(this.rim);
-    document.getElementById('hud-top')!.append(this.el);
+    document.getElementById('hud-left')!.append(this.el);
   }
 
   /** The toggle key. Returns a line to show (the goggles are not worn), or "" after switching. */

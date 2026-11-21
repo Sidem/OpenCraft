@@ -1,5 +1,5 @@
-// In-game HUD: crosshair, the top-centre column (#hud-top: helper status line, target name with detail text and
-// mining bar; the scanner pointer joins it from prospect.ts), hotbar, pickup toasts (and a town's news when it stalls
+// In-game HUD: crosshair, the top-centre column (#hud-top: target name with detail text and mining bar; the scanner
+// pointer joins it from prospect.ts), the left-edge helper status line (#hud-left), hotbar, pickup toasts (and a town's news when it stalls
 // or is supplied again: `town_states` compared with the last look, `town_news` for the words),
 // the muted badge and the F3 debug overlay. Reads from the engine each frame; hotbar slots redraw only
 // when `inventory_version` changes. `itemIcon` renders the item icons other panels reuse, `showAmount` a

@@ -1,7 +1,7 @@
 /* HUD columns (hud.ts): the top centre and the left edge stack their readouts so none overlap. */
 
 /* The top centre is one column so its readouts stack instead of overlapping: the scanner pointer
-   (prospect.ts), the helpers' status, then what the player aims at. */
+   (prospect.ts), then what the player aims at. */
 #hud-top {
   position: absolute;
   top: 12px;
@@ -14,8 +14,9 @@
   max-width: calc(100vw - 24px);
 }
 
-/* The left edge is one column too: the scanner card at the top, the onboarding tip at the bottom (margin-top: auto).
-   Where the screen is short the card shrinks (clipped) instead of running under the tip. */
+/* The left edge is one column too: the X-ray goggles pill, helpers' status (hover pack, jetpack, drone) and scanner
+   card at the top, the onboarding tip at the bottom (margin-top: auto). Where the screen is short the card shrinks
+   (clipped) instead of running under the tip. */
 #hud-left {
   position: absolute;
   left: 12px;
@@ -33,6 +34,18 @@
   overflow: hidden;
 }
 
+#hud-left > #xray-badge {
+  order: -2;
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
+#hud-left > #helper-status {
+  order: -1;
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
 #hud-left > .hint {
   order: 1;
   margin-top: auto;
@@ -44,9 +57,8 @@
   border-radius: 999px;
   background: var(--panel);
   border: 1px solid var(--panel-border);
-  text-align: center;
+  text-align: left;
   font-size: 13px;
   line-height: 1.4;
   white-space: pre-line;
-  order: 1;
 }

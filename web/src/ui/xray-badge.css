@@ -1,7 +1,6 @@
-/* The X-ray goggles' badge (ui/xray-badge.ts): a small pill in the top-centre status column (hud-columns.css), a rim
+/* The X-ray goggles' badge (ui/xray-badge.ts): a small pill at the top of the left HUD column (hud-columns.css), a rim
    round the view while on. */
 #xray-badge {
-  order: 1;
   display: flex;
   align-items: center;
   gap: 8px;
