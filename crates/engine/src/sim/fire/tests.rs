@@ -236,12 +236,12 @@ fn flamethrower_uses_liquid_fuel_not_coal_and_acts_as_weed_torch() {
     assert_eq!(sim.player(P).unwrap().inventory.count(EMPTY_BARREL), 2, "returned second empty barrel");
     assert!(sim.world.is_cover_cleared(base.x, base.z), "ground under weed torch cleared");
 
-    // Step past scorch lifetime: ground fire never spreads across the meadow.
+    // Step past scorch lifetime: ground fire never spreads beyond what the flame cone actually touched.
     for _ in 0..(SCORCH_TICKS + 40) {
         sim.step();
         sim.events.clear();
     }
-    assert!(!sim.world.is_cover_cleared(base.x + 3, base.z), "weed torch did not spread across meadow");
+    assert!(!sim.world.is_cover_cleared(base.x, base.z + 4), "weed torch did not spread across meadow");
 
     // Aim at placed oak log: never lights it.
     let blazes_before = sim.fire.blazes().len();
@@ -358,4 +358,40 @@ fn fire_is_deterministic_across_frame_rates_saves_and_coop() {
         client.run_ticks(1);
     }
     assert_eq!(host.sim.state_hash(), client.sim.state_hash(), "co-op host and client agree on fire");
+}
+
+#[test]
+fn flamethrower_cone_grows_with_distance_to_four_block_diameter() {
+    let mut sim = Sim::new(7, 2);
+    let base = IVec3::new(700, 120, 700);
+    flat_grass(&mut sim, base, 14);
+    sim.apply(P, Action::Give { item: FLAMETHROWER, count: 1 });
+    sim.apply(P, Action::Give { item: NAPHTHA_BARREL, count: 2 });
+    sim.apply(P, Action::SelectSlot { slot: 0 });
+
+    // Close shot straight down (~1.5 blocks away): tight footprint near nozzle, leaves 2 blocks away untouched.
+    let close_origin = Vec3::new(base.x as f64 + 0.5, base.y as f64 + 2.0, base.z as f64 + 0.5);
+    sim.apply(P, Action::Flame { origin: close_origin, dir: Vec3::new(0.0, -1.0, 0.0) });
+    assert!(sim.world.is_cover_cleared(base.x, base.z));
+    assert!(!sim.world.is_cover_cleared(base.x, base.z + 2), "close nozzle shot stays tight");
+
+    // Far shot (~7 blocks out along +x onto the grass top): expands to a ~4-block diameter circle (radius ~2.15).
+    let far_origin = Vec3::new(base.x as f64 - 4.5, base.y as f64 + 2.6, base.z as f64 + 8.5);
+    let far_target = Vec3::new(base.x as f64 + 2.5, base.y as f64 + 1.0, base.z as f64 + 8.5);
+    let dir = far_target - far_origin;
+    sim.apply(P, Action::Flame { origin: far_origin, dir });
+    for dz in -1..=1 {
+        for dx in -1..=1 {
+            assert!(
+                sim.world.is_cover_cleared(base.x + 2 + dx, base.z + 8 + dz),
+                "weed at offset ({dx},{dz}) inside the far cone must be cleared"
+            );
+        }
+    }
+    assert!(
+        sim.world.is_cover_cleared(base.x + 2, base.z + 10),
+        "far cone reaches ~2 blocks radius (4-block diameter)"
+    );
+    assert!(sim.world.is_cover_cleared(base.x + 2, base.z + 6), "far cone reaches ~2 blocks radius on both sides");
+    assert!(!sim.world.is_cover_cleared(base.x + 2, base.z + 12), "weeds well outside the cone stay untouched");
 }

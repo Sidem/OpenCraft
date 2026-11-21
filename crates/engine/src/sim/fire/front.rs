@@ -43,6 +43,21 @@ fn is_turf(b: BlockId) -> bool {
 }
 
 impl Sim {
+    /// Clears ground plants and saplings in a circular flame footprint of `radius` around `center` (matching the
+    /// expanding visual flame cone; never spreads beyond the lit disc).
+    pub(crate) fn scorch_disc(&mut self, center: IVec3, radius: f64) {
+        let r = radius.ceil() as i32;
+        let r2 = radius * radius;
+        for dz in -r..=r {
+            for dx in -r..=r {
+                if f64::from(dx * dx + dz * dz) > r2 {
+                    continue;
+                }
+                self.scorch_ground(IVec3::new(center.x + dx, center.y, center.z + dz));
+            }
+        }
+    }
+
     /// Clears ground plants at `pos`'s column and leaves a short-lived local ember without igniting neighbours.
     pub(crate) fn scorch_ground(&mut self, pos: IVec3) -> bool {
         let Some(gy) = self.turf_surface(pos.x, pos.y, pos.z) else { return false };

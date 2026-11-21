@@ -73,6 +73,13 @@ pub fn flame_fuel_barrels(inv: &Inventory) -> u32 {
     FLAME_FUELS.iter().map(|&item| inv.count(item)).sum()
 }
 
+/// Radius (blocks) of the flamethrower's flame cone at distance `dist`: tight near the nozzle (`0.35`) and growing
+/// smoothly with distance to a ~4-block diameter circle (`radius = 2.15`) across the roaring orange flame head (~6+ blocks).
+pub fn flame_cone_radius(dist: f64) -> f64 {
+    let frac = (dist / 6.0).clamp(0.0, 1.0);
+    0.35 + 1.80 * frac
+}
+
 /// All active fires in the world (core state, saved since version 82).
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct Fire {
@@ -253,7 +260,8 @@ impl Sim {
         let offsets: [(f64, f64); FLAME_RAYS] =
             [(0.0, 0.0), (FLAME_SPREAD, 0.0), (-FLAME_SPREAD, 0.0), (0.0, FLAME_SPREAD), (0.0, -FLAME_SPREAD)];
 
-        for (rx, ry) in offsets {
+        let mut center_reach = FLAME_RANGE;
+        for (idx, (rx, ry)) in offsets.into_iter().enumerate() {
             let ray_dir = unit(forward + right * rx + up * ry);
             let hit = {
                 let world = &mut self.world;
@@ -263,6 +271,11 @@ impl Sim {
                 })
             };
             let Some(hit) = hit else { continue };
+            let dist = (hit.block.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - origin).length().min(FLAME_RANGE);
+            if idx == 0 {
+                center_reach = dist;
+            }
+            let cone_r = flame_cone_radius(dist);
             let b = hit.id;
             if LIQUID[b as usize] {
                 continue;
@@ -275,10 +288,23 @@ impl Sim {
                 }
             } else if is_sapling(b) {
                 self.burn_sapling(hit.block);
+                self.scorch_disc(hit.block - IVec3::new(0, 1, 0), cone_r);
             } else if bears_cover(b) {
-                // Weed-torch rule: clear plants right where the flame hits; never ignite neighbouring ground plants.
-                self.scorch_ground(hit.block);
+                // Expanding weed-torch cone: scorches every weed inside the flame's circular footprint at `dist`
+                // (up to ~4-block diameter) without ever spreading past what the flame touches.
+                self.scorch_disc(hit.block, cone_r);
             }
+        }
+        // Sweep the underside of the expanding flame cone along the center ray so skimming a meadow scorches weeds
+        // engulfed by the billowing flame even when the ray itself passes just above the ground.
+        let mut d = 1.5;
+        while d <= center_reach {
+            let cone_r = flame_cone_radius(d);
+            let under = (origin + forward * d - Vec3::new(0.0, cone_r * 0.75, 0.0)).floor();
+            if bears_cover(self.block(under)) {
+                self.scorch_disc(under, cone_r);
+            }
+            d += 1.0;
         }
         self.events.push(SimEvent::Flamed { player, origin, dir: forward });
     }
