@@ -17,7 +17,7 @@ use super::gas::GAS_MACHINES;
 use super::glass::STAINED_GLASS;
 use super::machine_later::LATER;
 use super::orbit::ORBIT;
-use super::refit::{REFIT, REFIT_LATER};
+use super::refit::{REFIT, REFIT_LATER, REFIT_SEISMIC};
 use super::rows::*;
 use super::scrap::SCRAP;
 use crate::block::*;
@@ -90,23 +90,36 @@ use Category::{Arc, Assembly, Blasting, Crushing, Electrolysis, Pressing, Smelti
 /// `refit.rs` later goes in a table of its own too, as the upgrader's rows are derived from `FAMILIES`, and a test asks
 /// that every tier has one). The ruins' salvage row (`scrap.rs`) follows, then the decor set's rows (`decor.rs`),
 /// then upgrader rows for families tiered later (`REFIT_LATER`, full), then the Pigments tech's (`dye.rs`).
-pub const MACHINE_RECIPES: &[MachineRecipe] =
-    &join::<
-        MachineRecipe,
-        {
-            MAIN.len()
-                + LATER.len()
-                + ORBIT.len()
-                + AUTOMATE.len()
-                + REFIT.len()
-                + SCRAP.len()
-                + DECOR.len()
-                + REFIT_LATER.len()
-                + DYE.len()
-                + STAINED_GLASS.len()
-                + GAS_MACHINES.len()
-        },
-    >(&[MAIN, LATER, ORBIT, AUTOMATE, REFIT, SCRAP, DECOR, REFIT_LATER, DYE, STAINED_GLASS, GAS_MACHINES]);
+pub const MACHINE_RECIPES: &[MachineRecipe] = &join::<
+    MachineRecipe,
+    {
+        MAIN.len()
+            + LATER.len()
+            + ORBIT.len()
+            + AUTOMATE.len()
+            + REFIT.len()
+            + SCRAP.len()
+            + DECOR.len()
+            + REFIT_LATER.len()
+            + DYE.len()
+            + STAINED_GLASS.len()
+            + GAS_MACHINES.len()
+            + REFIT_SEISMIC.len()
+    },
+>(&[
+    MAIN,
+    LATER,
+    ORBIT,
+    AUTOMATE,
+    REFIT,
+    SCRAP,
+    DECOR,
+    REFIT_LATER,
+    DYE,
+    STAINED_GLASS,
+    GAS_MACHINES,
+    REFIT_SEISMIC,
+]);
 
 const MAIN: &[MachineRecipe] = &[
     MachineRecipe { category: Smelting, inputs: &[(b(IRON_ORE), 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },

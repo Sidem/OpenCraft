@@ -36,6 +36,7 @@ import { SitePanel } from './ui/site';
 import { DronePanel } from './ui/drone';
 import { LogbookPanel } from './ui/logbook';
 import { LedPanel } from './ui/led-panel';
+import { SeismicPanel } from './ui/seismic';
 import { SignPanel } from './ui/sign';
 import { VaultPanel } from './ui/vault';
 import { ConsolePanel } from './ui/console';
@@ -178,6 +179,8 @@ async function main(): Promise<void> {
   const vault = new VaultPanel(game);
   const signEditor = new SignPanel(game);
   const ledPanel = new LedPanel(game);
+  const seismic = new SeismicPanel(game, pins);
+  seismic.onPulse = () => sound.thump();
   const signFaces = new SignFaces(game, renderer, texSize);
   const adminConsole = new ConsolePanel(consoleHost(game, renderer, () => coop !== null));
   session?.keepPins(pins);
@@ -196,11 +199,11 @@ async function main(): Promise<void> {
   document.getElementById('coop')!.append(coopPanel.el);
   // Screens the keys open (the action's kind names them); each frees the mouse while open.
   const screens = { blueprints, research, analytics, drone, 'world-map': worldMap };
-  const panels = [inventory, research, worldMap, blueprints, sites, analytics, logbook, vault, signEditor, ledPanel, adminConsole, drone]; // a machine's panel is in the inventory
+  const panels = [inventory, research, worldMap, blueprints, sites, analytics, logbook, vault, signEditor, ledPanel, seismic, adminConsole, drone]; // a machine's panel is in the inventory
   const panelOpen = () => panels.some((p) => p.isOpen);
 
   // ---- menu / pointer lock (pause.ts)
-  const closers = [research, blueprints, sites, worldMap, analytics, logbook, vault, signEditor, ledPanel, adminConsole, drone];
+  const closers = [research, blueprints, sites, worldMap, analytics, logbook, vault, signEditor, ledPanel, seismic, adminConsole, drone];
   const pause = wirePause({ game, opened, viewRadius: () => quality.settings.radius, menu, canvas, input, sound, soundLab, session, inventory, closers, panelOpen });
   wireHome(menu, game, sound, [
     { code: 'KeyE', name: 'Inventory and crafting', screen: inventory },
@@ -219,7 +222,7 @@ async function main(): Promise<void> {
   document.getElementById('quality-suggestion')!.append(qualityPanel.suggestion);
 
   const handles = {
-    frames, perf, quality, qualityPanel, game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, drone, logbook, vault, signEditor, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
+    frames, perf, quality, qualityPanel, game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, drone, logbook, vault, signEditor, seismic, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -286,7 +289,7 @@ async function main(): Promise<void> {
     if (request.length === 3) {
       const [x, y, z] = request;
       if (!trains.open(x, y, z) && game.box_slots(x, y, z).length > 0) inventory.open([x, y, z]);
-      else if (!trains.isOpen && !logbook.open(x, y, z) && !vault.open(x, y, z) && !signEditor.open(x, y, z) && !ledPanel.open(x, y, z)) machine.open(x, y, z);
+      else if (!trains.isOpen && !logbook.open(x, y, z) && !vault.open(x, y, z) && !signEditor.open(x, y, z) && !ledPanel.open(x, y, z) && !seismic.open(x, y, z)) machine.open(x, y, z);
       input.unlock();
       sound.ui();
     }

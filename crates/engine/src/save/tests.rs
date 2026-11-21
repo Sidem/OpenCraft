@@ -170,15 +170,15 @@ fn a_version_76_save_still_loads_and_saves_with_only_the_head_slot_and_the_new_t
     assert!(g.sim.players.iter().flatten().all(|p| !p.inventory.has_xray_goggles()), "the Head slot is empty");
     let saved = g.save();
     assert_eq!(u32::from_le_bytes(saved[4..8].try_into().unwrap()), SAVE_VERSION);
-    // A Head slot each, six more techs (X-ray Goggles, LED Lamps, Pigments, Gas Wells, Gas Processing, Flamethrower),
-    // the switched-off count (4 bytes), the LED colours' count, active fires (12 bytes, save 82), and the three extra
-    // generator layer versions in the save 81 header (12 bytes).
+    // A Head slot each, eight more techs (X-ray Goggles, LED Lamps, Pigments, Gas Wells, Gas Processing, Flamethrower,
+    // Seismic Prospecting, Ore Scanning), the switched-off count (4 bytes), the LED colours' count, active fires (12
+    // bytes, save 82), and the three extra generator layer versions in the save 81 header (12 bytes).
     let leds = crate::bytes::ByteWriter::default().bytes.len() + {
         let mut w = crate::bytes::ByteWriter::default();
         g.sim.leds.write_state(&mut w);
         w.bytes.len()
     };
-    assert_eq!(saved.len(), V76_SAVE.len() + 2 * players + 24 + 4 + leds + 12 + 12);
+    assert_eq!(saved.len(), V76_SAVE.len() + 2 * players + 32 + 4 + leds + 12 + 12);
     let back = Game::load(&saved, 2).expect("the new format loads");
     assert_eq!(back.sim.state_hash(), g.sim.state_hash());
 }

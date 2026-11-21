@@ -1,0 +1,296 @@
+/* Seismic Prospecting Console (seismic.ts): dark glass geophysical tomography modal with responsive cross-section
+   viewport, segmented visualization switcher, live mini-seismograph strip, precision telemetry bar and detected-horizon
+   chips. All classes prefixed `.seis-`. */
+
+.seis-dialog {
+  width: min(1040px, 96vw);
+  height: min(760px, 92vh);
+  background: linear-gradient(180deg, rgba(16, 20, 29, 0.98) 0%, rgba(11, 14, 21, 0.99) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.seis-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 52px 12px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.seis-title-group,
+.seis-head-right,
+.seis-tools,
+.seis-tele-pair,
+.seis-density-wrap,
+.seis-anomalies,
+.seis-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.seis-title-group,
+.seis-anomalies,
+.seis-legend {
+  flex-wrap: wrap;
+}
+
+.seis-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.seis-tier {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font: 700 11px var(--mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.seis-tier.mk1 { background: rgba(217, 74, 61, 0.22); color: #fca5a5; border: 1px solid rgba(217, 74, 61, 0.45); }
+.seis-tier.mk2 { background: rgba(154, 91, 214, 0.24); color: #d8b4fe; border: 1px solid rgba(154, 91, 214, 0.5); }
+.seis-tier.mk3 { background: rgba(224, 176, 47, 0.24); color: #fde68a; border: 1px solid rgba(224, 176, 47, 0.52); }
+
+.seis-pill {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  font: 600 11px var(--mono);
+  color: var(--muted);
+}
+
+.seis-pill[data-state='ok'] { color: #8fdc9c; border-color: rgba(143, 220, 156, 0.35); background: rgba(143, 220, 156, 0.09); }
+.seis-pill[data-state='warn'] { color: #fbbf24; border-color: rgba(251, 191, 36, 0.38); background: rgba(251, 191, 36, 0.1); }
+.seis-pill[data-state='off'] { color: #f87171; border-color: rgba(248, 113, 113, 0.35); background: rgba(248, 113, 113, 0.09); }
+
+.seis-upgrade {
+  padding: 5px 11px;
+  font-size: 12px;
+  border-color: rgba(250, 149, 73, 0.45);
+  color: #fdba74;
+}
+
+.seis-upgrade:disabled,
+.seis-tool-btn:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.seis-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 18px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.seis-modes {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 9px;
+  background: rgba(8, 11, 17, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  gap: 3px;
+}
+
+.seis-mode-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font: 600 12px var(--font);
+  cursor: pointer;
+}
+
+.seis-mode-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+.seis-mode-btn.active { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1px rgba(250, 149, 73, 0.45); }
+
+.seis-pulse-btn {
+  padding: 7px 15px;
+  border-radius: 8px;
+  border: 1px solid rgba(250, 149, 73, 0.65);
+  background: linear-gradient(180deg, rgba(250, 149, 73, 0.28) 0%, rgba(234, 108, 38, 0.2) 100%);
+  color: #ffedd5;
+  font: 700 12px var(--font);
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(250, 149, 73, 0.18);
+}
+
+.seis-pulse-btn:hover:not(:disabled) { background: linear-gradient(180deg, rgba(250, 149, 73, 0.42) 0%, rgba(234, 108, 38, 0.28) 100%); }
+.seis-pulse-btn:active:not(:disabled) { transform: scale(0.97); }
+.seis-pulse-btn:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
+
+.seis-strip {
+  width: 128px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: block;
+}
+
+.seis-tool-btn {
+  padding: 6px 11px;
+  font-size: 12px;
+}
+
+.seis-viewport {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 260px;
+  overflow: hidden;
+  background: #0a0e16;
+}
+
+.seis-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+}
+
+.seis-canvas.is-3d { cursor: grab; }
+.seis-canvas.is-grabbing { cursor: grabbing; }
+
+.seis-subbar {
+  padding: 6px 18px;
+  background: rgba(8, 11, 18, 0.72);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.seis-subrow { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.seis-sub-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.seis-step-btn { padding: 3px 8px; font-size: 11px; line-height: 1.2; }
+.seis-slider { width: 148px; accent-color: #fa9549; cursor: pointer; }
+.seis-peel-slider { width: 118px; }
+.seis-subval { min-width: 82px; font: 600 11px var(--mono); color: #fdba74; text-align: center; }
+.seis-hint { font: 500 11px var(--font); color: var(--muted); }
+
+.seis-filter-btn {
+  padding: 4px 9px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  font: 600 11px var(--font);
+  cursor: pointer;
+}
+
+.seis-filter-btn:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.22); }
+.seis-filter-btn.active { color: #ffedd5; border-color: rgba(250, 149, 73, 0.55); background: rgba(250, 149, 73, 0.16); }
+
+.seis-offline {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(8, 11, 18, 0.78);
+  backdrop-filter: blur(2px);
+  color: #fca5a5;
+  font: 600 14px var(--font);
+  text-align: center;
+}
+
+.seis-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 18px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 15, 23, 0.96);
+}
+
+.seis-telemetry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.seis-tele-class {
+  font: 700 13px var(--font);
+  min-width: 180px;
+}
+
+.seis-tele-k {
+  color: var(--muted);
+  font: 600 10px var(--font);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.seis-tele-val {
+  color: var(--text);
+  font: 600 12px var(--mono);
+}
+
+.seis-density-bar {
+  width: 96px;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+
+.seis-density-fill {
+  width: 100%;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.08s ease-out;
+}
+
+.seis-deck {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.seis-anomalies {
+  gap: 6px;
+  flex: 1 1 auto;
+}
+
+.seis-empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.seis-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font: 600 11px var(--font);
+  cursor: pointer;
+}
+
+.seis-chip:hover { border-color: rgba(250, 149, 73, 0.55); background: rgba(250, 149, 73, 0.12); }
+
+.seis-chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.seis-chip-name { white-space: nowrap; }
+.seis-chip-pos { color: var(--muted); font: 500 11px var(--mono); }
+
+.seis-leg-item { display: inline-flex; align-items: center; gap: 5px; font: 500 11px var(--font); color: var(--muted); }
+.seis-leg-sw { width: 9px; height: 9px; border-radius: 2px; }

@@ -126,3 +126,19 @@ fn the_queue_never_passes_its_length() {
     (0..TECHS.len() as u8).for_each(|t| r.enqueue(t));
     assert!(r.queue().len() <= MAX_QUEUE);
 }
+
+#[test]
+fn queueing_seismic_prospecting_orders_ore_scanning_ahead_of_advanced_scanning() {
+    let mut r = Research::default();
+    let scan = by_name("Ore Scanning");
+    let adv = by_name("Advanced Scanning");
+    let seis = by_name("Seismic Prospecting");
+    r.enqueue(seis);
+    let chain = order(&r);
+    let pos = |t: u8| chain.iter().position(|&x| x == t).expect("in chain");
+    assert!(pos(scan) < pos(adv) && pos(adv) < pos(seis), "chain: {chain:?}");
+    while let Some(c) = r.current {
+        finish(&mut r, c);
+    }
+    assert_eq!(r.state(seis), TechState::Done);
+}

@@ -391,6 +391,7 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
 - [ ] (LOOK, 2026-11-17) Router roofs `splitter_top`/`filter_top`/`merger_top` (31, 32, 472; cyan in, gold out); models
   `router_model.rs`, doorways `process/port_mouth.rs` (dark, `FRAME` lintel): existing layers, want a frame face.
 - [ ] (FIRE, 2026-11-21) `tex::CHARCOAL` (523), `FLAMETHROWER` (524, tan shroud), `FLAMETHROWER_TANK` (525, olive), `FLAMETHROWER_CHROME` (526, bell) in `textures/fire.rs` & `item_models/fire.rs`; shader flames in `web/src/render/fire.ts`.
+- [ ] (F-SEIS, 2026-11-21) `tex::THUMPER_SIDE` (527), `THUMPER_TOP` (528), `THUMPER_PISTON` (529) in `textures/thumper.rs` & `item_models/thumper.rs`.
 
 ## 8. Log
 

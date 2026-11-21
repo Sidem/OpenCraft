@@ -297,7 +297,11 @@ pub const CHARCOAL: u16 = REFORMER_TOP + 1;
 pub const FLAMETHROWER: u16 = CHARCOAL + 1;
 pub const FLAMETHROWER_TANK: u16 = FLAMETHROWER + 1;
 pub const FLAMETHROWER_CHROME: u16 = FLAMETHROWER_TANK + 1;
-pub const COUNT: usize = FLAMETHROWER_CHROME as usize + 1;
+/// Seismic Thumper (F-SEIS, model/item layers past 512): slate instrument housing, transducer deck and hazard piston.
+pub const THUMPER_SIDE: u16 = FLAMETHROWER_CHROME + 1;
+pub const THUMPER_TOP: u16 = THUMPER_SIDE + 1;
+pub const THUMPER_PISTON: u16 = THUMPER_TOP + 1;
+pub const COUNT: usize = THUMPER_PISTON as usize + 1;
 
 /// The case layer of the kit of tier `tier` (1 is Mk2, the green kit).
 pub const fn kit_paint(tier: u8) -> u16 {

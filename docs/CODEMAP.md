@@ -16,7 +16,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `api/`: the JS API, one `#[wasm_bindgen] impl Game` per area; methods only forward. `engine.d.ts` (generated) lists them.
   `input`, `view`, `render`, `inventory`, `machine`, `crafting`, `research`, `creative`, `content`, `hud`, `sites`, `save`,
   `net`, `minimap`, `prospect`, `analytics`, `towns`, `orbit`, `ruins`, `signs`, `opening`, `blueprint`, `hand_waste`,
-  `lessons`, `guide`, `surroundings`, `xray`, `led`, `static_boxes`, `debug` (give, teleport, run_ticks, scene building).
+  `lessons`, `guide`, `surroundings`, `xray`, `led`, `seismic`, `static_boxes`, `debug` (give, teleport, run_ticks, scene building).
 - `events.rs`: `SimEvent`s → item spawns, sounds, toasts, analytics. `authority.rs`: bodies, loose items, join/leave.
 
 ### Deterministic core (changes only through `Action`s at a tick)
@@ -53,7 +53,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs` (+ `pump/view.rs`, `Look::Jack`), `refinery.rs`, `gas.rs`, `washer.rs`, `recycler.rs`,
   `center.rs`, `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs` (+ `rocket.rs`),
   `pods.rs` + `pods/channels.rs`, `hangar.rs`, `hoist.rs`, `docks.rs`, `depot.rs`, `ejector.rs`, `upgrader.rs`, `laser.rs`,
-  `forester.rs` + `forester/` (`patch.rs`, `work.rs`, `fell.rs`, `view.rs`, `crane.rs`, `scene.rs`; `Look::Crane`).
+  `forester.rs` + `forester/` (`patch.rs`, `work.rs`, `fell.rs`, `view.rs`, `crane.rs`, `scene.rs`; `Look::Crane`), `thumper.rs` (`Look::Thumper`).
 - Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs`, `render.rs` (instances; `push_round`, `push_cone`,
   `push_framed`; `plume.rs`, `capsule.rs`; `render/fake_round.rs` and `tests/face_fight.rs` are checks), `static_view.rs` (chunk index and static/dynamic split), `hitbox.rs`, `smoke.rs`,
   `placed.rs` (what blueprints copy).
@@ -66,6 +66,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   Pigments tech (tech 89): items 419–429, blocks 228–238 (`block/tints.rs`, the mixed-hue concretes), `recipes/dye.rs` (`HUES` palette, machine rows 155–176).
   Stained glass: blocks 239–254 (`block/glass.rs`, translucent cubes), `recipes/glass.rs` (rows 177–192, Architecture).
   Natural gas (CHEM-GAS): blocks 255–260 (`block/gas.rs`; 256–260 first wide blocks in `WIDE_BLOCK_ITEMS`), items 430–439, `recipes/gas.rs` (rows 193–197), `worldgen/gas.rs` (v13 independent fields), `item_models/gas.rs`, `textures/gas.rs`.
+  Seismic prospecting (F-SEIS): block 261 (`block/thumper.rs`), items 442–444 (Mk1–Mk3), `recipes/thumper.rs`, `item_models/thumper.rs`, `textures/thumper.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs`): `ItemId`; ids below 256 are blocks, wider blocks pair with items in `WIDE_BLOCK_ITEMS`. `wood.rs`: the ten woods.
 - `recipes/`: `mod.rs` (`RECIPES`; `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`; `machine_later.rs`), `process_notes.rs` (one line of real chemistry a chemical machine row; shown on its card and in the item guide), `rows.rs`, `tiers.rs`,
   `refit.rs`, `timing.rs`, `group.rs` + `menu_order.rs`, `item_groups.rs`, `recycling.rs`, `content.rs`; one file per era or
@@ -91,7 +92,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `town_preview.rs`, `ghost_mode.rs` + `ghost_models.rs` (ghosts and blueprint stamps as see-through models), `ghost_build.rs` (X: build the aimed ghost from the pack), `power_tools.rs` + `power_tools/`, `rail_tools.rs`, `rail_snap.rs`, `train_tools.rs`,
   `dock_tools.rs`, `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `drone_hands.rs`, `blueprint/hands.rs`, `blueprint/repeat.rs`.
 - Lessons: `stall_lesson.rs`, `need_lesson.rs`, `recipe_lesson.rs` (no recipe chosen), `upgrade_lesson.rs` (a bottleneck and kits in the pack), `blueprint_lesson.rs` (the walk-through after the blueprint prompt), `planner_lesson.rs` (a planner in the pack, no site yet), `map_lesson.rs` (far from spawn, the map never opened), `first_steps.rs` + `first_steps/`.
-- Tools: `prospect.rs`, `survey.rs` + `survey/orbit.rs`, `telescope.rs` + `telescope/` (`ground.rs`, `beacons.rs`), `sickle.rs`, `flame_hands.rs`.
+- Tools: `prospect.rs`, `seismic/` (`mod.rs`, `scan.rs`, `volume.rs`: 2D MRI slice + 48³ 3D volume query), `survey.rs` + `survey/orbit.rs`, `telescope.rs` + `telescope/` (`ground.rs`, `beacons.rs`), `sickle.rs`, `flame_hands.rs`.
 
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
 - `mesher.rs` + `mesher/` (`quad.rs`, `water.rs`, `cover.rs` + `cover/shape.rs`); trees: `shaped.rs`, `tree_grid.rs`, `logs.rs` + `logs/`
@@ -120,7 +121,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `render/`: `renderer.ts` (+ `frame.ts`), `mesh-events.ts`, `shaped.ts`, `falling.ts`, `geometry.ts`, `shaders.ts`, `boxes.ts` +
   `round-mesh.ts` + `box-glsl.ts`, `water.ts`, `outlines.ts`, `precip.ts`, `halos.ts`, `fire.ts` (instanced shader flames & embers), `sky.ts` + `sky/`, `art-pack.ts` (128 px pack),
   `art/` (the pack's files), `held-light.ts`, `sign-faces.ts` + `sign-layout.ts`, `tier-paint.ts` + `tier-wire.ts` (a tier palette recolours the baked layers), `frame-stats.ts`, `gpu-probe.ts`, `quality.ts`, `auto-quality.ts`, `gl.ts`, `mat4.ts`.
-- `audio/`: `sound.ts` (master bus), `sound-actions.ts`, `synth.ts` + `synth-orbit.ts` + `synth-fire.ts` + `flame-loop.ts` (continuous torch audio), `settings.ts`, `ambience.ts` +
+- `audio/`: `sound.ts` (master bus), `sound-actions.ts`, `synth.ts` + `synth-orbit.ts` + `synth-fire.ts` + `synth-seismic.ts` + `flame-loop.ts` (continuous torch audio), `settings.ts`, `ambience.ts` +
   `ambience-levels.ts` + `ambience-mix.ts` + `synth-ambience.ts`, `surroundings.ts`, `music.ts` + `music-director.ts` +
   `music-pieces.ts` (one row a piece) + `music/`.
 - `net/`: `session.ts`, `host.ts`, `client.ts`, `protocol.ts`, `coop.ts`, `transport.ts`, `webrtc.ts`, `broadcast.ts`, `signal.ts`, `ticker.ts`.
@@ -133,7 +134,7 @@ local player's hands, presentation, then the **deterministic core**, which never
     `drag-throw.ts`, `craft-terms.ts`, `creative.ts`, `pack-upgrade.ts`, `box-label.ts`, `drone.ts`, `drone-slots.ts`, `slot-view.ts`.
   - Machines: `machine.ts`, `machine-upgrade.ts`, `machine-recipes.ts` (+ `recipe-rates.ts`), `rate-table.ts`, `filter-panel.ts`,
     `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`, `sign.ts` (`colour-wheel.ts`,
-    `colour.ts`), `train.ts`.
+    `colour.ts`), `seismic.ts` + `seismic-controls.ts` + `seismic-render.ts` + `seismic-volume.ts` + `seismic-data.ts`, `train.ts`.
   - Research: `research.ts` (+ `research-card.css`), `research-view.ts`, `tech-tree.ts`, `research-eras.ts`, `research-node.ts`,
     `research-kinds.ts`, `research-map.ts`, `research-search.ts`, `research-queue.ts`.
   - Maps: `worldmap.ts`, `pins.ts`, `map-pin-list.ts`, `map-filter.ts` + `map-filter-panel.ts`, `map-info.ts`, `map-key.ts` (+

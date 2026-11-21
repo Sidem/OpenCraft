@@ -54,7 +54,9 @@ const B: PlayerId = PlayerId(1);
 /// (`[13; 4]` in `Layers`); the previous hash was 0x4dd6_71a5_86c3_8440.
 /// On 2026-11-21 FIRE added one research entry (Flamethrower 92) and active fires (`sim/fire/`, save 82, 12 zero
 /// bytes when empty) at the end of the core; the previous hash was 0xee53_5ac3_e737_f7e2.
-const GOLDEN_HASH: u64 = 0xbf81_021e_48c3_41cd;
+/// On 2026-11-21 F-SEIS added two research entries (Seismic Prospecting 93, Ore Scanning 94); the previous hash was
+/// 0xbf81_021e_48c3_41cd.
+const GOLDEN_HASH: u64 = 0x9165_f3be_0d90_af17;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

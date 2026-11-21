@@ -30,6 +30,7 @@ mod render;
 mod research;
 mod ruins;
 mod save;
+mod seismic;
 mod signs;
 mod sites;
 mod static_boxes;

@@ -133,7 +133,7 @@ pub use power::{sag_point, wire};
 pub(crate) use process::EJECTOR_ICON;
 pub use process::{
     channel_colour, channel_name, first_maker, forester_survey, makes, spec as process_spec, tenths, tenths_a_minute,
-    ForesterPatch, ForesterSurvey, Want,
+    ForesterPatch, ForesterSurvey, ThumperInfo, Want,
 };
 #[cfg(test)]
 pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};

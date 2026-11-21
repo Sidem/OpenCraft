@@ -222,6 +222,9 @@ pub use glass::{is_glass, STAINED_GLASS_COUNT, STAINED_GLASS_FIRST};
 /// Natural gas deposit and machines, ids 255–260 (`gas.rs`).
 mod gas;
 pub use gas::{GAS_COUNT, GAS_PLANT, GAS_SHALE, GAS_TURBINE, GAS_WELL, STEAM_REFORMER, WELLHEAD_SEPARATOR};
+/// Seismic prospecting machine, id 261 (`thumper.rs`).
+mod thumper;
+pub use thumper::{THUMPER, THUMPER_COUNT};
 const BASE_COUNT: usize = 129;
 pub const BLOCK_COUNT: usize = BASE_COUNT
     + DECOR_COUNT
@@ -237,7 +240,8 @@ pub const BLOCK_COUNT: usize = BASE_COUNT
     + STREET_COUNT
     + TINT_COUNT
     + STAINED_GLASS_COUNT
-    + GAS_COUNT;
+    + GAS_COUNT
+    + THUMPER_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;

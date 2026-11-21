@@ -13,8 +13,8 @@ use crate::block::{
     GAS_TURBINE, GAS_WELL, GENERATOR, GROUND_STATION, LAB, LANDING_PAD, LASER_EMITTER, LASER_MIRROR, LASER_RECEIVER,
     LAUNCH_SITE, LIFT, LOADING_DOCK, LONG_POLE, MERGER, MINER, MINER_MK2, OPTIMIZER, OUTLET, PIPE, POD_LAUNCHER, POLE,
     PUMP, PUMPJACK, QUARRY, RAIL, RAMP_DOWN, RAMP_UP, REACTOR, RECTENNA, RECYCLER, REFINERY, RESEARCH_CENTER, SENSOR,
-    SILO, SMELTER, SOLAR_PANEL, SPLITTER, STEAM_REFORMER, STORAGE, SWARM_HUB, TOWN_DEPOT, TURBINE, UNDERPASS_IN,
-    UNDERPASS_OUT, UNLOADING_DOCK, UPGRADER, WASHER, WATER_WHEEL, WELLHEAD_SEPARATOR, WINCH,
+    SILO, SMELTER, SOLAR_PANEL, SPLITTER, STEAM_REFORMER, STORAGE, SWARM_HUB, THUMPER, TOWN_DEPOT, TURBINE,
+    UNDERPASS_IN, UNDERPASS_OUT, UNLOADING_DOCK, UPGRADER, WASHER, WATER_WHEEL, WELLHEAD_SEPARATOR, WINCH,
 };
 /// Machine kinds, in `MACHINES` order.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -47,7 +47,7 @@ pub struct MachineDef {
 
 /// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
 /// an existing kind.
-pub const MACHINES: [MachineDef; 78] = [
+pub const MACHINES: [MachineDef; 79] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: true },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
@@ -122,6 +122,7 @@ pub const MACHINES: [MachineDef; 78] = [
     MachineDef { block: GAS_PLANT, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: GAS_TURBINE, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: STEAM_REFORMER, kind: Kind::Process, slots: 0, panel: true },
+    MachineDef { block: THUMPER, kind: Kind::Process, slots: 0, panel: true },
     // Legacy blocks: worlds from before tiers (`tiers.rs`) still hold them; nothing places them now.
     MachineDef { block: MINER_MK2, kind: Kind::Miner, slots: 1, panel: true },
     MachineDef { block: FAST_BELT, kind: Kind::Belt, slots: 0, panel: false },

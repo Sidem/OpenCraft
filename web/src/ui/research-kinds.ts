@@ -145,7 +145,7 @@ const LISTS: Record<Kind, string> = {
   player: 'Hauler Gear|Field Gear|Exosuit|Jetpack|Hover Pack|Hauler Mk3|Hauler Mk4|Hauler Mk5|X-ray Goggles',
   build: 'Earthworks|Hoists|Settlements|Architecture|LED Lamps',
   nature: 'Forestry',
-  survey: 'Advanced Scanning|AI Survey',
+  survey: 'Ore Scanning|Advanced Scanning|Seismic Prospecting|AI Survey',
   space: 'Rocketry|Orbital Comms|Orbital Science|Drop Pods',
   endless: 'Mining Productivity|Machine Speed|Drone Speed',
   general: '',

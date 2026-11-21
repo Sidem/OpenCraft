@@ -62,6 +62,7 @@ mod state;
 mod status;
 mod steam;
 mod steam_view;
+mod thumper;
 mod tower;
 mod upgrader;
 mod view;
@@ -98,6 +99,7 @@ pub use status::Status;
 use status::STATUSES;
 use steam::Steam;
 pub(super) use steam::{draw_water, link as link_steam, run_turbine};
+pub use thumper::ThumperInfo;
 pub use view::{tenths, tenths_a_minute};
 
 use std::cell::Cell;
@@ -236,7 +238,7 @@ impl Processor {
         match (self.energy(), self.spec.pick) {
             (Energy::Boiler, _) => self.boil(),
             (Energy::Beam, _) => {}
-            (Energy::Hoist | Energy::Cooling | Energy::Optimizer, _) => {
+            (Energy::Hoist | Energy::Seismic | Energy::Cooling | Energy::Optimizer, _) => {
                 self.status = if power > 0 { Status::Working } else { Status::NoPower }
             }
             (Energy::Compute, _) => self.run_datacenter(power),
@@ -262,7 +264,7 @@ impl Processor {
             Pick::Pods => return self.pod_wants_power(),
             _ => {}
         }
-        matches!(self.energy(), Energy::Hoist | Energy::Cooling | Energy::Optimizer)
+        matches!(self.energy(), Energy::Hoist | Energy::Seismic | Energy::Cooling | Energy::Optimizer)
             || self.datacenter_wants_power()
             || self.energy() == Energy::Electric
                 && (self.batch.is_some() || self.next(unlocked).is_ok_and(|i| self.blocked(i).is_none()))
@@ -277,7 +279,7 @@ impl Processor {
     pub fn draws_power(&self) -> bool {
         matches!(
             self.energy(),
-            Energy::Electric | Energy::Hoist | Energy::Compute | Energy::Cooling | Energy::Optimizer
+            Energy::Electric | Energy::Hoist | Energy::Seismic | Energy::Compute | Energy::Cooling | Energy::Optimizer
         )
     }
 

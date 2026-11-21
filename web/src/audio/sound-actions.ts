@@ -34,6 +34,7 @@ export const ACTION_BASE: Record<ActionName, ActionBase> = {
   drop: { gain: 0.28, jitter: 0.1, variants: 2, material: false, pitch: 1, length: 1, weight: 0 },
   click: { gain: 0.12, jitter: 0, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
   scan: { gain: 0.22, jitter: 0, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
+  thump: { gain: 0.56, jitter: 0.04, variants: 2, material: false, pitch: 1, length: 1, weight: 0 },
   splash: { gain: 0.45, jitter: 0.1, variants: 3, material: false, pitch: 1, length: 1, weight: 0 },
   powerdown: { gain: 0.4, jitter: 0.03, variants: 2, material: false, pitch: 1, length: 1, weight: 0 },
   powerup: { gain: 0.4, jitter: 0.03, variants: 2, material: false, pitch: 1, length: 1, weight: 0 },

@@ -104,6 +104,7 @@ mod recipes;
 mod research;
 mod satellites;
 mod save;
+mod seismic;
 mod settlements;
 mod sickle;
 pub mod signs;
@@ -275,6 +276,8 @@ pub struct Game {
     surveyed: Option<DepositState>,
     /// The scanner's and core drill's latest reading (prospect.rs).
     prospect: Prospect,
+    /// The seismic thumper's latest cached cross-section (seismic/mod.rs).
+    seismic: seismic::SeismicView,
     /// A belt line being dragged out or built (belt_line.rs).
     line: BeltLine,
     /// Quarter turns R added to a held quarry's or multi-block machine's facing (quarry_preview.rs).
@@ -375,6 +378,7 @@ impl Game {
             cur_event_pos: IVec3::ZERO,
             surveyed: None,
             prospect: Prospect::default(),
+            seismic: seismic::SeismicView::default(),
             line: BeltLine::default(),
             tools: PowerTools::default(),
             rails: RailTools::default(),

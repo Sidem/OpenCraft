@@ -7,13 +7,35 @@ fn finish(r: &mut Research, tech: u8) {
     (0..TECHS[tech as usize].units).for_each(|_| r.add_unit(tech));
 }
 
-/// Content lint for a tech table: prerequisites come earlier (so every tech is reachable and there
-/// are no cycles), packs are in `PACKS`, every unlock exists and is listed once, and there is work to do.
+/// Returns whether following `needs` from `start` reaches a cycle.
+fn has_cycle(techs: &[Tech], start: usize) -> bool {
+    let mut state = vec![0u8; techs.len()]; // 0 unvisited, 1 on stack, 2 done
+    fn dfs(techs: &[Tech], u: usize, state: &mut [u8]) -> bool {
+        state[u] = 1;
+        for &n in techs[u].needs {
+            let v = n as usize;
+            if v >= techs.len() {
+                continue;
+            }
+            if state[v] == 1 || (state[v] == 0 && dfs(techs, v, state)) {
+                return true;
+            }
+        }
+        state[u] = 2;
+        false
+    }
+    dfs(techs, start, &mut state)
+}
+
+/// Content lint for a tech table: prerequisites exist and form no cycles (so every tech is reachable), packs are in
+/// `PACKS`, every unlock exists and is listed once, and there is work to do.
 fn lint_techs(techs: &[Tech]) -> Vec<String> {
     let mut errors = Vec::new();
     for (i, t) in techs.iter().enumerate() {
-        if !t.needs.iter().all(|&n| (n as usize) < i) {
-            errors.push(format!("{} needs a later tech", t.name));
+        if !t.needs.iter().all(|&n| (n as usize) < techs.len()) {
+            errors.push(format!("{} needs an unknown tech", t.name));
+        } else if has_cycle(techs, i) {
+            errors.push(format!("{} has a prerequisite cycle", t.name));
         }
         if !t.packs.iter().all(|&p| pack_slot(p).is_some()) {
             errors.push(format!("{} uses a pack labs don't hold", t.name));
@@ -55,7 +77,7 @@ fn the_tech_lint_catches_a_planted_mistake_of_each_kind() {
     }
     const SPLITTERS: Unlock = Unlock::Recipe(ItemId::block(SPLITTER));
     const BAD: [Tech; 4] = [
-        tech("Loop", &[1], &[]),
+        tech("Loop", &[0], &[]),
         tech("Twice", &[], &[SPLITTERS, SPLITTERS]),
         tech(
             "Ghost",
@@ -66,7 +88,7 @@ fn the_tech_lint_catches_a_planted_mistake_of_each_kind() {
     ];
     let errors = lint_techs(&BAD);
     for e in [
-        "Loop needs a later tech",
+        "Loop has a prerequisite cycle",
         "Twice unlocks Recipe(ItemId(17)) again",
         "Ghost unlocks Recipe(ItemId(256)), which doesn't exist",
         "Ghost unlocks MachineRecipe(999), which doesn't exist",
@@ -146,6 +168,8 @@ const EARLY_INGREDIENTS: &[(&str, &str)] = &[
     ("Mechanics", "Pump"),
     ("Mechanics", "Forester"),
     ("Mk5 Machines", "Drone Port Mk4"),
+    ("Mk4 Machines", "Seismic Thumper"),
+    ("Mk5 Machines", "Seismic Thumper Mk2"),
     ("Ore Washing", "Crushed Bauxite"),
     ("Assembly", "Sand"),
     ("Architecture", "Slag"),
@@ -231,4 +255,27 @@ fn the_drone_is_the_end_of_a_long_violet_ladder() {
         r.locked_by(Unlock::MachineRecipe(crate::recipes::DRONE_RECIPES[5])).is_some()
             == (r.state(drones) != TechState::Done)
     );
+}
+
+#[test]
+fn scanning_progression_spans_green_blue_violet_and_gold_tiers() {
+    let by_name = |name: &str| TECHS.iter().position(|t| t.name == name).unwrap() as u8;
+    let scan = by_name("Ore Scanning");
+    let adv = by_name("Advanced Scanning");
+    let seis = by_name("Seismic Prospecting");
+    let mk4 = by_name("Mk4 Machines");
+    let mk5 = by_name("Mk5 Machines");
+    let t_scan = &TECHS[scan as usize];
+    let t_adv = &TECHS[adv as usize];
+    let t_seis = &TECHS[seis as usize];
+    assert_eq!(t_scan.packs, &[RED_PACK, GREEN_PACK]);
+    assert!(t_scan.unlocks.contains(&Unlock::Recipe(crate::item::SCANNER)));
+    assert_eq!(t_adv.packs, &[RED_PACK, GREEN_PACK, BLUE_PACK]);
+    assert!(t_adv.needs.contains(&scan));
+    assert!(t_adv.unlocks.contains(&Unlock::Recipe(crate::item::SCANNER_MK2)));
+    assert_eq!(t_seis.packs, &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK]);
+    assert!(t_seis.needs.contains(&adv));
+    assert!(t_seis.needs.contains(&by_name("Violet Science")));
+    assert!(TECHS[mk4 as usize].unlocks.contains(&Unlock::Upgrade(crate::block::THUMPER, 1)));
+    assert!(TECHS[mk5 as usize].unlocks.contains(&Unlock::Upgrade(crate::block::THUMPER, 2)));
 }

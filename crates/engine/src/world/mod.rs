@@ -148,6 +148,11 @@ impl World {
         self.generator.generate(c)
     }
 
+    /// Whether chunk `c` has player edits (either loaded and modified, or streamed out into `saved`).
+    pub fn chunk_modified(&self, c: IVec3) -> bool {
+        self.chunks.get(&c).is_some_and(|e| e.chunk.modified) || self.saved.contains_key(&c)
+    }
+
     /// A block anywhere in the world, loaded or not. `None` means the chunk is neither loaded nor
     /// edited, i.e. it still holds exactly what generation produced there.
     pub fn block_anywhere(&self, p: IVec3) -> Option<BlockId> {

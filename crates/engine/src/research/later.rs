@@ -1,13 +1,13 @@
 //! The open end of `techs::TECHS`: techs added after Milestone 12's first steps, so that `orbit.rs` stays closed and no saved
-//! index moves. Saved index order: Long-Distance Power 82, Drop Pods 83, Settlements 84, Architecture 85, Forestry 86 (violet packs, after Violet Science 18), X-ray Goggles 87 (blue packs, after Hoists 51), LED Lamps 88 (blue packs, after Architecture 85 and Electronics 17), Pigments 89 (four packs, after Acids and Lubricants 45 and Architecture 85), Gas Wells 90 (four packs, after Oil Processing 42), Gas Processing 91 (four packs, after Gas Wells 90 and Acids and Lubricants 45), Flamethrower 92 (four packs, after Refining 43).
-//! Add rows at the bottom, never reorder (new Orbit techs go here too). Needs name earlier indices: Fluid Handling 6, Masonry 7, Assembly 8, Steelmaking 9, Blue Science 10,
-//! Mk4 Logistics 19, Bauxite Processing 36, Oil Processing 42, Acids and Lubricants 45, Rocketry 78, Orbital Comms 79.
+//! index moves. Saved index order: Long-Distance Power 82, Drop Pods 83, Settlements 84, Architecture 85, Forestry 86 (violet packs, after Violet Science 18), X-ray Goggles 87 (blue packs, after Hoists 51), LED Lamps 88 (blue packs, after Architecture 85 and Electronics 17), Pigments 89 (four packs, after Acids and Lubricants 45 and Architecture 85), Gas Wells 90 (four packs, after Oil Processing 42), Gas Processing 91 (four packs, after Gas Wells 90 and Acids and Lubricants 45), Flamethrower 92 (four packs, after Refining 43), Seismic Prospecting 93 (four packs, after Advanced Scanning 22 and Violet Science 18), Ore Scanning 94 (two packs, after Green Science 2).
+//! Add rows at the bottom, never reorder (new Orbit techs go here too). Needs name earlier indices: Green Science 2, Fluid Handling 6, Masonry 7, Assembly 8, Steelmaking 9, Blue Science 10,
+//! Violet Science 18, Mk4 Logistics 19, Advanced Scanning 22, Bauxite Processing 36, Oil Processing 42, Acids and Lubricants 45, Rocketry 78, Orbital Comms 79.
 
 use crate::block::{
     FORESTER, GAS_PLANT, GAS_TURBINE, GAS_WELL, LANDING_PAD, LED, LONG_POLE, POD_LAUNCHER, STEAM_REFORMER, STREET,
-    TOWN_DEPOT, WELLHEAD_SEPARATOR,
+    THUMPER, TOWN_DEPOT, WELLHEAD_SEPARATOR,
 };
-use crate::item::{BLUE_PACK, FLAMETHROWER, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK, XRAY_GOGGLES};
+use crate::item::{BLUE_PACK, FLAMETHROWER, GOLD_PACK, GREEN_PACK, RED_PACK, SCANNER, VIOLET_PACK, XRAY_GOGGLES};
 use crate::recipes::{
     DECOR_FIRST, DECOR_ROWS, DROP_POD_RECIPE, DYE_FIRST, DYE_ROWS, ETHANE_CRACK_RECIPE, GAS_PROCESS_RECIPE,
     GLASS_FIRST, GLASS_ROWS, LONG_POLE_ROW, LPG_CRACK_RECIPE, POLYETHYLENE_RECIPE, REFORM_RECIPE,
@@ -42,7 +42,7 @@ const DYE_UNLOCKS: [Unlock; DYE_ROWS as usize] = {
     out
 };
 
-pub const LATER: [Tech; 11] = [
+pub const LATER: [Tech; 13] = [
     Tech {
         name: "Long-Distance Power",
         blurb: "Lattice towers, 2×2 and 3 high, that link to each other 160 blocks apart (an ordinary pole only 16), \
@@ -175,5 +175,26 @@ pub const LATER: [Tech; 11] = [
         units: 120,
         seconds: 30.0,
         unlocks: &[Unlock::Recipe(FLAMETHROWER)],
+    },
+    Tech {
+        name: "Seismic Prospecting",
+        blurb: "The Seismic Thumper (2×2×2, 40 kW): wire it to a power pole and right-click to scan scrubbable 64-block \
+                vertical cross-sections and an interactive 3D subsurface cutaway down to bedrock — showing dense ore \
+                bands, caves, aquifers and your own tunnels. Upgrade to Mk2 (violet kits) and Mk3 (gold kits).",
+        needs: &[22, 18], // Advanced Scanning (Blue), Violet Science
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 120,
+        seconds: 30.0,
+        unlocks: &[r(THUMPER)],
+    },
+    Tech {
+        name: "Ore Scanning",
+        blurb: "The hand-held Scanner: right-click to list every ore deposit within 48 blocks — what lies underground, \
+                how deep, which direction and how large.",
+        needs: &[2], // Green Science
+        packs: &[RED_PACK, GREEN_PACK],
+        units: 25,
+        seconds: 10.0,
+        unlocks: &[Unlock::Recipe(SCANNER)],
     },
 ];

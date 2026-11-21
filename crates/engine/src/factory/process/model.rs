@@ -50,6 +50,8 @@ pub enum Look {
     Crane,
     /// A pumpjack (`pump/view.rs`): no box, but the whole machine, its beam rocking with its turning crank.
     Jack,
+    /// A seismic thumper's hydraulic drop-hammer and impact shock ring (`thumper.rs`).
+    Thumper,
 }
 
 #[derive(Clone, Copy)]
@@ -219,6 +221,10 @@ fn draw_dynamic_body(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) ->
             }
             Look::Jack => {
                 super::pump::draw_jack(p, out, centre, yaw, time);
+                continue;
+            }
+            Look::Thumper => {
+                super::thumper::draw_dynamic(p, out, centre, yaw, time);
                 continue;
             }
             Look::Fire(idle) => [if working { tex::LAMP_YELLOW } else { idle }; 3],

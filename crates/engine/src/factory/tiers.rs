@@ -19,7 +19,7 @@
 
 use crate::block::{
     BlockId, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, DRONE_PORT, FAST_BELT, FORESTER, GENERATOR, LAB, MINER,
-    MINER_MK2, POLE, PUMP, PUMPJACK, QUARRY, RESEARCH_CENTER, SMELTER, STORAGE, UNDERPASS_IN,
+    MINER_MK2, POLE, PUMP, PUMPJACK, QUARRY, RESEARCH_CENTER, SMELTER, STORAGE, THUMPER, UNDERPASS_IN,
 };
 use crate::item::{
     ItemId, ASSEMBLER_MK2, ASSEMBLER_MK3, ASSEMBLER_MK4, BELT_MK3, BELT_MK4, BLAST_FURNACE_MK2, BLAST_FURNACE_MK3,
@@ -30,7 +30,7 @@ use crate::item::{
 use crate::item::{
     ASSEMBLER_MK5, BLAST_FURNACE_MK5, CONSTRUCTOR_MK5, DRONE_PORT_MK5, MINER_MK5, RESEARCH_CENTER_MK5, SMELTER_MK5,
 };
-use crate::item::{BOX_MK4, BOX_MK5, PUMPJACK_MK2};
+use crate::item::{BOX_MK4, BOX_MK5, PUMPJACK_MK2, THUMPER_ITEM, THUMPER_MK2, THUMPER_MK3};
 use crate::item::{DRONE_PORT_MK2, DRONE_PORT_MK3, DRONE_PORT_MK4, FORESTER_MK2, FORESTER_MK3};
 use crate::item::{RESEARCH_CENTER_MK2, RESEARCH_CENTER_MK3, RESEARCH_CENTER_MK4};
 use crate::item::{UNDERPASS_MK2, UNDERPASS_MK3, UNDERPASS_MK4};
@@ -105,6 +105,8 @@ pub const FAMILIES: &[Family] = &[
     ),
     // The pumpjack came with violet science, so its Mk2 is the gold kit's (`first_kit` 4).
     Family { first_kit: 4, ..Family::new(PUMPJACK, &[ItemId::block(PUMPJACK), PUMPJACK_MK2], 4) },
+    // Seismic thumper arrives after Advanced Scanning (violet science): Mk2 takes violet kits, Mk3 gold kits.
+    Family { first_kit: 3, ..Family::new(THUMPER, &[THUMPER_ITEM, THUMPER_MK2, THUMPER_MK3], 4) },
 ];
 
 /// The family block and tier that `item` places, if it is a tiered machine.

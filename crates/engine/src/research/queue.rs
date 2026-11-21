@@ -36,18 +36,10 @@ impl Research {
         {
             return;
         }
-        // The tech and the prerequisites it is missing, in index order (prerequisites always have lower indices).
-        let mut missing = vec![tech];
-        let mut i = 0;
-        while i < missing.len() {
-            for &n in TECHS[missing[i] as usize].needs {
-                if self.state(n) != TechState::Done && !self.is_chosen(n) && !missing.contains(&n) {
-                    missing.push(n);
-                }
-            }
-            i += 1;
-        }
-        missing.sort_unstable();
+        // Collect missing prerequisites in topological post-order so every prerequisite sits ahead of its dependents
+        // even when a newer tech appended to `later.rs` is required by an earlier-indexed tech.
+        let mut missing = Vec::new();
+        self.collect_missing(tech, &mut missing);
         // The first one becomes current when nothing is, so it doesn't count against the queue.
         if self.queue.len() + missing.len() > MAX_QUEUE + usize::from(self.current.is_none()) {
             return;
@@ -57,6 +49,17 @@ impl Research {
         if self.current.is_none() {
             self.advance();
         }
+    }
+
+    fn collect_missing(&self, tech: u8, out: &mut Vec<u8>) {
+        if self.state(tech) == TechState::Done || self.is_chosen(tech) || out.contains(&tech) {
+            return;
+        }
+        let Some(t) = TECHS.get(tech as usize) else { return };
+        for &n in t.needs {
+            self.collect_missing(n, out);
+        }
+        out.push(tech);
     }
 
     /// Takes `tech` and every queued tech that needs it out of the queue.

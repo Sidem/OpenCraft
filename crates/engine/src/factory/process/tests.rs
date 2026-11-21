@@ -49,7 +49,7 @@ fn every_spec_has_a_row_per_tier_and_fitting_buffers() {
                 Energy::Optimizer,
                 Energy::Beam,
             ];
-            sources.contains(&t.energy) || t.energy == Energy::Hoist
+            sources.contains(&t.energy) || matches!(t.energy, Energy::Hoist | Energy::Seismic)
         });
         assert!(
             steam

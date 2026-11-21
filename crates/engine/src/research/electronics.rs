@@ -3,7 +3,7 @@
 
 use crate::block::{
     ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, DRONE_PORT, LAB, MINER, POLE, SENSOR,
-    SMELTER, SOLAR_PANEL, STORAGE, UNDERPASS_IN,
+    SMELTER, SOLAR_PANEL, STORAGE, THUMPER, UNDERPASS_IN,
 };
 use crate::item::{BLUE_PACK, GREEN_PACK, RED_PACK, SCANNER_MK2, VIOLET_PACK};
 use crate::recipes::{ACCUMULATOR_ROW, DRONE_RECIPES, ELECTRONICS_RECIPES, SOLAR_PANEL_ROW, VIOLET_RECIPES};
@@ -66,6 +66,7 @@ pub(super) const ELECTRONICS: [Tech; 13] = [
             Unlock::Upgrade(ASSEMBLER, 3),
             Unlock::Upgrade(BLAST_FURNACE, 3),
             Unlock::Upgrade(LAB, 3),
+            Unlock::Upgrade(THUMPER, 1),
         ],
     },
     Tech {
@@ -87,10 +88,10 @@ pub(super) const ELECTRONICS: [Tech; 13] = [
         name: "Advanced Scanning",
         blurb: "The Scanner Mk2, built from a scanner, circuits and steel: 96 blocks of range, an ore filter, ore \
                 units and mining time per deposit, and a pointer to the nearest match.",
-        needs: &[18],
-        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        needs: &[17, 94], // Electronics (Blue), Ore Scanning (Green)
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
         units: 60,
-        seconds: 25.0,
+        seconds: 20.0,
         unlocks: &[Unlock::Recipe(SCANNER_MK2)],
     },
     Tech {

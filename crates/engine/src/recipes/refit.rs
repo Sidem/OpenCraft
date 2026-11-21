@@ -85,3 +85,8 @@ pub const REFIT_LATER: &[MachineRecipe] = rows! {
     STORAGE: 3 4;
     PUMPJACK: 1;
 };
+
+/// Seismic Thumper upgrader rows (appended after `GAS_MACHINES`, rows 198–199, so earlier indices never move).
+pub const REFIT_SEISMIC: &[MachineRecipe] = rows! {
+    THUMPER: 1 2;
+};

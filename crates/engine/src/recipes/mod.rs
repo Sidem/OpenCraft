@@ -41,6 +41,7 @@ mod refit;
 mod rows;
 mod scrap;
 mod solar;
+mod thumper;
 mod tiers;
 mod timing;
 mod tooling;
@@ -70,6 +71,7 @@ use recycler::*;
 use refit::UPGRADER_RECIPE;
 pub use rows::*;
 use solar::*;
+use thumper::{THUMPER_MK2_RECIPE, THUMPER_MK3_RECIPE, THUMPER_RECIPE};
 use tiers::*;
 #[cfg(test)]
 use timing::{BASE_TICKS, MAX_TICKS};
@@ -281,6 +283,9 @@ pub const RECIPES: &[Recipe] = &[
     GAS_TURBINE_RECIPE,
     STEAM_REFORMER_RECIPE,
     FLAMETHROWER_RECIPE,
+    THUMPER_RECIPE,
+    THUMPER_MK2_RECIPE,
+    THUMPER_MK3_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

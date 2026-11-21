@@ -7,7 +7,7 @@ use super::super::facts::{fuel_names, Facts};
 use super::hangar::TIERS as HANGAR_TIERS;
 use super::specs::{Energy, Pick, ProcessSpec};
 use super::steam::TURBINE_KW;
-use crate::block::{BLAST_FURNACE, HOIST, WINCH};
+use crate::block::{BLAST_FURNACE, HOIST, THUMPER, WINCH};
 use crate::item::{self, DIESEL_BARREL, FUEL_CELL, LPG_BARREL, METHANE_BARREL};
 
 pub fn facts(spec: &ProcessSpec, tier: usize) -> Facts {
@@ -15,7 +15,7 @@ pub fn facts(spec: &ProcessSpec, tier: usize) -> Facts {
     let mut f = Facts::new(spec.footprint.size);
     match t.energy {
         Energy::Burner => f.fuel = Some(fuel_names()),
-        Energy::Electric | Energy::Hoist | Energy::Compute | Energy::Cooling | Energy::Optimizer => {
+        Energy::Electric | Energy::Hoist | Energy::Seismic | Energy::Compute | Energy::Cooling | Energy::Optimizer => {
             f.uses = Some(t.power);
         }
         Energy::Recipe if spec.block == BLAST_FURNACE => f.stat("Heat", "From the coal it is given"),
@@ -57,6 +57,15 @@ pub fn facts(spec: &ProcessSpec, tier: usize) -> Facts {
     }
     if matches!(spec.block, HOIST | WINCH) {
         f.stat("Lifts", "You, fast, up the shaft beside it");
+    }
+    if spec.block == THUMPER {
+        f.stat("Cross-section", "64 blocks wide down to bedrock");
+        let clarity = match tier {
+            0 => "Standard (dense bands, caves, water)",
+            1 => "High (mineral classes & player tunnels)",
+            _ => "Tomographic (exact ore signatures)",
+        };
+        f.stat("Clarity", clarity);
     }
     if matches!(spec.pick, Pick::Chosen | Pick::ByInput | Pick::Research) && t.speed != 1000 {
         let (whole, tenth) = (t.speed / 1000, t.speed % 1000 / 100);

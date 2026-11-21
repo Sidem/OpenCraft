@@ -11,7 +11,7 @@ export const MATERIAL_DIALS = ['pitch', 'tone', 'length', 'crunch', 'scatter', '
 export type MaterialDial = (typeof MATERIAL_DIALS)[number];
 export type MaterialParams = Record<MaterialDial, number>;
 
-export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click', 'scan', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown', 'denied', 'flame'] as const;
+export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click', 'scan', 'thump', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown', 'denied', 'flame'] as const;
 export type ActionName = (typeof ACTIONS)[number];
 
 export const ACTION_DIALS = ['volume', 'pitch', 'length', 'weight', 'debris'] as const;
@@ -166,6 +166,12 @@ export const ACTION_INFO: Record<ActionName, { label: string; help: string; mate
     material: false,
     dials: ['volume', 'pitch', 'length'],
   },
+  thump: {
+    label: 'Seismic thump',
+    help: 'The deep hydraulic drop-weight pulse and bedrock echo when sounding a Seismic Thumper.',
+    material: false,
+    dials: ['volume', 'pitch', 'length'],
+  },
   splash: {
     label: 'Splash',
     help: 'Falling or jumping into water. Faster falls are louder. The same for every material.',
@@ -259,6 +265,7 @@ export const DEFAULT_DESIGN: SoundDesign = {
     drop: neutral(),
     click: neutral(),
     scan: neutral(),
+    thump: neutral(),
     splash: neutral(),
     powerdown: neutral(),
     powerup: neutral(),

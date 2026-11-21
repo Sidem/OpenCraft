@@ -42,6 +42,8 @@ pub enum Energy {
     Hydro,
     /// A hoist winch: a power sink that makes the shaft beside it fast (hoist.rs).
     Hoist,
+    /// A seismic thumper: a power sink that sounds a vertical cross-section down to bedrock (thumper.rs, seismic.rs).
+    Seismic,
     /// A nuclear reactor: a water-cooled power source burning fuel cells (nuclear.rs).
     Reactor,
     /// A datacenter: draws power at all times and gives the data grid compute, water-cooled (datacenter.rs).
@@ -199,6 +201,7 @@ pub const SPECS: &[ProcessSpec] = &[
     super::depot::DEPOT_SPEC,
     super::ejector::EJECTOR_SPEC,
     super::forester::FORESTER_SPEC,
+    super::thumper::THUMPER_SPEC,
     super::basic::SMELTER_SPEC,
     super::basic::CONSTRUCTOR_SPEC,
     super::basic::ASSEMBLER_SPEC,

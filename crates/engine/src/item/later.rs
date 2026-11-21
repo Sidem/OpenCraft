@@ -131,3 +131,7 @@ pub const STEAM_REFORMER_ITEM: ItemId = ItemId(439);
 pub const CHARCOAL: ItemId = ItemId(440);
 /// The flamethrower (FIRE2, `flame_hands.rs`): weed-torches ground plants and sets grown trees ablaze; runs on naphtha or diesel barrels.
 pub const FLAMETHROWER: ItemId = ItemId(441);
+/// The Seismic Thumper (F-SEIS, `factory/process/thumper.rs`): Mk1 (wide block 261) plus Mk2 and Mk3 tiers.
+pub const THUMPER_ITEM: ItemId = ItemId(442);
+pub const THUMPER_MK2: ItemId = ItemId(443);
+pub const THUMPER_MK3: ItemId = ItemId(444);

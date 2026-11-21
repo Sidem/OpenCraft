@@ -29,6 +29,7 @@ import { ACTION_BASE, EVENT_ACTIONS, PREVIEW_DISTANCE, PREVIEW_VOLUME } from './
 import { blip, breakSound, denied, hitSound, mulberry32, ping, powerDown, powerUp, splash, tick, whoosh, type HitMods } from './synth';
 import { flame } from './synth-fire';
 import { launch, podDown, podUp } from './synth-orbit';
+import { thump } from './synth-seismic';
 
 const EVENT_FLOATS = 6;
 const MAX_VOICES = 24;
@@ -258,6 +259,11 @@ export class SoundSystem {
     if (this.audible()) this.play('scan', 0, 1, 0);
   }
 
+  /** A Seismic Thumper sent a pulse into the ground. */
+  thump(): void {
+    if (this.audible()) this.play('thump', 0, 1, 0);
+  }
+
   private audible(): boolean {
     return this.ctx?.state === 'running' && this.effectsGain() > 0 && masterGain(this.settings.master, this.settings.masterMuted) > 0;
   }
@@ -388,7 +394,7 @@ export class SoundSystem {
     const data =
       action === 'break' ? breakSound(sr, rand, m, mods, 1 + Math.round((a.debris / 100) * 10))
       : action === 'pickup' ? blip(sr, mods) : action === 'drop' ? whoosh(sr, rand, mods)
-      : action === 'click' ? tick(sr, mods) : action === 'scan' ? ping(sr, mods)
+      : action === 'click' ? tick(sr, mods) : action === 'scan' ? ping(sr, mods) : action === 'thump' ? thump(sr, rand, mods)
       : action === 'splash' ? splash(sr, rand, mods) : action === 'powerdown' ? powerDown(sr, rand, mods)
       : action === 'powerup' ? powerUp(sr, rand, mods) : action === 'launch' ? launch(sr, rand, mods)
       : action === 'podup' ? podUp(sr, rand, mods) : action === 'poddown' ? podDown(sr, rand, mods)
