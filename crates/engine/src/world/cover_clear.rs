@@ -108,10 +108,21 @@ impl ClearedCover {
 }
 
 impl World {
-    /// Whether world column (`x`, `z`) is cleared.
-    #[cfg(test)]
+    /// Whether world column (`x`, `z`) is cleared (sickle-cut or burnt).
     pub fn is_cover_cleared(&self, x: i32, z: i32) -> bool {
         self.cleared.is_cleared(x, z)
+    }
+
+    /// Marks one world column (`x`, `z`) as cleared/burnt (core state: only `Sim` calls this).
+    /// Returns true if the column was not already cleared.
+    pub fn clear_column(&mut self, x: i32, z: i32) -> bool {
+        if self.cleared.set(x, z) {
+            self.dirty_cover_chunks(x, z);
+            self.mesh_queue_stale = true;
+            true
+        } else {
+            false
+        }
     }
 
     /// Whether every column of the patch around `centre`'s column is cleared already (the hands skip such a swing).

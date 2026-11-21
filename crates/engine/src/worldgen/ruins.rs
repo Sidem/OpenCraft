@@ -136,7 +136,7 @@ impl WorldGen {
     /// The ruins of the regions next to (x, z)'s: a ruin only ever reaches into the next region.
     pub(super) fn ruins_around(&self, x: i32, z: i32) -> impl Iterator<Item = Rc<Ruin>> + '_ {
         let (rx, rz) = (region_of(x), region_of(z));
-        let near = self.version >= 9;
+        let near = self.layers.cover >= 9;
         (rz - 1..=rz + 1)
             .flat_map(move |j| (rx - 1..=rx + 1).map(move |i| (i, j)))
             .filter(move |_| near)
@@ -163,7 +163,7 @@ impl WorldGen {
         }
         let biome = self.biome_at(x, z, y);
         let surface = Self::surface_v2(biome, y, self.slope_at(x, z)).0 .0;
-        let vault = self.version >= 10
+        let vault = self.layers.cover >= 10
             && (rx, rz) != (0, 0)
             && hash3(self.seed ^ 0x2D30, rx, 1, rz).is_multiple_of(VAULT_ONE_IN);
         Some(build(self.seed, x, z, y, surface, vault, |wx, wz| self.height_at(wx, wz)))

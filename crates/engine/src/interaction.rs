@@ -207,6 +207,7 @@ impl Game {
         // (belt_line.rs); poles and cables have their own tools (power_tools.rs).
         if self.update_telescope()
             || self.update_sickle(dt)
+            || self.update_flamethrower(dt)
             || self.update_planner()
             || self.update_prospecting(dt)
             || self.update_belt_line()

@@ -26,7 +26,6 @@ fn ingots_are_items_but_not_blocks() {
 #[test]
 fn unknown_ids_are_not_items() {
     assert!(!ItemId::NONE.is_valid());
-    assert!(!ItemId(BLOCK_COUNT as u16).is_valid(), "past the blocks");
     assert!(!ItemId(256 + EXTRA.len() as u16).is_valid(), "past the extra items");
     assert_eq!(name(ItemId(9999)), "");
 }
@@ -48,7 +47,7 @@ fn blocks_below_256_are_their_own_items_and_wide_ones_are_listed() {
         assert_eq!(ItemId::block(b), ItemId(b));
         assert_eq!(ItemId(b).as_block(), Some(b));
     }
-    assert_eq!(ItemId::block(256), ItemId::NONE, "a wide block with no listed item has none");
+    assert_eq!(ItemId::block(BLOCK_COUNT as BlockId), ItemId::NONE, "a wide block with no listed item has none");
     assert_eq!(IRON_INGOT.as_block(), None, "an ingot is no block");
     // Every block past 255 needs its item row, whose `places` is that block, so it can be held and placed.
     for b in 256..BLOCK_COUNT as BlockId {

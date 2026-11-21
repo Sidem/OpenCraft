@@ -97,10 +97,12 @@ impl WorldGen {
 
     /// Every deposit seeded in one chunk column.
     pub(crate) fn seed_deposits(&self, cx: i32, cz: i32, out: &mut Vec<Deposit>) {
-        if self.version >= 3 {
-            return self.seed_deposits_v3(cx, cz, out);
+        if self.layers.deposits >= 3 {
+            self.seed_deposits_v3(cx, cz, out);
+            self.seed_gas_fields(cx, cz, out);
+            return;
         }
-        if self.version >= 2 {
+        if self.layers.deposits >= 2 {
             return self.seed_deposits_v2(cx, cz, out);
         }
         let (x0, z0) = (cx * CHUNK_SIZE, cz * CHUNK_SIZE);

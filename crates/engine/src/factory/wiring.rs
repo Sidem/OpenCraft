@@ -134,7 +134,13 @@ impl Factory {
         let sun_or_steam = |m: &Processor| {
             matches!(
                 m.energy(),
-                Energy::Turbine | Energy::Solar | Energy::Diesel | Energy::Hydro | Energy::Reactor | Energy::Rectenna
+                Energy::Turbine
+                    | Energy::Solar
+                    | Energy::Diesel
+                    | Energy::Gas
+                    | Energy::Hydro
+                    | Energy::Reactor
+                    | Energy::Rectenna
             )
         };
         self.power.gen_pole.iter().any(on)

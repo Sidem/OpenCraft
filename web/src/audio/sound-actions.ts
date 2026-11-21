@@ -6,7 +6,7 @@
 import type { ActionName } from './settings';
 
 /** Engine event kinds, in order (crates/engine/src/sound.rs). */
-export const EVENT_ACTIONS: readonly ActionName[] = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown', 'denied'];
+export const EVENT_ACTIONS: readonly ActionName[] = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown', 'denied', 'flame'];
 
 export interface ActionBase {
   /** Mix level before the Volume dials. */
@@ -41,6 +41,7 @@ export const ACTION_BASE: Record<ActionName, ActionBase> = {
   podup: { gain: 0.6, jitter: 0.05, variants: 2, material: false, pitch: 1, length: 1, weight: 0, reach: 3 },
   poddown: { gain: 0.7, jitter: 0.05, variants: 2, material: false, pitch: 1, length: 1, weight: 0, reach: 3 },
   denied: { gain: 0.35, jitter: 0.03, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
+  flame: { gain: 0.52, jitter: 0.1, variants: 3, material: false, pitch: 1, length: 1, weight: 0 },
 };
 
 /** Typical in-game event volume and distance, so previews match what you hear while playing. */

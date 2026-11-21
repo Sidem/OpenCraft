@@ -66,6 +66,19 @@ pub const SICKLE_RECIPE: Recipe = Recipe {
             Never wears out.",
 };
 
+/// Refining-era land-clearing torch (unlocked by Flamethrower): weed-torches ground plants and burns grown trees to charcoal.
+pub const FLAMETHROWER_RECIPE: Recipe = Recipe {
+    output: FLAMETHROWER,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(STEEL_PLATE, 4), (b(PIPE), 2), (IRON_ROD, 2), (EMPTY_BARREL, 1)],
+    blurb:
+        "Hold right-click for a steady torch flame: clears grass and ground plants where you aim (without spreading \
+            to neighbouring plants) and sets grown trees ablaze so they burn down to charcoal. Runs on naphtha or \
+            diesel barrels from the refinery or cracker (returns empty barrels). Never touches placed blocks, machines \
+            or houses. Never wears out.",
+};
+
 /// Built on a Mk1 scanner (which it uses up), so scanning stays a ladder.
 pub const SCANNER_MK2_RECIPE: Recipe = Recipe {
     output: SCANNER_MK2,

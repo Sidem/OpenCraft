@@ -35,7 +35,7 @@ pub const TURNS: [u16; 21] = [
 ];
 
 /// Layers with level strata or ripples: they mirror and flip upside down, never turn on their side.
-pub const LAYERED: [u16; 8] = [
+pub const LAYERED: [u16; 9] = [
     tex::SAND,
     tex::SANDSTONE,
     tex::LIMESTONE,
@@ -44,6 +44,7 @@ pub const LAYERED: [u16; 8] = [
     tex::GREEN_SAND,
     tex::PALE_SAND,
     tex::OIL_SAND,
+    tex::GAS_SHALE,
 ];
 
 /// Side faces with a top (a grass edge): they only mirror left to right.
@@ -62,8 +63,9 @@ mod tests;
 
 const fn mask() -> [u32; MASK_WORDS] {
     let mut out = [0u32; MASK_WORDS];
+    let limit = if tex::COUNT < MASK_WORDS * 16 { tex::COUNT as u16 } else { (MASK_WORDS * 16) as u16 };
     let mut layer = 0;
-    while layer < tex::COUNT as u16 {
+    while layer < limit {
         let base = tex::look(layer).0;
         let mode = if listed(&TURNS, base) {
             3

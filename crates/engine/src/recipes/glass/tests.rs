@@ -20,7 +20,8 @@ fn stained_ids() -> impl Iterator<Item = BlockId> {
 fn stained_glass_blocks_and_recipes_match_and_use_no_pigments() {
     assert_eq!(STAINED_GLASS.len(), GLASS_ROWS as usize);
     assert_eq!(STAINED_GLASS.len(), STAINED_GLASS_COUNT);
-    assert_eq!(MACHINE_RECIPES.len(), GLASS_FIRST as usize + STAINED_GLASS.len());
+    let gas = crate::recipes::gas::GAS_MACHINES.len();
+    assert_eq!(MACHINE_RECIPES.len(), GLASS_FIRST as usize + STAINED_GLASS.len() + gas);
     let mut seen_inputs = HashSet::new();
     for (i, id) in stained_ids().enumerate() {
         let def = block::def(id);

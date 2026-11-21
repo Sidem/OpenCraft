@@ -15,12 +15,12 @@
 //! Mk2 (a gold kit, `factory/tiers.rs`) is `JACK_TIERS[1]` and the spec's second tier. To change its pace: the constants and
 //! the spec's power.
 
-use crate::block::{tex, OIL_SAND, PUMPJACK, SPENT_ROCK};
+use crate::block::{tex, BlockId, GAS_SHALE, GAS_WELL, OIL_SAND, PUMPJACK, SPENT_ROCK, WELLHEAD_SEPARATOR};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
-use crate::item::{CRUDE_BARREL, EMPTY_BARREL};
-use crate::math::IVec3;
+use crate::item::{ItemId, CRUDE_BARREL, EMPTY_BARREL, RAW_GAS_BARREL};
+use crate::math::{hash3, IVec3};
 use crate::world::World;
 use crate::{TICK, TICK_RATE};
 
@@ -138,17 +138,44 @@ const PARTS: [Part; 2] = [
     part([0.0, 0.0, 0.0], [2.0, 3.0, 3.0], Look::Jack),
 ];
 
+/// Deterministic associated gas-to-oil ratio for an oil deposit: 1 raw gas barrel per `2..=4` crude oil barrels.
+pub fn associated_gas_ratio(key: DepositKey) -> u32 {
+    let h = hash3(key.cx as u32 ^ 0xA550, key.cz, i32::from(key.index), key.tier as i32);
+    2 + (h % 3)
+}
+
 impl Processor {
-    /// Finds the well below a freshly placed pumpjack (nothing for other processors, or with no oil underneath): the
-    /// first oil straight down from its bottom cells, front row first.
+    fn well_ore(&self) -> BlockId {
+        if self.spec.block == GAS_WELL {
+            GAS_SHALE
+        } else {
+            OIL_SAND
+        }
+    }
+
+    fn well_barrel(&self) -> ItemId {
+        if self.spec.block == GAS_WELL {
+            RAW_GAS_BARREL
+        } else {
+            CRUDE_BARREL
+        }
+    }
+
+    fn is_separator(&self) -> bool {
+        self.spec.block == WELLHEAD_SEPARATOR
+    }
+
+    /// Finds the well below a freshly placed pumpjack, gas well or wellhead separator: the first matching deposit
+    /// block straight down from its bottom cells, front row first.
     pub(crate) fn sink_well(&mut self, deposits: &mut Deposits, world: &mut World) {
+        let want = self.well_ore();
         let base: Vec<IVec3> = self.cells().into_iter().filter(|c| c.y == self.pos.y).collect();
         let Extra::Pump(pump) = &mut self.extra else { return };
         let below = |c: IVec3| (1..=MAX_DEPTH.min(c.y)).map(move |d| c - IVec3::new(0, d, 0));
         pump.well = base.into_iter().flat_map(below).find_map(|bit| {
             let block = world.block_anywhere_or_generate(bit);
-            let found = matches!(block, OIL_SAND | SPENT_ROCK).then(|| deposits.lookup(world, bit)).flatten();
-            found.filter(|key| key.ore == OIL_SAND).map(|key| Well { key, bit })
+            let found = (block == want || block == SPENT_ROCK).then(|| deposits.lookup(world, bit)).flatten();
+            found.filter(|key| key.ore == want).map(|key| Well { key, bit })
         });
     }
 
@@ -157,7 +184,7 @@ impl Processor {
         matches!(&self.extra, Extra::Pump(p) if p.compact)
     }
 
-    /// What this pumpjack's tier draws.
+    /// What this well's tier draws.
     fn jack(&self) -> &'static JackTier {
         &JACK_TIERS[usize::from(self.tier).min(JACK_TIERS.len() - 1)]
     }
@@ -178,21 +205,39 @@ impl Processor {
 
     fn draw_oil(&mut self, deposits: &mut Deposits, world: &mut World, tick: u64, share: u32) {
         let jack = self.jack();
+        let sep = self.is_separator();
+        let product = self.well_barrel();
         let Extra::Pump(pump) = &mut self.extra else { return };
         let Some(well) = pump.well else {
             self.status = Status::NoDeposit;
             return;
         };
-        if pump.carry >= BARREL_UNITS && self.input.count(EMPTY_BARREL) > 0 && self.out.space_for(CRUDE_BARREL) > 0 {
-            self.input.remove(EMPTY_BARREL, 1);
-            self.used.push(Stack { item: EMPTY_BARREL, count: 1 });
-            self.out.add(CRUDE_BARREL, 1);
-            self.made.push(Stack { item: CRUDE_BARREL, count: 1 });
-            pump.carry -= BARREL_UNITS;
+        let (need_units, need_empties, main_count, gas_count) = if sep {
+            let r = associated_gas_ratio(well.key);
+            (f64::from(r) * BARREL_UNITS, r + 1, r, 1u32)
+        } else {
+            (BARREL_UNITS, 1, 1, 0)
+        };
+        let side_room = gas_count == 0
+            || (self.side.count(RAW_GAS_BARREL) < super::SIDE_ROOM && self.side.space_for(RAW_GAS_BARREL) >= gas_count);
+        if pump.carry >= need_units
+            && self.input.count(EMPTY_BARREL) >= need_empties
+            && self.out.space_for(product) >= main_count
+            && side_room
+        {
+            self.input.remove(EMPTY_BARREL, need_empties);
+            self.used.push(Stack { item: EMPTY_BARREL, count: need_empties });
+            self.out.add(product, main_count);
+            self.made.push(Stack { item: product, count: main_count });
+            if gas_count > 0 {
+                self.side.add(RAW_GAS_BARREL, gas_count);
+                self.made.push(Stack { item: RAW_GAS_BARREL, count: gas_count });
+            }
+            pump.carry -= need_units;
         }
         let mut drawn = 0.0;
-        self.status = if pump.carry >= BARREL_UNITS {
-            if self.out.space_for(CRUDE_BARREL) == 0 {
+        self.status = if pump.carry >= need_units {
+            if self.out.space_for(product) < main_count || !side_room {
                 Status::OutputFull
             } else {
                 Status::NoInput
@@ -213,18 +258,44 @@ impl Processor {
     /// Whether it would draw this tick if powered.
     pub(super) fn pump_wants_power(&self) -> bool {
         let Extra::Pump(pump) = &self.extra else { return false };
-        pump.well.is_some() && pump.carry < BARREL_UNITS && self.status != Status::Exhausted
+        let threshold = if self.is_separator() {
+            pump.well.map_or(BARREL_UNITS, |w| f64::from(associated_gas_ratio(w.key)) * BARREL_UNITS)
+        } else {
+            BARREL_UNITS
+        };
+        pump.well.is_some() && pump.carry < threshold && self.status != Status::Exhausted
     }
 
-    /// The status line of a pumpjack (`None`: another processor).
+    /// The status line of a pumpjack, gas well or wellhead separator (`None`: another processor).
     pub(super) fn pump_text(&self) -> Option<String> {
         let Extra::Pump(pump) = &self.extra else { return None };
+        let is_gas = self.spec.block == GAS_WELL;
+        let is_sep = self.is_separator();
         Some(match self.status {
+            Status::NoDeposit if is_gas => {
+                "No gas below: stand it on the ground right above a gas shale field".to_string()
+            }
             Status::NoDeposit => "No oil below: stand it on the ground right above an oil reservoir".to_string(),
             Status::Exhausted => "The reservoir is dry".to_string(),
             Status::NoPower => NOT_WIRED.to_string(),
             Status::NoInput => "Waiting for empty barrels: a belt brings them in".to_string(),
+            Status::OutputFull if is_sep && self.side.count(RAW_GAS_BARREL) >= super::SIDE_ROOM => {
+                "Raw gas has nowhere to go: put a belt leading away from the side port, or take it".to_string()
+            }
             Status::OutputFull => "Output full: put a belt leading away, or take the barrels".to_string(),
+            _ if is_gas => {
+                format!(
+                    "Drawing raw gas · {} barrels a minute",
+                    (pump.rate * self.jack().recovery * 6.0).round() as u32
+                )
+            }
+            _ if is_sep => {
+                let ratio = pump.well.map_or(3, |w| associated_gas_ratio(w.key));
+                format!(
+                    "Separating crude & gas · {} barrels a minute (1 gas per {ratio} crude)",
+                    (pump.rate * self.jack().recovery * 6.0).round() as u32
+                )
+            }
             _ => {
                 format!(
                     "Pumping crude oil · {} barrels a minute",
@@ -234,12 +305,18 @@ impl Processor {
         })
     }
 
-    /// A line on how much oil is left in the reservoir (empty for other processors).
+    /// A line on how much reserve is left in the reservoir (empty for other processors).
     pub(super) fn reservoir_line(&self, f: &Factory) -> String {
         let Extra::Pump(pump) = &self.extra else { return String::new() };
-        let left = pump.well.and_then(|w| f.deposits.get(&w.key)).map(|s| s.remaining_units() * self.jack().recovery);
+        let Some(well) = pump.well else { return String::new() };
+        let left = f.deposits.get(&well.key).map(|s| s.remaining_units() * self.jack().recovery);
         left.map_or_else(String::new, |units| {
-            format!("\nReservoir: {} barrels left", fmt_int((units / BARREL_UNITS) as u64))
+            let extra = if self.is_separator() {
+                format!(" · associated gas 1:{}", associated_gas_ratio(well.key))
+            } else {
+                String::new()
+            };
+            format!("\nReservoir: {} barrels left{extra}", fmt_int((units / BARREL_UNITS) as u64))
         })
     }
 }

@@ -107,7 +107,10 @@ impl Game {
             if self.ghost_mode {
                 return self.ghost_label();
             }
-            let tools = self.planner_label().or_else(|| self.telescope_label()).or_else(|| self.sickle_label());
+            let tools = [self.planner_label(), self.telescope_label(), self.sickle_label(), self.flamethrower_label()]
+                .into_iter()
+                .flatten()
+                .next();
             if let Some(label) = tools.or_else(|| self.bend_label()) {
                 return label;
             }

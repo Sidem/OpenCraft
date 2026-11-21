@@ -31,6 +31,10 @@ fn the_guide_gives_each_ores_band_for_the_worlds_generator() {
     assert_eq!((iron[2].as_str(), iron[3].as_str(), iron[4].as_str()), ("Iron ore", "8", "28"));
     assert!(iron[5].starts_with("Share of deposits: basalt fields (black rock) 60%"), "{}", iron[5]);
     assert!(iron[6].contains("rusty soil"), "{}", iron[6]);
+    let v13 = rows(&WorldGen::with_version(7, 13));
+    assert_eq!(v13.len(), 9, "v13 includes gas shale");
+    assert_eq!(v13[8][0], GAS_SHALE.to_string());
+    assert_eq!(v13[8][2], "Natural gas");
 }
 
 #[test]

@@ -203,7 +203,11 @@ pub const KIND_FIELDS: usize = 5;
 
 /// What the analytics call the machine of `block` at `pos`: the item of its tier, so each Mk is a row of its own.
 pub(crate) fn kind_at(factory: &Factory, block: BlockId, pos: IVec3) -> u16 {
-    factory.tiered_at(pos).and_then(|(b, t)| tiers::item_of(b, t)).map_or(block, |i| i.0)
+    factory
+        .tiered_at(pos)
+        .and_then(|(b, t)| tiers::item_of(b, t))
+        .unwrap_or_else(|| crate::item::ItemId::block(block))
+        .0
 }
 
 /// The cause that cost the machine most of its pace (an index into the causes).

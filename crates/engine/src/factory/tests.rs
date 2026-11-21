@@ -2,7 +2,7 @@ mod bench;
 mod bench_marks;
 mod bench_megabase;
 mod bench_orbit;
-mod face_fight;
+pub(in crate::factory) mod face_fight;
 mod fake_round;
 mod lift_ways;
 mod tier_names;

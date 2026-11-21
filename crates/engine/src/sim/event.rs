@@ -117,4 +117,20 @@ pub enum SimEvent {
         item: ItemId,
         count: u32,
     },
+    /// The world's `deposits` generator layer upgraded in place (`Action::UpgradeDeposits`).
+    DepositsUpgraded,
+    /// A grown tree caught fire (`sim/fire/blaze.rs`).
+    FireIgnited {
+        pos: IVec3,
+    },
+    /// A burning tree finished collapsing to charcoal (`sim/fire/blaze.rs`).
+    TreeBurned {
+        pos: IVec3,
+    },
+    /// A player fired a flamethrower burst from `origin` along unit vector `dir` (`sim/fire/`).
+    Flamed {
+        player: PlayerId,
+        origin: Vec3,
+        dir: Vec3,
+    },
 }

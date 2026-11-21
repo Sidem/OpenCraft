@@ -93,7 +93,7 @@ fn the_mk2_filters_by_ore_and_reports_reserves() {
         assert!(kept.chunks_exact(SCAN_FIELDS).all(|r| ore.is_none_or(|o| r[0] == o as i32)));
         assert!(ore.is_some() || kept == all, "no filter keeps everything");
     }
-    assert_eq!(seen, [0, 7, 8, 9, 33, 34, 76, 81, 82, 0]);
+    assert_eq!(seen, [0, 7, 8, 9, 33, 34, 76, 81, 82, 255, 0]);
     // Reserves: a tracked deposit's exact units, an untouched one's estimate, and the minutes a full-speed mine
     // takes (units over the tier's draw cap).
     for r in all.chunks_exact(SCAN_FIELDS) {

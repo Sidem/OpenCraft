@@ -2,9 +2,9 @@
 //! hash covers), then what the authority keeps (bodies and loose items). Everything else, such as
 //! meshes, links, deposit members and the camera, is derived and rebuilt on load.
 //!
-//! Layout: magic `OCW1`, `SAVE_VERSION`, the world's generator version, seed, core, local player id,
-//! bodies, loose items. A world keeps the generator it was made with (1..=`WORLDGEN_VERSION`), so older
-//! worlds regenerate their untouched terrain exactly as before. Invariants: loading refuses, with a
+//! Layout: magic `OCW1`, `SAVE_VERSION`, the world's generator version (its `ground` layer; from save 81 followed after `seed` by `water`, `cover`, `deposits`), seed, core, local player id,
+//! bodies, loose items. A world keeps the generator layers it was made with (1..=`WORLDGEN_VERSION`), so older
+//! worlds regenerate their untouched terrain exactly as before while opting into newer deposits (`worldgen/layers.rs`). Invariants: loading refuses, with a
 //! message a player can read, any file from a newer format or generator, a format older than
 //! `OLDEST_VERSION`, and any damaged file; it
 //! never panics on bad bytes. To save something new: write and read it in its type's `write_state` /
@@ -23,30 +23,36 @@
 //! (multi-block machines); 20 = labs hold a slot for blue packs; 21 = boxes, generators, poles, labs,
 //! pumps and quarries have a tier; 22 = labs hold a slot for violet packs (a cable's tier is 15, was 3);
 //! 23 = each player's queue of hand crafts follows their key; 24 = the player's power wires follow the
-//! quarries (older saves are wired by range once); 30 = the rail list follows the sensors; 31 = rail nodes have a heading and the tracks follow the rails; 32 = the trains follow the tracks; 33 = each train also saves its wagons, cargo and dock stop; 34 = and its schedule; 35 = a rail node also saves whether it has a signal; 36 = each player's helpers also save the hover pack's hover, charge and pole; 37 = cargo routes and cargo drones in flight follow the construction drones; 38 = the game mode (normal or creative) follows the cargo; 45 = the satellites in orbit follow the research (older saves have none); 46 = the drop pods in flight follow the satellites; 47 = where the opening scene is follows the game mode; 48 = the towns (`settlements/`) follow the opening scene; 49 = each town's stage, order deliveries, stall and upkeep tick; 50 = each town's plots, cursor and drones; 51 = whether each town is dormant; 52 = a town depot's perk buffers, and whether each queued hand craft costs half; 53 = each harbour's product and what it has been paid, and the towns' tally of goods made; 54 = a pod launcher or landing pad saves its channel (older saves read the way it faced); 55 = the ground cover the sickle cleared follows the world's edited chunks (older saves have none); 57 = the opening scene saves how far it got (older saves read it from the scene, `Opening::migrate`), and one byte at the end of the core says how far the main tips got (older saves start at 0); 58 = four bytes after it are the lessons taught (`lessons.rs`; older saves read every stall lesson as taught); 59 = a miner of tier 5, the coal miner, saves its fuel stack and energy after its tier byte (no older miner has that tier); 60 = each player's inventory also saves the left-hand stack (`offhand.rs`) after the worn gear (older saves have it empty); 61 = nothing new is written, but long-distance poles stand four high: older saves fill each one's fourth layer with machine parts where it is air (`Factory::raise_old_towers`); 62 = each belt saves its bend after its tier (older belts are straight); 63 = the note signs (`signs/`) end the core (older saves have none); 64 = nothing new is written, but a dock is one cell standing on the track: older saves clear its other three cells (`Factory::shrink_old_docks`); 65 = each train also saves its speed and the distance it has driven (`trains/motion.rs`); 66 = and its id (`trains/view.rs`); 69 = each storage box saves its label after its round-robin position (`factory/box_label.rs`; older boxes show what they hold); 70 = a pumpjack saves whether it is compact after its carry (`factory/process/pump.rs`; older ones were one block and stay so); 71 = each player's personal drone saves its home, job queue and trip in flight (`helpers/drone/`; an older errand loads as its fetch, waiting to fly again); 72 = a filter saves its rules, the items picked for each output and which takes everything else (`factory/filter_rules.rs`; an older filter sends its one item straight on, everything else to the sides); 73 = trees being chopped and falling (`sim/felling.rs`); 74 = nothing new is written, but older worlds count the no-recipe and upgrade lessons as taught (`lessons::KNOWN_BEFORE_74`); 75 = nothing new is written, but older worlds count the planner lesson as taught (`lessons::KNOWN_BEFORE_75`); 76 = nothing new is written, but older worlds count the map lesson as taught (`lessons::KNOWN_BEFORE_76`); 77 = block ids are `u16` (below 255 still one byte); 78 = each player's worn gear has a seventh slot, Head (`equipment.rs`; older saves have it empty); 79 = the LED lamps' colours (`led/`) end the core (older saves have none); 80 = manually switched-off machines (`factory/switch.rs`) end the core (older saves have none).
+//! quarries (older saves are wired by range once); 30 = the rail list follows the sensors; 31 = rail nodes have a heading and the tracks follow the rails; 32 = the trains follow the tracks; 33 = each train also saves its wagons, cargo and dock stop; 34 = and its schedule; 35 = a rail node also saves whether it has a signal; 36 = each player's helpers also save the hover pack's hover, charge and pole; 37 = cargo routes and cargo drones in flight follow the construction drones; 38 = the game mode (normal or creative) follows the cargo; 45 = the satellites in orbit follow the research (older saves have none); 46 = the drop pods in flight follow the satellites; 47 = where the opening scene is follows the game mode; 48 = the towns (`settlements/`) follow the opening scene; 49 = each town's stage, order deliveries, stall and upkeep tick; 50 = each town's plots, cursor and drones; 51 = whether each town is dormant; 52 = a town depot's perk buffers, and whether each queued hand craft costs half; 53 = each harbour's product and what it has been paid, and the towns' tally of goods made; 54 = a pod launcher or landing pad saves its channel (older saves read the way it faced); 55 = the ground cover the sickle cleared follows the world's edited chunks (older saves have none); 57 = the opening scene saves how far it got (older saves read it from the scene, `Opening::migrate`), and one byte at the end of the core says how far the main tips got (older saves start at 0); 58 = four bytes after it are the lessons taught (`lessons.rs`; older saves read every stall lesson as taught); 59 = a miner of tier 5, the coal miner, saves its fuel stack and energy after its tier byte (no older miner has that tier); 60 = each player's inventory also saves the left-hand stack (`offhand.rs`) after the worn gear (older saves have it empty); 61 = nothing new is written, but long-distance poles stand four high: older saves fill each one's fourth layer with machine parts where it is air (`Factory::raise_old_towers`); 62 = each belt saves its bend after its tier (older belts are straight); 63 = the note signs (`signs/`) end the core (older saves have none); 64 = nothing new is written, but a dock is one cell standing on the track: older saves clear its other three cells (`Factory::shrink_old_docks`); 65 = each train also saves its speed and the distance it has driven (`trains/motion.rs`); 66 = and its id (`trains/view.rs`); 69 = each storage box saves its label after its round-robin position (`factory/box_label.rs`; older boxes show what they hold); 70 = a pumpjack saves whether it is compact after its carry (`factory/process/pump.rs`; older ones were one block and stay so); 71 = each player's personal drone saves its home, job queue and trip in flight (`helpers/drone/`; an older errand loads as its fetch, waiting to fly again); 72 = a filter saves its rules, the items picked for each output and which takes everything else (`factory/filter_rules.rs`; an older filter sends its one item straight on, everything else to the sides); 73 = trees being chopped and falling (`sim/felling.rs`); 74 = nothing new is written, but older worlds count the no-recipe and upgrade lessons as taught (`lessons::KNOWN_BEFORE_74`); 75 = nothing new is written, but older worlds count the planner lesson as taught (`lessons::KNOWN_BEFORE_75`); 76 = nothing new is written, but older worlds count the map lesson as taught (`lessons::KNOWN_BEFORE_76`); 77 = block ids are `u16` (below 255 still one byte); 78 = each player's worn gear has a seventh slot, Head (`equipment.rs`; older saves have it empty); 79 = the LED lamps' colours (`led/`) end the core (older saves have none); 80 = manually switched-off machines (`factory/switch.rs`) end the core (older saves have none); 81 = the header records the four generator layers (`ground`, then after `seed`, `water`, `cover`, `deposits`; older saves read all four as their one generator version); 82 = active fires (`sim/fire/`, blazes, grass fronts and flamethrower tanks) end the core (older saves have none).
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::entities::Items;
 use crate::player::Player;
 use crate::sim::PlayerId;
-use crate::worldgen::{WorldGen, WORLDGEN_VERSION};
+use crate::worldgen::{Layers, WorldGen, LAYERS_SAVED, WORLDGEN_VERSION};
 use crate::Game;
 
 /// The format of everything after the header. Bump on any change to what is written.
-pub const SAVE_VERSION: u32 = 80;
+pub const SAVE_VERSION: u32 = 82;
 /// The oldest format that still loads.
 const OLDEST_VERSION: u32 = 1;
 const MAGIC: &[u8] = b"OCW1";
 const DAMAGED: &str = "This world file is damaged and can't be loaded.";
+const NEWER: &str = "This world was saved by a newer version of OpenCraft. Reload the page to update.";
 
 impl Game {
     /// The whole world as save bytes.
     pub(crate) fn save_bytes(&self) -> Vec<u8> {
         let mut w = ByteWriter::default();
+        let gen = self.sim.world.generator();
+        let layers = gen.layers();
         w.bytes.extend_from_slice(MAGIC);
         w.u32(SAVE_VERSION);
-        w.u32(self.sim.world.generator().version());
-        w.u32(self.sim.world.generator().seed());
+        w.u32(layers.ground);
+        w.u32(gen.seed());
+        w.u32(layers.water);
+        w.u32(layers.cover);
+        w.u32(layers.deposits);
         self.sim.write_state(&mut w);
         w.u8(self.local.0);
         w.count(self.bodies.len());
@@ -68,7 +74,7 @@ impl Game {
         }
         let (Some(version), Some(worldgen)) = (r.u32(), r.u32()) else { return Err(DAMAGED.into()) };
         if version > SAVE_VERSION || worldgen > WORLDGEN_VERSION {
-            return Err("This world was saved by a newer version of OpenCraft. Reload the page to update.".into());
+            return Err(NEWER.into());
         }
         if version < OLDEST_VERSION {
             return Err("This world was saved by an older version of OpenCraft that can't be loaded any more.".into());
@@ -76,13 +82,28 @@ impl Game {
         if worldgen == 0 {
             return Err(DAMAGED.into());
         }
+        let Some(seed) = r.u32() else { return Err(DAMAGED.into()) };
+        let layers = if version >= LAYERS_SAVED {
+            let (Some(water), Some(cover), Some(deposits)) = (r.u32(), r.u32(), r.u32()) else {
+                return Err(DAMAGED.into());
+            };
+            Layers { ground: worldgen, water, cover, deposits }
+        } else {
+            Layers::uniform(worldgen)
+        };
+        if layers.any_newer() {
+            return Err(NEWER.into());
+        }
+        if layers.any_zero() {
+            return Err(DAMAGED.into());
+        }
         r.version = version;
-        read_game(&mut r, worldgen, view_radius).ok_or_else(|| DAMAGED.into())
+        read_game(&mut r, seed, layers, view_radius).ok_or_else(|| DAMAGED.into())
     }
 }
 
-fn read_game(r: &mut ByteReader, worldgen: u32, view_radius: u32) -> Option<Game> {
-    let mut g = Game::with_generator(WorldGen::with_version(r.u32()?, worldgen), view_radius);
+fn read_game(r: &mut ByteReader, seed: u32, layers: Layers, view_radius: u32) -> Option<Game> {
+    let mut g = Game::with_generator(WorldGen::with_layers(seed, layers), view_radius);
     g.sim.read_state(r)?;
     g.local = PlayerId(r.u8()?);
     let bodies = r.count()?;

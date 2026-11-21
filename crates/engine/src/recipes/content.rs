@@ -23,54 +23,85 @@ pub fn content(item: ItemId) -> Option<&'static Content> {
     TABLE
         .get_or_init(|| {
             let mut memo = vec![None; ITEM_COUNT];
-            (0..ITEM_COUNT).map(|i| work(ItemId(i as u16), &mut memo, DEPTH)).collect()
+            let mut visiting = vec![false; ITEM_COUNT];
+            (0..ITEM_COUNT).map(|i| work(ItemId(i as u16), &mut memo, &mut visiting, DEPTH)).collect()
         })
         .get(item.0 as usize)?
         .as_ref()
 }
 
-fn work(item: ItemId, memo: &mut Vec<Option<Option<Content>>>, depth: u32) -> Option<Content> {
+fn work(item: ItemId, memo: &mut Vec<Option<Option<Content>>>, visiting: &mut [bool], depth: u32) -> Option<Content> {
     if let Some(known) = &memo[item.0 as usize] {
         return known.clone();
     }
-    let worked = work_out(item, memo, depth);
-    memo[item.0 as usize] = Some(worked.clone());
+    if visiting[item.0 as usize] {
+        return None;
+    }
+    visiting[item.0 as usize] = true;
+    let worked = work_out(item, memo, visiting, depth);
+    visiting[item.0 as usize] = false;
+    if worked.is_some() || visiting.iter().all(|&v| !v) {
+        memo[item.0 as usize] = Some(worked.clone());
+    }
     worked
 }
 
-fn work_out(item: ItemId, memo: &mut Vec<Option<Option<Content>>>, depth: u32) -> Option<Content> {
+fn work_out(
+    item: ItemId,
+    memo: &mut Vec<Option<Option<Content>>>,
+    visiting: &mut [bool],
+    depth: u32,
+) -> Option<Content> {
     let cost = u64::from(raw_cost(item));
     if cost == 0 || item == COIN || depth == 0 {
         return None;
     }
     let raw = vec![(item, u64::from(MILLI))];
-    let Some((inputs, shares)) = route(item, cost) else { return Some(raw) };
-    if inputs.iter().all(|&(i, _)| is_waste(i)) || is_waste(item) {
+    let routes = matching_routes(item, cost);
+    if routes.is_empty() {
         return Some(raw);
     }
-    let mut sum: Content = Vec::new();
-    for &(input, n) in inputs {
-        for (r, m) in work(input, memo, depth - 1)? {
-            match sum.iter_mut().find(|e| e.0 == r) {
-                Some(e) => e.1 += m * u64::from(n),
-                None => sum.push((r, m * u64::from(n))),
+    for (inputs, shares) in routes {
+        if inputs.iter().all(|&(i, _)| is_waste(i)) || is_waste(item) {
+            return Some(raw);
+        }
+        let mut sum: Content = Vec::new();
+        let mut ok = true;
+        for &(input, n) in inputs {
+            let Some(parts) = work(input, memo, visiting, depth - 1) else {
+                ok = false;
+                break;
+            };
+            for (r, m) in parts {
+                match sum.iter_mut().find(|e| e.0 == r) {
+                    Some(e) => e.1 += m * u64::from(n),
+                    None => sum.push((r, m * u64::from(n))),
+                }
             }
         }
+        if ok {
+            sum.iter_mut().for_each(|e| e.1 = e.1.div_ceil(shares));
+            crate::math::sort_small_by_key(&mut sum, |e| e.0 .0);
+            return Some(sum);
+        }
     }
-    sum.iter_mut().for_each(|e| e.1 = e.1.div_ceil(shares));
-    crate::math::sort_small_by_key(&mut sum, |e| e.0 .0);
-    Some(sum)
+    None
 }
 
-/// The first recipe that makes `item` at its cheapest `cost`: its inputs and how many items share them. `None` for a
-/// raw material (no recipe makes it).
-fn route(item: ItemId, cost: u64) -> Option<(&'static [(ItemId, u32)], u64)> {
+/// Every recipe that makes `item` at its cheapest `cost` (machine recipes first, then hand recipes), so a
+/// barrel-recycling cycle (like empty barrels via electrolysis and rocket fuel) can be skipped for a real source.
+fn matching_routes(item: ItemId, cost: u64) -> Vec<(&'static [(ItemId, u32)], u64)> {
     let matches = |inputs, outputs: &[(ItemId, u32)]| {
         let cost_each = outputs.iter().any(|o| o.0 == item).then(|| batch_cost(inputs, outputs)).flatten();
         cost_each.filter(|c| c.0 == cost).map(|c| (inputs, c.1))
     };
-    let machine = MACHINE_RECIPES.iter().find_map(|r| matches(r.inputs, r.outputs));
-    machine.or_else(|| RECIPES.iter().find_map(|r| matches(r.inputs, &[(r.output, r.count)])))
+    let mut out: Vec<_> = MACHINE_RECIPES.iter().filter_map(|r| matches(r.inputs, r.outputs)).collect();
+    for r in RECIPES {
+        if let Some(m) = matches(r.inputs, &[(r.output, r.count)]) {
+            out.push(m);
+        }
+    }
+    out
 }
 
 /// What each item a batch makes costs (as `recipes::recycling` works it out with no processing step) and how many

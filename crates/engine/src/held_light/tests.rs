@@ -51,3 +51,24 @@ fn the_frame_reports_one_light_for_the_player_at_the_eye_and_none_without_a_torc
     g.click_offhand();
     g.update(1.0 / 60.0);
 }
+
+#[test]
+fn active_flamethrower_emits_torch_bright_dynamic_light() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    g.give(crate::item::FLAMETHROWER.0, 1);
+    g.give(crate::item::NAPHTHA_BARREL.0, 2);
+    g.update(1.0 / 60.0);
+    let slot = (0..9).find(|&i| g.slot_item(i) == crate::item::FLAMETHROWER.0).expect("in hotbar");
+    g.select_slot(slot);
+    g.update(1.0 / 60.0);
+    assert_eq!(g.held_light_count(), 0, "unlit flamethrower emits no dynamic light");
+
+    g.set_using(true);
+    for _ in 0..10 {
+        g.update(1.0 / 60.0);
+    }
+    assert!(g.held_light_count() >= 1, "active torch flame emits dynamic light");
+    let max_reach = g.avatars.lights.chunks_exact(LIGHT_FLOATS).map(|l| l[3]).fold(0.0f32, f32::max);
+    assert!(max_reach >= REACH, "torch flame light is at least as bright as a held torch: {max_reach}");
+}

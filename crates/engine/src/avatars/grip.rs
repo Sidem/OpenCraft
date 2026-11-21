@@ -59,6 +59,9 @@ pub(super) fn rest(stroke: Stroke, view: bool) -> (M3, f64, f64) {
         // Sickle: hook inward toward the crosshair for a horizontal reap.
         (Stroke::Sweep, false) => (yaw_m(-FRAC_PI_2), 0.0, 0.0),
         (Stroke::Sweep, true) => (yaw_m(PI), -0.3, 0.0),
+        // Flamethrower: model points along +x; turn -π/2 so the chrome torch bell aims straight ahead (-z) toward the crosshair.
+        (Stroke::Aim, false) => (yaw_m(-FRAC_PI_2), 0.0, 0.0),
+        (Stroke::Aim, true) => (yaw_m(-FRAC_PI_2 - 0.11), 0.03, 0.0),
         (Stroke::Punch, _) => (IDENTITY, 0.0, 0.0),
     }
 }

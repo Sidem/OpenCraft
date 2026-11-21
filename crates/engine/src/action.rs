@@ -405,6 +405,18 @@ pub enum Action {
     Leave {
         pos: Vec3,
     },
+    /// Host/owner upgrades this world's `deposits` generator layer to the newest version (`worldgen/layers.rs`).
+    UpgradeDeposits,
+    /// Lights a grown tree, sapling or grass front at `pos` with spread budget `heat` (`sim/fire/`).
+    Ignite {
+        pos: IVec3,
+        heat: u8,
+    },
+    /// Fires the held flamethrower from `origin` along `dir` (`sim/fire/`, `flame_hands.rs`).
+    Flame {
+        origin: Vec3,
+        dir: Vec3,
+    },
 }
 
 mod apply;

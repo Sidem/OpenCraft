@@ -172,7 +172,7 @@ impl WorldGen {
     fn sample_rivers(&self, x: i32, z: i32) -> Option<Sample> {
         let segs = self.river_segs_near(x.div_euclid(CELL), z.div_euclid(CELL));
         let (px, pz) = (x as f64, z as f64);
-        let v8 = self.version >= 8;
+        let v8 = self.layers.water >= 8;
         let wobble =
             if v8 && !segs.is_empty() { self.meander.noise2(px / WOBBLE_SCALE, pz / WOBBLE_SCALE) } else { 0.0 };
         let mut best: Option<Sample> = None;
@@ -226,7 +226,7 @@ impl WorldGen {
         let n = self.river_node(gx, gz);
         let mut out = Vec::new();
         let down = self.river_down(&n);
-        let v8 = self.version >= 8;
+        let v8 = self.layers.water >= 8;
         if n.wet {
             if let Some(d) = &down {
                 out.push(Rc::new(if v8 {

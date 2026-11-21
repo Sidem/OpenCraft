@@ -6,7 +6,7 @@
 //! To add an ore: a row in `GUIDE`.
 
 use crate::block::{
-    self, BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, OIL_SAND, QUARTZ_ORE, URANIUM_ORE,
+    self, BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, GAS_SHALE, IRON_ORE, LIMESTONE, OIL_SAND, QUARTZ_ORE, URANIUM_ORE,
 };
 use crate::deposits::Tier;
 use crate::math::IVec3;
@@ -16,7 +16,7 @@ use crate::worldgen::{ore_shares, WorldGen, LODE_HEIGHTS};
 
 /// Per ore: its block, the stain it leaves on grass (on sand it is the same colour; none for bauxite, oil sand and
 /// uranium), how it looks. The extra ores are listed only for worlds whose generator makes them (`WorldGen::has_ore`).
-const GUIDE: [(BlockId, &str, &str); 8] = [
+const GUIDE: [(BlockId, &str, &str); 9] = [
     (COAL_ORE, "dark soil", "black lumps in the rock"),
     (IRON_ORE, "rusty soil", "rust-brown nodules in the rock"),
     (COPPER_ORE, "green soil", "orange and green crusts"),
@@ -25,6 +25,7 @@ const GUIDE: [(BlockId, &str, &str); 8] = [
     (BAUXITE_ORE, "", "brick-red balls packed in red clay"),
     (OIL_SAND, "", "black pools of tar in brown sand"),
     (URANIUM_ORE, "", "bright yellow-green crystals in dark rock"),
+    (GAS_SHALE, "", "dark blue-grey layered shale with pale blue veins"),
 ];
 
 /// One line per ore, fields split by tabs: block id, colour (0xRRGGBB), name, the band it lies in
@@ -36,8 +37,11 @@ pub fn guide_rows(gen: &WorldGen) -> String {
             continue;
         }
         let (lo, hi) = gen.ore_band(ore);
-        let shares = ore_shares(ore, gen.version());
-        let common = if gen.version() < 2 || shares.is_empty() {
+        let deposits = gen.layers().deposits;
+        let shares = ore_shares(ore, deposits);
+        let common = if ore == GAS_SHALE {
+            "Plains, Lowlands, Desert".to_string()
+        } else if deposits < 2 || shares.is_empty() {
             "Everywhere".to_string()
         } else {
             let parts: Vec<String> = shares.iter().map(|(b, pct)| format!("{} {pct}%", b.name())).collect();
@@ -45,7 +49,8 @@ pub fn guide_rows(gen: &WorldGen) -> String {
         };
         let signs = signs(gen, ore, stain, looks);
         let label = block::ore_label(ore);
-        let name = if matches!(ore, LIMESTONE | OIL_SAND) { label.to_string() } else { format!("{label} ore") };
+        let name =
+            if matches!(ore, LIMESTONE | OIL_SAND | GAS_SHALE) { label.to_string() } else { format!("{label} ore") };
         out += &format!("{ore}\t{}\t{name}\t{lo}\t{hi}\t{common}\t{signs}\n", ore_color(ore));
     }
     out
@@ -59,9 +64,16 @@ pub fn ore_way(gen: &WorldGen, ore: BlockId) -> Option<String> {
         return None;
     }
     let (lo, hi) = gen.ore_band(ore);
-    let mut text = format!("Dig it {lo} to {hi} blocks below the ground; a miner placed on it digs it for you.");
-    let mut shares = ore_shares(ore, gen.version());
-    if gen.version() >= 2 && !shares.is_empty() {
+    let mut text = if ore == GAS_SHALE {
+        format!(
+            "Deep {lo} to {hi} blocks below plains, lowlands and deserts; a gas well placed on the ground above draws raw gas barrels for you."
+        )
+    } else {
+        format!("Dig it {lo} to {hi} blocks below the ground; a miner placed on it digs it for you.")
+    };
+    let deposits = gen.layers().deposits;
+    let mut shares = ore_shares(ore, deposits);
+    if deposits >= 2 && !shares.is_empty() {
         crate::math::sort_small_by_key(&mut shares, |s| u32::MAX - s.1);
         let names: Vec<&str> = shares.iter().take(2).map(|s| s.0.name()).collect();
         text += &format!(" Most common in {}.", names.join(" and "));
@@ -74,7 +86,8 @@ pub fn ore_way(gen: &WorldGen, ore: BlockId) -> Option<String> {
 pub fn guide_notes(gen: &WorldGen) -> String {
     let mut lines = Vec::new();
     let (near, far) = gen.starter_reach();
-    if gen.version() >= 3 {
+    let deposits = gen.layers().deposits;
+    if deposits >= 3 {
         lines.push(format!(
             "A starter patch of coal, iron and copper lies {near} to {far} blocks from where the world starts."
         ));
@@ -95,7 +108,13 @@ pub fn guide_notes(gen: &WorldGen) -> String {
             gen.ore_from(URANIUM_ORE)
         ));
     }
-    if gen.version() >= 2 {
+    if gen.has_ore(GAS_SHALE) {
+        lines.push(format!(
+            "Natural gas shale lies deep under plains, lowlands and deserts, {} or more blocks out, and leaves no surface stain: scan for it, then set a gas well on the ground above.",
+            gen.ore_from(GAS_SHALE)
+        ));
+    }
+    if deposits >= 2 {
         lines.push("Stained soil lies over veins and lodes, and a plant grows on each stain: rust-orange blooms over iron, dark shrubs over coal, teal bells over copper, pale stars over limestone and quartz. Point at the soil to see how far down the ore is.".into());
     }
     let (lo, hi) = LODE_HEIGHTS;
@@ -126,7 +145,7 @@ pub fn stain_reading(gen: &WorldGen, pos: IVec3, stain: BlockId) -> Option<Strin
 
 /// How to spot `ore`: how it looks exposed and, buried, the stain over it (or that it leaves none).
 fn signs(gen: &WorldGen, ore: BlockId, stain: &str, looks: &str) -> String {
-    if matches!(ore, OIL_SAND | URANIUM_ORE) {
+    if matches!(ore, OIL_SAND | URANIUM_ORE | GAS_SHALE) {
         return format!(
             "Never at the surface: {looks}. Only veins and lodes. Scan for it (the Mk2's bearing shows the way), then drill down."
         );
@@ -134,7 +153,7 @@ fn signs(gen: &WorldGen, ore: BlockId, stain: &str, looks: &str) -> String {
     let mut signs = format!("Exposed: {looks}.");
     if stain.is_empty() {
         signs += " It leaves no stain: find the right biome far from the start, then scan.";
-    } else if gen.version() >= 2 {
+    } else if gen.layers().deposits >= 2 {
         signs += &format!(" Buried: {stain} or sand above a vein or lode.");
     }
     signs

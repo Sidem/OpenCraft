@@ -10,10 +10,13 @@ use crate::item::ItemId;
 
 /// Floats per light: x, y, z (camera-relative) and the reach in blocks.
 pub const LIGHT_FLOATS: usize = 4;
-/// Players a frame can light (`authority::MAX_PLAYERS`); the shader has this many slots.
-pub const MAX_LIGHTS: usize = 4;
+/// Dynamic point lights the shader draws at once: up to 4 lit players plus up to 12 fire lights (flamethrower plume,
+/// burning trees, ground embers). Matches `HELD_LIGHT_SLOTS` in `web/src/render/shaders.ts`.
+pub const MAX_LIGHTS: usize = 16;
 /// How far a held light reaches, in blocks: a little less than a torch standing in the ground (`light.rs`).
 const REACH: f32 = 9.0;
+/// Reach of an active flame (flamethrower plume or burning tree), matching a placed torch (~11 blocks).
+pub const FLAME_REACH: f32 = 11.0;
 
 /// How far `item` lights its surroundings when held; 0 for anything that doesn't shine.
 pub fn reach(item: ItemId) -> f32 {

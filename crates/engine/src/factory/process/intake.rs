@@ -21,6 +21,14 @@ impl Processor {
         if matches!(self.energy(), Energy::Diesel | Energy::Reactor) {
             return if item == self.generator_fuel() { self.input.space_for(item) } else { 0 };
         }
+        if self.energy() == Energy::Gas {
+            return if super::gas::gas_fuel_kj(item).is_some() {
+                let cap = stack_size(item).saturating_sub(self.input.count(item));
+                self.input.space_for(item).min(cap)
+            } else {
+                0
+            };
+        }
         if self.takes_pod(item) {
             return self.input.space_for(item);
         }

@@ -1,12 +1,16 @@
 //! The open end of `techs::TECHS`: techs added after Milestone 12's first steps, so that `orbit.rs` stays closed and no saved
-//! index moves. Saved index order: Long-Distance Power 82, Drop Pods 83, Settlements 84, Architecture 85, Forestry 86 (violet packs, after Violet Science 18), X-ray Goggles 87 (blue packs, after Hoists 51), LED Lamps 88 (blue packs, after Architecture 85 and Electronics 17), Pigments 89 (four packs, after Acids and Lubricants 45 and Architecture 85).
-//! Add rows at the bottom, never reorder (new Orbit techs go here too). Needs name earlier indices: Masonry 7, Assembly 8, Blue Science 10,
-//! Mk4 Logistics 19, Bauxite Processing 36, Rocketry 78, Orbital Comms 79.
+//! index moves. Saved index order: Long-Distance Power 82, Drop Pods 83, Settlements 84, Architecture 85, Forestry 86 (violet packs, after Violet Science 18), X-ray Goggles 87 (blue packs, after Hoists 51), LED Lamps 88 (blue packs, after Architecture 85 and Electronics 17), Pigments 89 (four packs, after Acids and Lubricants 45 and Architecture 85), Gas Wells 90 (four packs, after Oil Processing 42), Gas Processing 91 (four packs, after Gas Wells 90 and Acids and Lubricants 45), Flamethrower 92 (four packs, after Refining 43).
+//! Add rows at the bottom, never reorder (new Orbit techs go here too). Needs name earlier indices: Fluid Handling 6, Masonry 7, Assembly 8, Steelmaking 9, Blue Science 10,
+//! Mk4 Logistics 19, Bauxite Processing 36, Oil Processing 42, Acids and Lubricants 45, Rocketry 78, Orbital Comms 79.
 
-use crate::block::{FORESTER, LANDING_PAD, LED, LONG_POLE, POD_LAUNCHER, STREET, TOWN_DEPOT};
-use crate::item::{BLUE_PACK, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK, XRAY_GOGGLES};
+use crate::block::{
+    FORESTER, GAS_PLANT, GAS_TURBINE, GAS_WELL, LANDING_PAD, LED, LONG_POLE, POD_LAUNCHER, STEAM_REFORMER, STREET,
+    TOWN_DEPOT, WELLHEAD_SEPARATOR,
+};
+use crate::item::{BLUE_PACK, FLAMETHROWER, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK, XRAY_GOGGLES};
 use crate::recipes::{
-    DECOR_FIRST, DECOR_ROWS, DROP_POD_RECIPE, DYE_FIRST, DYE_ROWS, GLASS_FIRST, GLASS_ROWS, LONG_POLE_ROW,
+    DECOR_FIRST, DECOR_ROWS, DROP_POD_RECIPE, DYE_FIRST, DYE_ROWS, ETHANE_CRACK_RECIPE, GAS_PROCESS_RECIPE,
+    GLASS_FIRST, GLASS_ROWS, LONG_POLE_ROW, LPG_CRACK_RECIPE, POLYETHYLENE_RECIPE, REFORM_RECIPE,
 };
 
 use super::{r, Tech, Unlock};
@@ -38,7 +42,7 @@ const DYE_UNLOCKS: [Unlock; DYE_ROWS as usize] = {
     out
 };
 
-pub const LATER: [Tech; 8] = [
+pub const LATER: [Tech; 11] = [
     Tech {
         name: "Long-Distance Power",
         blurb: "Lattice towers, 2×2 and 3 high, that link to each other 160 blocks apart (an ordinary pole only 16), \
@@ -128,5 +132,48 @@ pub const LATER: [Tech; 8] = [
         units: 120,
         seconds: 40.0,
         unlocks: &DYE_UNLOCKS,
+    },
+    Tech {
+        name: "Gas Wells",
+        blurb: "Tap deep natural gas shale fields (220+ blocks out under plains, lowlands and deserts). A gas well \
+                (90 kW) fills empty barrels with raw gas; a gas plant (140 kW, water pipe) sweetens 4 raw gas barrels \
+                into 2 methane, 1 ethane, 1 LPG and a sulfur.",
+        needs: &[42], // Oil Processing (empty barrels & fluids)
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 140,
+        seconds: 40.0,
+        unlocks: &[r(GAS_WELL), r(GAS_PLANT), Unlock::MachineRecipe(GAS_PROCESS_RECIPE)],
+    },
+    Tech {
+        name: "Gas Processing",
+        blurb: "Turn natural gas into clean power, cheap hydrogen and plastics: a gas turbine gives 600 kW from \
+                methane or LPG barrels, a steam reformer (100 kW) turns methane and water into 3 hydrogen barrels, \
+                crackers split ethane or LPG into ethylene for polyethylene plastic, and a wellhead separator recovers \
+                associated gas from any existing oil field.",
+        needs: &[90, 45], // Gas Wells, Acids and Lubricants (lubricant, cracker & chemical plant)
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 160,
+        seconds: 40.0,
+        unlocks: &[
+            r(WELLHEAD_SEPARATOR),
+            r(GAS_TURBINE),
+            r(STEAM_REFORMER),
+            Unlock::MachineRecipe(REFORM_RECIPE),
+            Unlock::MachineRecipe(ETHANE_CRACK_RECIPE),
+            Unlock::MachineRecipe(LPG_CRACK_RECIPE),
+            Unlock::MachineRecipe(POLYETHYLENE_RECIPE),
+        ],
+    },
+    Tech {
+        name: "Flamethrower",
+        blurb: "A hand liquid-fuel torch for clearing weeds and forests. Hold right-click for a steady flame that \
+                clears ground plants right where you aim (like a weed torch, without spreading across meadows) and \
+                sets grown trees ablaze so they burn down to charcoal. Runs on naphtha or diesel barrels from the \
+                refinery or cracker; never harms placed blocks, machines or houses.",
+        needs: &[43], // Refining (naphtha & diesel barrels from refinery or cracker)
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 120,
+        seconds: 30.0,
+        unlocks: &[Unlock::Recipe(FLAMETHROWER)],
     },
 ];

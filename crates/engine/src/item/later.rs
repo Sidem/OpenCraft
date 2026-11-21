@@ -114,3 +114,20 @@ pub const PIGMENT_GREY: ItemId = ItemId(426);
 pub const PIGMENT_BROWN: ItemId = ItemId(427);
 pub const PIGMENT_MAROON: ItemId = ItemId(428);
 pub const PIGMENT_NAVY: ItemId = ItemId(429);
+/// Natural gas barrels (CHEM-GAS): raw gas drawn from gas shale or associated oil wells, sweetened and fractionated
+/// into methane, ethane and LPG, and cracked into ethylene for polyethylene. Ids 430 to 434.
+pub const RAW_GAS_BARREL: ItemId = ItemId(430);
+pub const METHANE_BARREL: ItemId = ItemId(431);
+pub const ETHANE_BARREL: ItemId = ItemId(432);
+pub const LPG_BARREL: ItemId = ItemId(433);
+pub const ETHYLENE_BARREL: ItemId = ItemId(434);
+/// The five natural gas machines' items (wide blocks 256–260, paired in `item::WIDE_BLOCK_ITEMS`). Ids 435 to 439.
+pub const GAS_WELL_ITEM: ItemId = ItemId(435);
+pub const WELLHEAD_SEPARATOR_ITEM: ItemId = ItemId(436);
+pub const GAS_PLANT_ITEM: ItemId = ItemId(437);
+pub const GAS_TURBINE_ITEM: ItemId = ItemId(438);
+pub const STEAM_REFORMER_ITEM: ItemId = ItemId(439);
+/// Charcoal (FIRE1): left behind when a grown tree burns down; serves as coal everywhere (`wood.rs`).
+pub const CHARCOAL: ItemId = ItemId(440);
+/// The flamethrower (FIRE2, `flame_hands.rs`): weed-torches ground plants and sets grown trees ablaze; runs on naphtha or diesel barrels.
+pub const FLAMETHROWER: ItemId = ItemId(441);

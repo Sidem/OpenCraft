@@ -92,6 +92,11 @@ export interface FrameInfo {
   halos: Float32Array;
   haloCount: number;
   haloFloats: number;
+  /** Fire emitters (engine `fire_view.rs`): `fireFloats` floats each, `fireCount` of them, plus render time for animation. */
+  fire: Float32Array;
+  fireCount: number;
+  fireFloats: number;
+  renderTime: number;
 }
 
 export interface RenderStats {

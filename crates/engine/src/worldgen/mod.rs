@@ -28,15 +28,19 @@
 //! 11 = a lowland start: near spawn the ground keeps a quarter of its rise, so no world starts on a mountain
 //! (`landform.rs`);
 //! 12 = grown trees: eleven kinds with branching limbs and clear trunks, placed by forest biome, shore and grove
-//! (`grow/`, `biome.rs` `local_biome_at`).
+//! (`grow/`, `biome.rs` `local_biome_at`);
+//! 13 = CHEM-GAS natural gas fields (`gas.rs`): deep gas shale veins and lodes on their own grid under plains,
+//! lowlands and deserts without disturbing any existing ore deposit.
 
 mod bearing;
 mod biome;
 mod caves;
 mod column;
+mod gas;
 mod geology;
 mod grow;
 mod landform;
+mod layers;
 mod logbook;
 mod ore;
 mod rivers;
@@ -53,6 +57,7 @@ pub use geology::ore_shares;
 #[cfg(test)]
 pub use grow::{grow, height_of, KINDS, YOUNG_MAX};
 pub use grow::{grow_young, kind_of_sapling, REACH};
+pub use layers::{Layers, DEPOSITS_LATEST, DEPOSITS_SAFE_FROM, LAYERS_SAVED};
 pub(crate) use logbook::compass;
 pub use ore::LODE_HEIGHTS;
 use trees::{stamp_tree, Tree};
@@ -71,7 +76,7 @@ use crate::math::{hash2, hash3, smoothstep, unit, IVec3};
 use crate::noise::Perlin;
 
 /// The newest generator version, which new worlds get. A save records its world's own version.
-pub const WORLDGEN_VERSION: u32 = 12;
+pub const WORLDGEN_VERSION: u32 = 13;
 pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;
@@ -90,7 +95,7 @@ type PondCell = ((i32, i32), Option<water::Pond>);
 
 pub struct WorldGen {
     seed: u32,
-    version: u32,
+    layers: Layers,
     continent: Perlin,
     hills: Perlin,
     ridges: Perlin,
@@ -119,16 +124,21 @@ pub struct WorldGen {
 impl WorldGen {
     /// The newest generator.
     pub fn new(seed: u32) -> Self {
-        Self::with_version(seed, WORLDGEN_VERSION)
+        Self::with_layers(seed, Layers::LATEST)
     }
 
-    /// The generator of `version` (1..=[`WORLDGEN_VERSION`]).
+    /// The generator with all four layers at `version` (`1..=WORLDGEN_VERSION`).
     pub fn with_version(seed: u32, version: u32) -> Self {
-        debug_assert!((1..=WORLDGEN_VERSION).contains(&version));
+        Self::with_layers(seed, Layers::uniform(version))
+    }
+
+    /// The generator with explicit layer versions (`1..=WORLDGEN_VERSION` each).
+    pub fn with_layers(seed: u32, layers: Layers) -> Self {
+        debug_assert!(!layers.any_zero() && !layers.any_newer());
         let s = seed as u64;
         Self {
             seed,
-            version,
+            layers,
             continent: Perlin::new(s ^ 0x01),
             hills: Perlin::new(s ^ 0x02),
             ridges: Perlin::new(s ^ 0x03),
@@ -152,17 +162,30 @@ impl WorldGen {
         self.seed
     }
 
+    /// Primary terrain (ground) version; for uniform worlds all four layers share this number.
     pub fn version(&self) -> u32 {
-        self.version
+        self.layers.ground
+    }
+
+    /// All four generator layer versions.
+    pub fn layers(&self) -> Layers {
+        self.layers
+    }
+
+    /// Upgrades the `deposits` layer in place and drops cached columns so they rebuild with the new rules.
+    pub(crate) fn set_deposits_version(&mut self, version: u32) {
+        debug_assert!((1..=WORLDGEN_VERSION).contains(&version));
+        self.layers.deposits = version;
+        self.columns.clear();
     }
 
     /// Terrain surface height (y of the top solid block) at a world column.
     pub fn height_at(&self, x: i32, z: i32) -> i32 {
         let mut h = self.base_height(x, z);
-        if self.version >= 7 {
+        if self.layers.water >= 7 {
             h = self.shape_rivers(x, z, h);
         }
-        if self.version >= 3 {
+        if self.layers.water >= 3 {
             self.shape_ponds(x, z, h)
         } else {
             h
@@ -171,7 +194,7 @@ impl WorldGen {
 
     /// The height from the terrain noise alone, before rivers (7) and ponds (3).
     fn base_height(&self, x: i32, z: i32) -> i32 {
-        if self.version >= 7 {
+        if self.layers.ground >= 7 {
             return self.land_height(x, z);
         }
         let (fx, fz) = (x as f64, z as f64);
@@ -217,10 +240,10 @@ impl WorldGen {
     /// Trees whose trunk or canopy can overlap the column starting at (x0, z0).
     /// One candidate per TREE_CELL² cell keeps trunks apart without any neighbour search.
     fn trees_near(&self, x0: i32, z0: i32) -> Vec<Tree> {
-        if self.version >= 12 {
+        if self.layers.cover >= 12 {
             return self.trees_v12(x0, z0);
         }
-        let reach = if self.version >= 9 { TREE_REACH_V9 } else { TREE_REACH };
+        let reach = if self.layers.cover >= 9 { TREE_REACH_V9 } else { TREE_REACH };
         let (min_x, max_x) = (x0 - reach, x0 + CHUNK_SIZE - 1 + reach);
         let (min_z, max_z) = (z0 - reach, z0 + CHUNK_SIZE - 1 + reach);
         let mut out = Vec::new();
@@ -237,9 +260,9 @@ impl WorldGen {
                 }
                 let f = self.forest.fbm2(x as f64 / 220.0, z as f64 / 220.0, 3);
                 let ground = self.height_at(x, z);
-                let biome = (self.version >= 2).then(|| self.biome_at(x, z, ground));
+                let biome = (self.layers.ground >= 2).then(|| self.biome_at(x, z, ground));
                 let species =
-                    if self.version >= 9 { biome.map_or(trees::OAK, |b| trees::pick(b, h)) } else { trees::OAK };
+                    if self.layers.cover >= 9 { biome.map_or(trees::OAK, |b| trees::pick(b, h)) } else { trees::OAK };
                 let density = trees::bare_density(species).map_or_else(
                     || (smoothstep(-0.2, 0.3, f) * 0.85 + 0.03) * biome.map_or(1.0, Biome::tree_factor),
                     |per_mille| f64::from(per_mille) / 1000.0,
@@ -252,7 +275,8 @@ impl WorldGen {
                     Some(b) => Self::surface_v2(b, ground, slope).0 .0,
                     None => Self::surface_for(ground, slope).0,
                 };
-                if top != trees::SPECIES[species].ground || (self.version >= 3 && self.water_top(x, z, ground) > ground)
+                if top != trees::SPECIES[species].ground
+                    || (self.layers.water >= 3 && self.water_top(x, z, ground) > ground)
                 {
                     continue;
                 }
@@ -317,7 +341,7 @@ impl WorldGen {
         if base.y < col.max_ground {
             let top = base + IVec3::new(CHUNK_SIZE - 1, CHUNK_SIZE - 1, CHUNK_SIZE - 1);
             for d in col.deposits.iter().filter(|d| d.intersects(base, top)) {
-                ore::stamp_deposit(d, base, &mut b, self.version);
+                ore::stamp_deposit(d, base, &mut b, self.layers.deposits);
             }
         }
         for t in &col.trees {

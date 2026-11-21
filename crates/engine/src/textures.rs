@@ -20,8 +20,10 @@ mod chemistry;
 mod compute;
 mod decor;
 mod electronics;
+mod fire;
 mod flight;
 mod forest;
+mod gas;
 mod gear;
 mod geology;
 mod grid;
@@ -261,6 +263,8 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::STAINED_GLASS_FIRST..=tex::STAINED_GLASS_LAST => {
             decor::stained_glass(x, y, (layer - tex::STAINED_GLASS_FIRST) as usize)
         }
+        tex::GAS_SHALE..=tex::REFORMER_TOP => gas::pixel(layer, x, y),
+        tex::CHARCOAL..=tex::FLAMETHROWER_CHROME => fire::pixel(layer, x, y),
         l if l >= tex::planks_layer(0) => woods::pixel(layer, x, y),
         tex::RED_CONCRETE..=tex::PANEL_LIGHT => decor::pixel(layer, x, y),
         tex::WOOD_DOOR..=tex::PLASTER => house::pixel(layer, x, y),

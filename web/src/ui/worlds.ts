@@ -25,6 +25,7 @@ export class WorldsPanel {
     private readonly store: WorldStore,
     private readonly session: Session | null,
     notice = '',
+    upgradeCard?: HTMLElement,
   ) {
     const head = h('div', 'worlds-head');
     head.append(
@@ -65,7 +66,7 @@ export class WorldsPanel {
       this.file.value = '';
       if (file) this.run(() => this.import(file));
     });
-    this.el.append(head, this.form, this.list, this.status, this.file);
+    this.el.append(head, this.form, ...(upgradeCard ? [upgradeCard] : []), this.list, this.status, this.file);
     if (session) session.onError = (text) => this.say(text);
     this.say(notice);
     this.run(() => this.refresh());

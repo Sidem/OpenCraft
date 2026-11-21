@@ -587,3 +587,44 @@ fn players_with_different_render_distances_stay_in_step() {
     }
     assert!(client.sim.tick > 800);
 }
+
+#[test]
+fn coop_host_upgrades_deposits_and_client_follows_and_resyncs() {
+    let mut host = Game::with_generator(crate::worldgen::WorldGen::with_version(1337, 7), 2);
+    host.start_host();
+    let id = host.host_join(0).unwrap();
+    let mut client = Game::from_snapshot(&host.snapshot(), id, 2).unwrap();
+    assert!(host.can_upgrade_deposits());
+    assert!(!client.can_upgrade_deposits(), "only the host decides");
+
+    // Client attempting to forge UpgradeDeposits is refused by host_stamp.
+    let mut forged = crate::bytes::ByteWriter::default();
+    Action::UpgradeDeposits.write(&mut forged);
+    assert!(!host.host_stamp(id, &forged.bytes), "peers cannot issue UpgradeDeposits");
+
+    // Host upgrades deposits; client applies the stamped action on the same tick.
+    host.upgrade_deposits();
+    let frames = frames_of(&mut host, 10);
+    assert!(client.push_frames(&frames));
+    client.run_ticks(10);
+    assert_eq!(host.worldgen_layers(), vec![7, 7, 7, crate::worldgen::WORLDGEN_VERSION]);
+    assert_eq!(client.worldgen_layers(), host.worldgen_layers());
+    assert_eq!(client.sim.state_hash(), host.sim.state_hash());
+
+    // A client still on v7 deposits can resync cleanly from a host snapshot whose deposits upgraded.
+    let mut old_client = Game::from_snapshot(
+        &{
+            let mut h = Game::with_generator(crate::worldgen::WorldGen::with_version(1337, 7), 2);
+            h.start_host();
+            let _ = h.host_join(0).unwrap();
+            h.snapshot()
+        },
+        id,
+        2,
+    )
+    .unwrap();
+    assert_eq!(old_client.deposits_version(), 7);
+    old_client.resync(&host.snapshot()).expect("resync across deposits upgrade succeeds");
+    assert_eq!(old_client.worldgen_layers(), host.worldgen_layers());
+    assert_eq!(old_client.sim.state_hash(), host.sim.state_hash());
+}

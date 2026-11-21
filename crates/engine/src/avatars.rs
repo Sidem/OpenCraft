@@ -30,6 +30,15 @@ pub struct Avatars {
     pub labels: Vec<f32>,
     /// The held lights this frame: `held_light::LIGHT_FLOATS` a lit player, camera-relative.
     pub lights: Vec<f32>,
+    /// Exact world-space `(player_id, muzzle_tip, barrel_dir, bell_diameter)` of every rendered flamethrower this frame.
+    pub(crate) muzzles: Vec<(u8, Vec3, Vec3, f32)>,
+}
+
+impl Avatars {
+    /// World-space nozzle mouth, barrel axis and chrome bell diameter for `player`, if rendered this frame.
+    pub(crate) fn muzzle_of(&self, player: u8) -> Option<(Vec3, Vec3, f32)> {
+        self.muzzles.iter().find(|m| m.0 == player).map(|m| (m.1, m.2, m.3))
+    }
 }
 
 /// Adds a light at `at` (relative to the camera) to `lights` if `reach` is more than none.
@@ -60,6 +69,7 @@ impl Game {
         let a = &mut self.avatars;
         a.labels.clear();
         a.lights.clear();
+        a.muzzles.clear();
         a.shown.resize_with(self.bodies.len(), || None);
         for (slot, body) in self.bodies.iter().enumerate() {
             let Some(body) = body.as_ref() else {
@@ -72,10 +82,23 @@ impl Game {
                 // In first person the light sits just below the eye; seen from behind, at the avatar's chest.
                 let at = self.third_person.feet.map_or(Vec3::new(0.0, -0.3, 0.0), |feet| feet - eye + CHEST);
                 add_light(&mut a.lights, at, reach);
+                let mut muzzle = None;
                 if let Some(feet) = self.third_person.feet {
-                    model::push_avatar(&mut self.instances, feet - eye, body.yaw, body.pitch, &a.local_motion, hands);
+                    model::push_avatar_muzzle(
+                        &mut self.instances,
+                        feet - eye,
+                        body.yaw,
+                        body.pitch,
+                        &a.local_motion,
+                        hands,
+                        &mut muzzle,
+                    );
                 } else if view_hand {
-                    model::push_view_hand(&mut self.instances, body.yaw, body.pitch, &a.local_motion, hands[0]);
+                    muzzle =
+                        model::push_view_hand(&mut self.instances, body.yaw, body.pitch, &a.local_motion, hands[0]);
+                }
+                if let Some(m) = muzzle {
+                    a.muzzles.push((slot as u8, eye + m.tip, m.dir, m.bell));
                 }
                 continue;
             }
@@ -98,9 +121,13 @@ impl Game {
             let inv = self.sim.players.get(slot).and_then(Option::as_ref).map(|p| &p.inventory);
             let hands = inv.map_or([ItemId::NONE; 2], |i| [i.selected_stack().item, i.offhand.item]);
             add_light(&mut a.lights, at + CHEST, inv.map_or(0.0, held_light::reach_of));
-            if model::push_avatar(&mut self.instances, at, s.yaw, s.pitch, &s.motion, hands)
-                && at.length() < LABEL_RANGE
-            {
+            let mut muzzle = None;
+            let shown =
+                model::push_avatar_muzzle(&mut self.instances, at, s.yaw, s.pitch, &s.motion, hands, &mut muzzle);
+            if let Some(m) = muzzle {
+                a.muzzles.push((slot as u8, eye + m.tip, m.dir, m.bell));
+            }
+            if shown && at.length() < LABEL_RANGE {
                 let tag = at + Vec3::new(0.0, 2.05 - s.motion.crouch * 0.3, 0.0);
                 a.labels.extend_from_slice(&[slot as f32, tag.x as f32, tag.y as f32, tag.z as f32]);
             }

@@ -65,7 +65,7 @@ fn sulfur(x: i32, y: i32) -> [u8; 4] {
 /// The painted steel of a vessel (a tank, column or engine casing) in `paint` (round ones shade themselves):
 /// two weld rings each lit along its upper edge, and a dark foot. No rows of rivets: stretched up a tall part those
 /// read as the lit windows of a building.
-fn plant_side(x: i32, y: i32, paint: [f64; 3]) -> [u8; 4] {
+pub(super) fn plant_side(x: i32, y: i32, paint: [f64; 3]) -> [u8; 4] {
     if y == 15 {
         return rgb([54.0, 58.0, 66.0], 0.9 + 0.1 * n(494, x, y));
     }
@@ -77,7 +77,7 @@ fn plant_side(x: i32, y: i32, paint: [f64; 3]) -> [u8; 4] {
 }
 
 /// A steel deck with a grille of `bars` dark slots.
-fn plant_top(x: i32, y: i32, bars: i32) -> [u8; 4] {
+pub(super) fn plant_top(x: i32, y: i32, bars: i32) -> [u8; 4] {
     let step = 16 / (bars + 1);
     let slot = (3..13).contains(&x) && (1..=bars).any(|k| (y - k * step).abs() == 0);
     if slot {

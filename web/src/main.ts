@@ -64,6 +64,7 @@ import { LeavePrompt } from './ui/leave-prompt';
 import { PerfPanel } from './ui/perf-report';
 import { QualityPanel } from './ui/quality';
 import { WorldsPanel } from './ui/worlds';
+import { WorldUpgrade } from './ui/world-upgrade';
 
 const MOUSE_SENSITIVITY = 0.0022; // radians per pixel at 100% (the comfort setting scales it)
 // Streaming work (generating and meshing chunks) gets what a 60 fps frame has left after `game.update`: at most
@@ -110,9 +111,20 @@ async function main(): Promise<void> {
   }
   const { game, meta } = opened;
   const session = store && !game.is_client() ? new Session(store, meta, game) : null;
+  const upgrade = new WorldUpgrade({
+    game,
+    worldId: meta.id,
+    save: async () => {
+      session?.markChanged();
+      await session?.save();
+    },
+  });
   if (store && session) document.getElementById('data-settings')!.append(new LeavePrompt(game, store, session).row);
-  if (store) worlds.append(new WorldsPanel(store, session, opened.notice).el);
-  else worlds.append(preview ? 'Controls preview · this world is not saved' : noStorage(opened.notice));
+  if (store) {
+    const worldsPanel = new WorldsPanel(store, session, opened.notice, upgrade.card);
+    upgrade.onStatus = (text) => worldsPanel.say(text);
+    worlds.append(worldsPanel.el);
+  } else worlds.append(preview ? 'Controls preview · this world is not saved' : noStorage(opened.notice));
 
   const canvas = document.getElementById('game') as HTMLCanvasElement;
   const instanceFloats = game.instance_floats();
@@ -144,7 +156,7 @@ async function main(): Promise<void> {
   sound.subscribe(() => hud.setMuted(sound.silent));
   // Every block except air, with the sound material it uses.
   const blocks = Array.from({ length: game.block_count() - 1 }, (_, i) => ({
-    id: i + 1,
+    id: game.block_item(i + 1),
     name: game.block_name(i + 1),
     material: game.block_sound(i + 1),
   }));
@@ -195,7 +207,7 @@ async function main(): Promise<void> {
     { code: 'KeyP', name: 'Power and production', screen: analytics },
     { code: 'KeyT', name: 'Research', screen: research },
     { code: 'KeyM', name: 'World map', screen: worldMap },
-  ]);
+  ], upgrade);
 
   // Handy for poking at the engine from the devtools console.
   const frames = new FrameTimes();
@@ -368,6 +380,10 @@ async function main(): Promise<void> {
       halos: new Float32Array(wasm.memory.buffer, game.halo_ptr(), game.halo_count() * game.halo_floats()),
       haloCount: game.halo_count(),
       haloFloats: game.halo_floats(),
+      fire: new Float32Array(wasm.memory.buffer, game.fire_ptr(), game.fire_count() * game.fire_floats()),
+      fireCount: game.fire_count(),
+      fireFloats: game.fire_floats(),
+      renderTime: game.render_time(),
     });
     vignette.update(dt, game.camera_yaw(), game.camera_pitch(), game.eye_x(), game.eye_y(), game.eye_z());
     views.sync();

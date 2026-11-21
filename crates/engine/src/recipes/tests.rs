@@ -11,12 +11,12 @@ use crate::item::{COPPER_INGOT, COPPER_WIRE, IRON_INGOT, IRON_PLATE, IRON_ROD};
 use crate::research::{pack_slot, Research, Unlock};
 use crate::tools;
 use Category::{
-    Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Fabrication, Launch,
-    Pressing, Refit, Smelting, Splitting, Washing,
+    Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Fabrication,
+    GasProcessing, Launch, Pressing, Refit, Reforming, Smelting, Splitting, Washing,
 };
 
 /// Every category (the match below stops compiling until a new one is listed).
-const CATEGORIES: [Category; 16] = [
+const CATEGORIES: [Category; 18] = [
     Smelting,
     Pressing,
     Assembly,
@@ -33,10 +33,12 @@ const CATEGORIES: [Category; 16] = [
     Fabrication,
     Launch,
     Refit,
+    GasProcessing,
+    Reforming,
 ];
 const _: fn(Category) = |c| match c {
     Smelting | Pressing | Assembly | Blasting | Crushing | Arc | Electrolysis | Distilling | Cracking | Chemistry
-    | Splitting | Washing | Enrichment | Fabrication | Launch | Refit => {}
+    | Splitting | Washing | Enrichment | Fabrication | Launch | Refit | GasProcessing | Reforming => {}
 };
 
 /// Blocks the world has (generated, or left by worked-out deposits): breaking them is how their drops
@@ -60,6 +62,7 @@ const WORLD_BLOCKS: &[BlockId] = &[
     QUARTZ_ORE,
     BAUXITE_ORE,
     OIL_SAND,
+    GAS_SHALE,
     URANIUM_ORE,
     RUSTY_SOIL,
     DARK_SOIL,
@@ -85,12 +88,11 @@ const GATHERED: &[ItemId] = &[
     ItemId::block(block::EUCALYPTUS_SAPLING),
     ItemId::block(block::BAMBOO_SHOOT),
     item::CRUDE_BARREL,
+    item::RAW_GAS_BARREL,
     item::COIN,
 ];
-/// Known exceptions: items whose use waits for a later step. Only lubricant is left: it becomes an ingredient of the
-/// rotating machines of the chemistry families and of M14's climber cars (`docs/ROADMAP_CHEMISTRY.md`, decided at CHEM0);
-/// delete the entry when the first such recipe lands.
-const NO_USE_YET: &[ItemId] = &[item::LUBRICANT_BARREL];
+/// Known exceptions: items whose use waits for a later step. Empty now that lubricant is used in rotating gas machines.
+const NO_USE_YET: &[ItemId] = &[];
 
 /// Every item a player can hold: what breakable blocks drop, and the non-block items.
 fn items() -> Vec<ItemId> {

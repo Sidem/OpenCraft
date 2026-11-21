@@ -18,7 +18,7 @@
 //! only: version 3 is released).
 
 use crate::block::{
-    BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, OIL_SAND, QUARTZ_ORE, URANIUM_ORE,
+    BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, GAS_SHALE, IRON_ORE, LIMESTONE, OIL_SAND, QUARTZ_ORE, URANIUM_ORE,
 };
 use crate::chunk::CHUNK_SIZE;
 use crate::deposits::{Deposit, DepositKey, Tier};
@@ -106,7 +106,7 @@ impl WorldGen {
             let h = self.height_at(x, z);
             let ore = self.ore_at(&mut rng, IVec3::new(x, h, z));
             // Oil and uranium are never small surface pockets: only veins and lodes (below).
-            if self.version >= 6 && is_deep(ore) {
+            if self.layers.deposits >= 6 && is_deep(ore) {
                 continue;
             }
             let exposed = rng.next_f64() < self.exposed_chance(ore) && self.bare_rock(x, z);
@@ -127,7 +127,7 @@ impl WorldGen {
                 let (x, z) = (x0 + rng.below(32) as i32, z0 + rng.below(32) as i32);
                 let h = self.height_at(x, z);
                 let ore = self.ore_at(&mut rng, IVec3::new(x, h, z));
-                if self.version >= 6 && self.thinned(&mut rng, ore) {
+                if self.layers.deposits >= 6 && self.thinned(&mut rng, ore) {
                     continue;
                 }
                 let y = buried(h, band_depth(&mut rng, self.ore_band(ore))).max(12);
@@ -144,7 +144,7 @@ impl WorldGen {
         if rng.next_f64() < LODE_CHANCE {
             let (center, radii, seed) = lode_shape(&mut rng, x0, z0);
             let ore = self.ore_at(&mut rng, center);
-            if !(self.version >= 6 && self.thinned(&mut rng, ore)) {
+            if !(self.layers.deposits >= 6 && self.thinned(&mut rng, ore)) {
                 out.push(Deposit { key: key(Tier::Lode, ore, 0), center, radii, seed });
             }
         }
@@ -172,7 +172,10 @@ impl WorldGen {
     /// The band (blocks below the local surface) buried pockets and veins of `ore` sit in. Versions 1
     /// and 2 have no bands: their veins lie 20 to 60 blocks down whatever the ore.
     pub(crate) fn ore_band(&self, ore: BlockId) -> (i32, i32) {
-        let table = match self.version {
+        if ore == GAS_SHALE {
+            return super::gas::GAS_BAND;
+        }
+        let table = match self.layers.deposits {
             ..=2 => return (20, 60),
             3 => &ORE_DEPTH[..],
             4..=5 => &ORE_DEPTH_V4[..],
@@ -183,7 +186,7 @@ impl WorldGen {
 
     /// How far from spawn (blocks) the starter set lies, nearest and farthest.
     pub(crate) fn starter_reach(&self) -> (i32, i32) {
-        let starters = if self.version >= 4 { &STARTERS_V4[..] } else { &STARTERS[..] };
+        let starters = if self.layers.deposits >= 4 { &STARTERS_V4[..] } else { &STARTERS[..] };
         starters.iter().fold((i32::MAX, 0), |(lo, hi), s| (lo.min(s.1 .0), hi.max(s.1 .1)))
     }
 
@@ -196,9 +199,9 @@ impl WorldGen {
     /// The chance that an outcrop slot of `ore` on bare rock shows at the surface.
     fn exposed_chance(&self, ore: BlockId) -> f64 {
         let metal = matches!(ore, COAL_ORE | IRON_ORE | COPPER_ORE | BAUXITE_ORE);
-        if self.version >= 6 && is_deep(ore) {
+        if self.layers.deposits >= 6 && is_deep(ore) {
             0.0
-        } else if self.version >= 4 && metal {
+        } else if self.layers.deposits >= 4 && metal {
             EXPOSED_CHANCE_METALS
         } else {
             EXPOSED_CHANCE
@@ -208,8 +211,11 @@ impl WorldGen {
     /// The starter outcrops: for each row of `STARTERS` (`STARTERS_V4`), the first dry, gentle column
     /// found walking out through its ring, each starting a third of a turn on from the last.
     pub(super) fn starter_outcrops(&self) -> Vec<Deposit> {
-        let (starters, radii) =
-            if self.version >= 4 { (&STARTERS_V4[..], STARTER_RADII_V4) } else { (&STARTERS[..], STARTER_RADII) };
+        let (starters, radii) = if self.layers.deposits >= 4 {
+            (&STARTERS_V4[..], STARTER_RADII_V4)
+        } else {
+            (&STARTERS[..], STARTER_RADII)
+        };
         let turn = (hash2(self.seed ^ 0x57A7, 0, 0) % 16) as usize;
         let mut out: Vec<Deposit> = Vec::new();
         for (i, &(ore, ring)) in starters.iter().enumerate() {

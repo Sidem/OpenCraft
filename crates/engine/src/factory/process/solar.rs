@@ -100,16 +100,19 @@ const ACCUMULATOR_PARTS: [Part; 6] = [
 ];
 
 impl Processor {
-    /// Writes the energy an accumulator, a diesel generator or a reactor holds (nothing for other processors).
+    /// Writes the energy an accumulator, diesel generator, gas turbine or reactor holds (nothing for other processors).
     pub(super) fn write_store(&self, w: &mut ByteWriter) {
-        if matches!(self.energy(), Energy::Accumulator | Energy::Diesel | Energy::Reactor) {
+        if matches!(self.energy(), Energy::Accumulator | Energy::Diesel | Energy::Gas | Energy::Reactor) {
             w.u32(self.store.charge);
         }
     }
 
     pub(super) fn read_store(&mut self, r: &mut ByteReader) -> Option<()> {
-        if matches!(self.energy(), Energy::Accumulator | Energy::Diesel | Energy::Reactor) {
-            let cap = CHARGE_CAP.max(super::diesel::BARREL_KJ * TICK_RATE).max(super::nuclear::CELL_CHARGE);
+        if matches!(self.energy(), Energy::Accumulator | Energy::Diesel | Energy::Gas | Energy::Reactor) {
+            let cap = CHARGE_CAP
+                .max(super::diesel::BARREL_KJ * TICK_RATE)
+                .max(super::gas::MAX_GAS_CHARGE)
+                .max(super::nuclear::CELL_CHARGE);
             self.store.charge = r.u32()?.min(cap);
         }
         Some(())

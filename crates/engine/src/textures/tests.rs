@@ -177,6 +177,7 @@ fn natural_surfaces_have_no_tile_border() {
         tex::GRANITE,
         tex::SANDSTONE,
         tex::BASALT,
+        tex::GAS_SHALE,
     ];
     layers.extend(tex::RUSTY_SOIL..=tex::PALE_SOIL);
     layers.extend(tex::RUSTY_GRASS_TOP..=tex::PALE_GRASS_TOP);

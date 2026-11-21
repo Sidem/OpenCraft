@@ -30,10 +30,11 @@ use crate::opening::Opening;
 use crate::settlements::Settlements;
 use crate::signs::Signs;
 use crate::world::World;
-use crate::worldgen::WorldGen;
+use crate::worldgen::{WorldGen, DEPOSITS_LATEST, DEPOSITS_SAFE_FROM, WORLDGEN_VERSION};
 
 mod event;
 mod felling;
+pub mod fire;
 mod saplings;
 mod scrap;
 mod timers;
@@ -45,6 +46,7 @@ pub use event::SimEvent;
 #[cfg(test)]
 pub(crate) use felling::before_felling;
 pub use felling::{mark_of, trunk, work_needed, Fallen, Felling, Trunk, LOW, SWING_SECONDS};
+pub use fire::Fire;
 pub(crate) use saplings::SAPLING_CHANCE;
 pub use timers::BlockTimers;
 pub(crate) use timers::LEAF_SUPPORT_STEPS;
@@ -109,6 +111,8 @@ pub struct Sim {
     pub leds: Leds,
     /// Trees being chopped and falling (`felling.rs`).
     pub felling: Felling,
+    /// Active tree blazes and grass fire fronts (`sim/fire/`).
+    pub fire: Fire,
     /// Trees that came down since the last drain, for the host to draw falling; not state.
     pub fallen: Vec<Fallen>,
     /// How far the main tips and the lessons got in this world (hints.rs, lessons.rs); neither ever goes back.
@@ -148,6 +152,7 @@ impl Sim {
             signs: Signs::default(),
             leds: Leds::default(),
             felling: Felling::default(),
+            fire: Fire::default(),
             fallen: Vec::new(),
             hints_reached: 0,
             taught: 0,
@@ -214,15 +219,48 @@ impl Sim {
         self.step_cargo();
         self.step_tips();
         self.run_felling();
+        self.run_fire();
         self.tick += 1;
     }
 
-    /// Fingerprint of the core state. Two cores with equal hashes behave the same from here on,
-    /// given the same actions. Compare it between peers, runs or a save and its reload.
+    /// Fingerprint of the core state (including the world's generator layers). Two cores with equal
+    /// hashes behave the same from here on, given the same actions. Compare it between peers, runs or
+    /// a save and its reload.
     pub fn state_hash(&self) -> u64 {
         let mut w = ByteWriter::default();
         self.write_state(&mut w);
+        self.world.generator().layers().write_state(&mut w);
         fnv1a(&w.bytes)
+    }
+
+    /// Whether this world's `deposits` layer can safely upgrade to `WORLDGEN_VERSION`:
+    /// it has biomes (`ground >= 2`), lags behind `DEPOSITS_LATEST`, and every already-tracked
+    /// deposit resolves identically under the upgraded generator (always true from `DEPOSITS_SAFE_FROM`).
+    pub fn can_upgrade_deposits(&self) -> bool {
+        let layers = self.world.generator().layers();
+        if layers.ground < 2 || layers.deposits >= DEPOSITS_LATEST {
+            return false;
+        }
+        if layers.deposits >= DEPOSITS_SAFE_FROM {
+            return true;
+        }
+        let upgraded = WorldGen::with_layers(self.world.generator().seed(), layers.with_deposits(WORLDGEN_VERSION));
+        self.factory.deposits.all_keys_match(&upgraded)
+    }
+
+    /// Applies `Action::UpgradeDeposits`: upgrades the `deposits` layer to `WORLDGEN_VERSION` if safe.
+    pub(crate) fn upgrade_deposits(&mut self) -> bool {
+        if !self.can_upgrade_deposits() {
+            return false;
+        }
+        let layers = self.world.generator().layers();
+        let upgraded = WorldGen::with_layers(self.world.generator().seed(), layers.with_deposits(WORLDGEN_VERSION));
+        if !self.factory.deposits.all_keys_match(&upgraded) {
+            return false;
+        }
+        self.world.upgrade_deposits(WORLDGEN_VERSION);
+        self.events.push(SimEvent::DepositsUpgraded);
+        true
     }
 
     /// The canonical core state: tick, rng, players (up to the last one here), away players, world
@@ -264,6 +302,7 @@ impl Sim {
         self.felling.write_state(w);
         self.leds.write_state(w);
         self.factory.write_manual_off(w);
+        self.fire.write_state(w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed (`save.rs` lists the versions).
@@ -328,6 +367,7 @@ impl Sim {
         if r.version >= 80 {
             self.factory.read_manual_off(r)?;
         }
+        self.fire = if r.version >= 82 { Fire::read_state(r)? } else { Fire::default() };
         Some(())
     }
 }

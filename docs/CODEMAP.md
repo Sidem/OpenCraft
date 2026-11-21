@@ -21,7 +21,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 
 ### Deterministic core (changes only through `Action`s at a tick)
 - `sim.rs`: `Sim`, `step`, `state_hash`, `PlayerId`. `sim/`: `event.rs`, `timers.rs` (leaf decay, grass, saplings), `water.rs`,
-  `saplings.rs`, `torches.rs`, `scrap.rs`, `vault.rs` (ruin vault puzzle), `felling.rs` + `felling/tree.rs` (grown trees felled whole).
+  `saplings.rs`, `torches.rs`, `scrap.rs`, `vault.rs` (ruin vault puzzle), `felling.rs` + `felling/tree.rs` (grown trees felled whole), `fire/` (`blaze.rs`, `front.rs`: burning trees to charcoal, grass fronts, flamethrower rays).
 - `action.rs`: the `Action` enum. `action/`: `apply.rs` (one arm each), `clicks.rs`, `blocks.rs`, `docks.rs`, `multiblock.rs`,
   `codec.rs` + `codec/read.rs` (bytes; tags append only).
 - `bytes.rs`: canonical encoding (a block id is one byte below 255, else 255 and a `u16`). `save.rs`: the file, `SAVE_VERSION`. `join.rs`: const-table joins. `math.rs`: vectors, hashes, `Rng`.
@@ -50,7 +50,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   rows); `mod.rs`, `work.rs`, `state.rs`, `extra.rs`, `kinds.rs`, `status.rs`, `view.rs`, `model.rs` + `parts.rs`, `display.rs`
   (`Look::Product`), `assembly_view.rs` (`Look::Work`), `port_mouth.rs` (port openings), `shape.rs` (cells and ports: ask it, not the spec), `intake.rs`,
   `legacy.rs`, `facts.rs`. Machines with logic of their own: `steam.rs` (+ `steam_view.rs`), `solar.rs`, `diesel.rs`, `hydro.rs`,
-  `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs` (+ `pump/view.rs`, `Look::Jack`), `refinery.rs`, `washer.rs`, `recycler.rs`,
+  `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs` (+ `pump/view.rs`, `Look::Jack`), `refinery.rs`, `gas.rs`, `washer.rs`, `recycler.rs`,
   `center.rs`, `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs` (+ `rocket.rs`),
   `pods.rs` + `pods/channels.rs`, `hangar.rs`, `hoist.rs`, `docks.rs`, `depot.rs`, `ejector.rs`, `upgrader.rs`, `laser.rs`,
   `forester.rs` + `forester/` (`patch.rs`, `work.rs`, `fell.rs`, `view.rs`, `crane.rs`, `scene.rs`; `Look::Crane`).
@@ -65,6 +65,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   Ground pigments: items 414–418 (`item/later.rs`), `recipes/pigment.rs` (hand grind rows), heap models in `item_models/stock.rs`.
   Pigments tech (tech 89): items 419–429, blocks 228–238 (`block/tints.rs`, the mixed-hue concretes), `recipes/dye.rs` (`HUES` palette, machine rows 155–176).
   Stained glass: blocks 239–254 (`block/glass.rs`, translucent cubes), `recipes/glass.rs` (rows 177–192, Architecture).
+  Natural gas (CHEM-GAS): blocks 255–260 (`block/gas.rs`; 256–260 first wide blocks in `WIDE_BLOCK_ITEMS`), items 430–439, `recipes/gas.rs` (rows 193–197), `worldgen/gas.rs` (v13 independent fields), `item_models/gas.rs`, `textures/gas.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs`): `ItemId`; ids below 256 are blocks, wider blocks pair with items in `WIDE_BLOCK_ITEMS`. `wood.rs`: the ten woods.
 - `recipes/`: `mod.rs` (`RECIPES`; `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`; `machine_later.rs`), `process_notes.rs` (one line of real chemistry a chemical machine row; shown on its card and in the item guide), `rows.rs`, `tiers.rs`,
   `refit.rs`, `timing.rs`, `group.rs` + `menu_order.rs`, `item_groups.rs`, `recycling.rs`, `content.rs`; one file per era or
@@ -76,10 +77,10 @@ local player's hands, presentation, then the **deterministic core**, which never
 
 ### World and generation
 - `chunk.rs` (32³), `world/mod.rs` (`*_anywhere` accessors for core code), `world/streaming.rs`, `world/boxlight.rs`,
-  `world/glows.rs`, `world/settle.rs` (simulation liquid edits wait 0.15 s), `world/cover_clear.rs` (sickle-cut columns; saved).
-- `worldgen/mod.rs`: heights, caves, `generate`, generator versions (pinned by `released_versions_never_change`). `column.rs`,
+  `world/glows.rs`, `world/settle.rs` (simulation liquid edits wait 0.15 s), `world/cover_clear.rs` (sickle-cut columns; saved), `world/upgrade.rs` (in-place deposits-layer refresh).
+- `worldgen/mod.rs`: heights, caves, `generate`, generator versions (pinned by `released_versions_never_change`). `layers.rs` (`Layers`: ground, water, cover, deposits), `column.rs`,
   `biome.rs`, `landform.rs`, `caves.rs`, `water.rs`, `rivers.rs` + `rivers/`, `shore.rs`, `trees.rs` (up to version 11),
-  `grow/` (version 12: `kinds.rs`, `shapes.rs`, `place.rs`), `geology.rs` + `strata.rs` + `ore.rs`, `bearing.rs`, `ruins.rs`, `logbook.rs`.
+  `grow/` (version 12: `kinds.rs`, `shapes.rs`, `place.rs`), `geology.rs` + `strata.rs` + `ore.rs`, `gas.rs` (v13 gas fields), `bearing.rs`, `ruins.rs`, `logbook.rs`.
 - `noise.rs`, `light.rs` (sky and block light while meshing; render cache only).
 
 ### Local player: hands, tools and previews (presentation; act only by queuing actions)
@@ -90,12 +91,12 @@ local player's hands, presentation, then the **deterministic core**, which never
   `town_preview.rs`, `ghost_mode.rs` + `ghost_models.rs` (ghosts and blueprint stamps as see-through models), `ghost_build.rs` (X: build the aimed ghost from the pack), `power_tools.rs` + `power_tools/`, `rail_tools.rs`, `rail_snap.rs`, `train_tools.rs`,
   `dock_tools.rs`, `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `drone_hands.rs`, `blueprint/hands.rs`, `blueprint/repeat.rs`.
 - Lessons: `stall_lesson.rs`, `need_lesson.rs`, `recipe_lesson.rs` (no recipe chosen), `upgrade_lesson.rs` (a bottleneck and kits in the pack), `blueprint_lesson.rs` (the walk-through after the blueprint prompt), `planner_lesson.rs` (a planner in the pack, no site yet), `map_lesson.rs` (far from spawn, the map never opened), `first_steps.rs` + `first_steps/`.
-- Tools: `prospect.rs`, `survey.rs` + `survey/orbit.rs`, `telescope.rs` + `telescope/` (`ground.rs`, `beacons.rs`), `sickle.rs`.
+- Tools: `prospect.rs`, `survey.rs` + `survey/orbit.rs`, `telescope.rs` + `telescope/` (`ground.rs`, `beacons.rs`), `sickle.rs`, `flame_hands.rs`.
 
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
 - `mesher.rs` + `mesher/` (`quad.rs`, `water.rs`, `cover.rs` + `cover/shape.rs`); trees: `shaped.rs`, `tree_grid.rs`, `logs.rs` + `logs/`
   (`node.rs`, `ring.rs`), `foliage.rs` + `foliage/style.rs`.
-- `entities.rs` + `entities/merge.rs`, `avatars.rs` + `avatars/` (`grip.rs`, `hand.rs`, `tool_hold.rs`; first-person hand & character rig), `halos.rs`, `wire_props.rs`,
+- `entities.rs` + `entities/merge.rs`, `avatars.rs` + `avatars/` (`grip.rs`, `hand.rs`, `tool_hold.rs`; first-person hand & character rig), `halos.rs`, `fire_view.rs` + `fire_view/torch.rs` (burning tree/ember emitters, ballistic torch plumes, flame lights & glow), `wire_props.rs`,
   `held_light.rs`, `drone_view.rs` + `companion_view.rs`, `orbit_fx.rs`, `sound.rs`.
 - `minimap.rs` + `minimap/` (`atlas.rs`, `marks.rs`, `describe.rs`, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
 - `xray.rs`: the X-ray goggles' view (a local switch; the factory's boxes near the camera, drawn behind the terrain only).
@@ -117,9 +118,9 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `main.ts`: bootstrap, frame loop. `pause.ts`, `input.ts` (keys, mouse, one-shot `Action`s), `controls/view.ts`, `base.css`,
   `patch-notes.md`.
 - `render/`: `renderer.ts` (+ `frame.ts`), `mesh-events.ts`, `shaped.ts`, `falling.ts`, `geometry.ts`, `shaders.ts`, `boxes.ts` +
-  `round-mesh.ts` + `box-glsl.ts`, `water.ts`, `outlines.ts`, `precip.ts`, `halos.ts`, `sky.ts` + `sky/`, `art-pack.ts` (128 px pack),
+  `round-mesh.ts` + `box-glsl.ts`, `water.ts`, `outlines.ts`, `precip.ts`, `halos.ts`, `fire.ts` (instanced shader flames & embers), `sky.ts` + `sky/`, `art-pack.ts` (128 px pack),
   `art/` (the pack's files), `held-light.ts`, `sign-faces.ts` + `sign-layout.ts`, `tier-paint.ts` + `tier-wire.ts` (a tier palette recolours the baked layers), `frame-stats.ts`, `gpu-probe.ts`, `quality.ts`, `auto-quality.ts`, `gl.ts`, `mat4.ts`.
-- `audio/`: `sound.ts` (master bus), `sound-actions.ts`, `synth.ts` + `synth-orbit.ts`, `settings.ts`, `ambience.ts` +
+- `audio/`: `sound.ts` (master bus), `sound-actions.ts`, `synth.ts` + `synth-orbit.ts` + `synth-fire.ts` + `flame-loop.ts` (continuous torch audio), `settings.ts`, `ambience.ts` +
   `ambience-levels.ts` + `ambience-mix.ts` + `synth-ambience.ts`, `surroundings.ts`, `music.ts` + `music-director.ts` +
   `music-pieces.ts` (one row a piece) + `music/`.
 - `net/`: `session.ts`, `host.ts`, `client.ts`, `protocol.ts`, `coop.ts`, `transport.ts`, `webrtc.ts`, `broadcast.ts`, `signal.ts`, `ticker.ts`.
@@ -141,7 +142,7 @@ local player's hands, presentation, then the **deterministic core**, which never
     (base `analytics-tab.ts`), `analytics-chart.ts`, `analytics-format.ts`, `analytics-panels.css`.
   - Menu: `menu.ts` (+ `menu-pages.css`), `settings-tabs.ts`, `home.ts` (+ `home.css`, `home-text.ts`, `greetings.ts`, `tip-text.ts`),
     `controls.ts` (+ `controls.css`; `control-bindings.ts` mirrors `input.ts`, guarded by a test; `keyboard-view.ts`,
-    `keyboard-geometry.ts`, `keyboard-layout.ts`), `worlds.ts`, `coop.ts`, `players.ts`, `patch-notes.ts` (+ `inline-text.ts`),
+    `keyboard-geometry.ts`, `keyboard-layout.ts`), `worlds.ts`, `world-upgrade.ts` (+ `world-upgrade-text.ts`: deposits-layer upgrade card & notice), `coop.ts`, `players.ts`, `patch-notes.ts` (+ `inline-text.ts`),
     `comfort.ts`, `sky.ts`, `tier-palette.ts` (the colour-blind tier colours' choice and store), `desktop-only.ts`, `perf-report.ts` (+ `perf-text.ts`), `quality.ts`, `blueprints.ts` (+
     `blueprint-plan.ts`), `console.ts`, `view.css`.
   - Sound: `sound-panel.ts`, `master-volume.ts`, `volume-control.ts`, `knob.ts`, `sound-lab.ts` + `sound-lab-footer.ts` (key O only).

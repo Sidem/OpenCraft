@@ -47,7 +47,9 @@ mod entities;
 mod equipment;
 mod events;
 mod factory;
+mod fire_view;
 mod first_steps;
+mod flame_hands;
 mod footprint_preview;
 mod forester_preview;
 mod frame;
@@ -240,6 +242,8 @@ pub struct Game {
     round_instances: Vec<f32>,
     /// This frame's halos round light-giving blocks (`halos.rs`), `halos::HALO_FLOATS` each.
     halos: Vec<f32>,
+    /// This frame's fire emitters and active flamethrower jets (`fire_view.rs`).
+    fire_view: fire_view::FireView,
     /// Whether first person shows the local player's hand and what it holds (a comfort setting; `avatars.rs`).
     show_hand: bool,
     /// The props under power wires that would touch the ground, routed and cached (`wire_props.rs`).
@@ -353,6 +357,7 @@ impl Game {
             instances: Vec::new(),
             round_instances: Vec::new(),
             halos: Vec::new(),
+            fire_view: fire_view::FireView::default(),
             show_hand: true,
             wire_props: Default::default(),
             static_boxes: static_boxes::StaticBoxes::default(),

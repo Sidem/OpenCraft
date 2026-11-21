@@ -18,6 +18,8 @@ export interface HomeParts {
   shortcuts: { code: string; name: string; open: () => void }[];
   /** False while the world is still loading: the shortcuts wait. */
   ready: () => boolean;
+  /** Optional one-time deposits upgrade notice (`ui/world-upgrade.ts`). */
+  upgrade?: { notice: HTMLElement; refresh(): void };
 }
 
 export class HomePanel {
@@ -38,12 +40,18 @@ export class HomePanel {
       this.buttons.push(b);
       shortcuts.append(b);
     }
-    this.el.append(section('Where you left off', this.next), section('Jump to', shortcuts), section('This world', this.stat));
+    this.el.append(
+      ...(parts.upgrade ? [parts.upgrade.notice] : []),
+      section('Where you left off', this.next),
+      section('Jump to', shortcuts),
+      section('This world', this.stat),
+    );
     this.refresh();
   }
 
   /** Redraws everything from the game; call when the page shows. */
   refresh(): void {
+    this.parts.upgrade?.refresh();
     this.buttons.forEach((b) => b.setAttribute('aria-disabled', String(!this.parts.ready())));
     this.next.replaceChildren(...this.where(), this.research());
     this.stat.replaceChildren(...this.stats().map(([value, label]) => stat(value, label)));
@@ -111,10 +119,17 @@ export interface Screen {
 }
 
 /** Puts the overview on the menu's Home page: a shortcut hides the menu and opens its screen; closing that screen plays on. */
-export function wireHome(menu: Menu, game: Game, sound: { unlock(): void }, screens: { code: string; name: string; screen: Screen }[]): void {
+export function wireHome(
+  menu: Menu,
+  game: Game,
+  sound: { unlock(): void },
+  screens: { code: string; name: string; screen: Screen }[],
+  upgrade?: { notice: HTMLElement; refresh(): void },
+): void {
   const home = new HomePanel({
     game,
     ready: () => !menu.play.disabled,
+    upgrade,
     shortcuts: screens.map((s) => ({
       code: s.code,
       name: s.name,

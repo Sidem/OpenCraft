@@ -22,7 +22,14 @@ pub(super) fn parts(item: ItemId) -> &'static [Part] {
         block::OUTLET => &OUTLET,
         block::WATER_WHEEL => &WATER_WHEEL,
         block::CABLE => &CABLE,
-        _ => super::machines_plant::parts(block),
+        _ => {
+            let plant = super::machines_plant::parts(block);
+            if !plant.is_empty() {
+                plant
+            } else {
+                super::gas::parts(block)
+            }
+        }
     }
 }
 

@@ -14,6 +14,7 @@ mod cover_clear;
 mod glows;
 mod settle;
 mod streaming;
+mod upgrade;
 
 pub use boxlight::DAYLIGHT;
 pub use cover_clear::PATCH_RADIUS;
@@ -345,6 +346,7 @@ impl World {
     /// whose blocks differ from this world's is replaced and remeshed with its neighbours; the rest
     /// keep their meshes.
     pub fn adopt_loaded(&mut self, old: World) {
+        let layers_changed = old.generator.layers() != self.generator.layers();
         let World { chunks, dirty, gen_queue, center, focus, others, observer, view_radius, events, cleared, .. } = old;
         (self.dirty, self.gen_queue, self.center, self.focus) = (dirty, gen_queue, center, focus);
         (self.others, self.view_radius, self.events) = (others, view_radius, events);
@@ -355,7 +357,7 @@ impl World {
         for (p, mut e) in chunks {
             let fresh = match self.saved.remove(&p) {
                 Some(chunk) => Some(chunk),
-                None if e.chunk.modified => Some(self.generator.generate(p)),
+                None if e.chunk.modified || layers_changed => Some(self.generator.generate(p)),
                 None => None,
             };
             if let Some(chunk) = fresh {
@@ -366,18 +368,7 @@ impl World {
             }
             self.chunks.insert(p, e);
         }
-        for p in changed {
-            for dz in -1..=1 {
-                for y in 0..=p.y + 1 {
-                    for dx in -1..=1 {
-                        let q = IVec3::new(p.x + dx, y, p.z + dz);
-                        if self.chunks.contains_key(&q) {
-                            self.dirty.insert(q);
-                        }
-                    }
-                }
-            }
-        }
+        self.dirty_around_chunks(&changed);
         // A loaded chunk column whose cleared cover differs from the host's redraws its plants.
         let redraw: Vec<IVec3> =
             self.chunks.keys().filter(|p| cleared.rows(p.x, p.z) != self.cleared.rows(p.x, p.z)).copied().collect();

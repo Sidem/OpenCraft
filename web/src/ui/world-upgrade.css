@@ -1,0 +1,48 @@
+/* Deposits-layer upgrade notice and Worlds-page control (ui/world-upgrade.ts). */
+
+.world-upgrade {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.world-upgrade-text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.world-upgrade-text strong {
+  font-size: 13px;
+}
+
+.world-upgrade-body,
+.world-upgrade-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.world-upgrade-note {
+  color: var(--muted);
+}
+
+.world-upgrade-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 520px) {
+  .world-upgrade {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

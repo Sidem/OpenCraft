@@ -11,7 +11,7 @@ export const MATERIAL_DIALS = ['pitch', 'tone', 'length', 'crunch', 'scatter', '
 export type MaterialDial = (typeof MATERIAL_DIALS)[number];
 export type MaterialParams = Record<MaterialDial, number>;
 
-export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click', 'scan', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown', 'denied'] as const;
+export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click', 'scan', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown', 'denied', 'flame'] as const;
 export type ActionName = (typeof ACTIONS)[number];
 
 export const ACTION_DIALS = ['volume', 'pitch', 'length', 'weight', 'debris'] as const;
@@ -208,6 +208,12 @@ export const ACTION_INFO: Record<ActionName, { label: string; help: string; mate
     material: false,
     dials: ['volume', 'pitch', 'length'],
   },
+  flame: {
+    label: 'Flamethrower',
+    help: 'A rushing burst of flame when firing the flamethrower or lighting a tree.',
+    material: false,
+    dials: ['volume', 'pitch', 'length'],
+  },
 };
 
 // prettier-ignore
@@ -260,6 +266,7 @@ export const DEFAULT_DESIGN: SoundDesign = {
     podup: neutral(),
     poddown: neutral(),
     denied: neutral(),
+    flame: neutral(),
   },
 };
 

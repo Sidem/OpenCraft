@@ -3,7 +3,7 @@
 //! remeshes its chunk), dropped when the chunk unloads, never saved or hashed. Only chunks holding one are kept.
 
 use super::World;
-use crate::block::{BlockId, DEFS};
+use crate::block::{BlockId, DEFS, TABLE_LEN};
 use crate::chunk::{Chunk, CHUNK_SHIFT};
 use crate::math::IVec3;
 
@@ -33,8 +33,8 @@ pub fn scan(chunk: &Chunk, at: IVec3) -> Vec<(IVec3, BlockId)> {
 }
 
 /// Per block id: whether it gives light (a table, so the scan of a chunk's 32,768 cells stays a lookup each).
-const GIVES_LIGHT: [bool; 256] = {
-    let mut t = [false; 256];
+const GIVES_LIGHT: [bool; TABLE_LEN] = {
+    let mut t = [false; TABLE_LEN];
     let mut i = 0;
     while i < DEFS.len() {
         t[i] = DEFS[i].light != 0;

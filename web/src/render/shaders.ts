@@ -12,8 +12,8 @@
 export const TERRAIN_TINT_PERIOD = 256;
 /** The texture unit of the self-light array (`u_glow`); 1 and 2 belong to the rain mask and the clouds. */
 export const GLOW_UNIT = 4;
-/** Held lights the shader can show at once: one a player (the engine caps them at its `MAX_PLAYERS`). */
-export const HELD_LIGHT_SLOTS = 4;
+/** Dynamic point lights the shader can show at once: up to 4 held torches + up to 12 fire lights (engine `held_light::MAX_LIGHTS`). */
+export const HELD_LIGHT_SLOTS = 16;
 
 const FOG = /* glsl */ `
 uniform vec3 u_fogColor;
@@ -39,8 +39,10 @@ uniform vec4 u_held[HELD_LIGHTS]; // camera-relative x, y, z and the reach in bl
 vec3 heldGlow(vec3 rel) {
   float g = 0.0;
   for (int i = 0; i < HELD_LIGHTS; i++) {
-    float f = clamp((1.0 - length(rel - u_held[i].xyz) / max(u_held[i].w, 0.001)) * 1.6, 0.0, 1.0);
-    g = max(g, f * f * step(0.001, u_held[i].w));
+    float w = u_held[i].w;
+    if (w <= 0.001) break;
+    float f = clamp((1.0 - length(rel - u_held[i].xyz) / w) * 1.6, 0.0, 1.0);
+    g = max(g, f * f);
   }
   return g * BLOCK_LIGHT + CAVE_FLOOR;
 }

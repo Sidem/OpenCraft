@@ -220,6 +220,7 @@ impl Machine for Pole {
                         super::process::Energy::Turbine
                             | super::process::Energy::Solar
                             | super::process::Energy::Diesel
+                            | super::process::Energy::Gas
                             | super::process::Energy::Hydro
                             | super::process::Energy::Reactor
                             | super::process::Energy::Rectenna

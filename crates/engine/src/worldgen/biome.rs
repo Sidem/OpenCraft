@@ -111,7 +111,7 @@ impl WorldGen {
     /// inside the broad one (by the same frayed climate), before it the broad one.
     pub fn local_biome_at(&self, x: i32, z: i32, h: i32) -> Biome {
         let base = self.biome_at(x, z, h);
-        if self.version < 12 {
+        if self.layers.cover < 12 {
             return base;
         }
         let (t, m) = self.frayed_climate(x, z);

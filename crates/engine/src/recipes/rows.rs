@@ -83,4 +83,11 @@ pub const DYE_PLANT_ROWS: u16 = 11;
 /// Stained glass (`glass.rs`, unlocked by Architecture): sixteen hues in `block/glass.rs` order.
 pub const GLASS_FIRST: u16 = 177;
 pub const GLASS_ROWS: u16 = 16;
+/// Natural gas (`gas.rs`, CHEM-GAS): gas plant sweetening (193), steam reforming (194), ethane cracking (195), LPG
+/// cracking (196), and ethylene polymerisation to plastic (197).
+pub const GAS_PROCESS_RECIPE: u16 = 193;
+pub const REFORM_RECIPE: u16 = 194;
+pub const ETHANE_CRACK_RECIPE: u16 = 195;
+pub const LPG_CRACK_RECIPE: u16 = 196;
+pub const POLYETHYLENE_RECIPE: u16 = 197;
 // Rows 88 on are the upgrader's, one per tier (`refit.rs`; research locks them by category, `Research::locked_by`).

@@ -571,6 +571,9 @@ fn samples() -> Vec<Action> {
         Action::BuildGhost { pos },
         Action::SetLed { pos, step: 2, rgb: 0x3366cc },
         Action::SetMachineEnabled { pos, on: false },
+        Action::UpgradeDeposits,
+        Action::Ignite { pos, heat: 3 },
+        Action::Flame { origin: crate::math::Vec3::new(1.5, 65.0, -2.25), dir: crate::math::Vec3::new(0.0, 0.0, 1.0) },
     ]
 }
 

@@ -9,9 +9,10 @@ use super::{part, turned, Axis, Form, Part};
 use crate::block::tex;
 use crate::factory::trains::model::{CarBox, LOCOMOTIVE_BOXES, WAGON_BOXES};
 use crate::item::{
-    ItemId, ACID_BARREL, CARGO_DRONE, CRUDE_BARREL, DIESEL_BARREL, DRONE, EMPTY_BARREL, HEAVY_OIL_BARREL,
-    HYDROGEN_BARREL, LIGHT_FRAME, LOCOMOTIVE, LUBRICANT_BARREL, NAPHTHA_BARREL, OXYGEN_BARREL, PERSONAL_DRONE,
-    PURE_WATER_BARREL, RAIL_SIGNAL, ROCKET_FUEL_BARREL, WAGON,
+    ItemId, ACID_BARREL, CARGO_DRONE, CRUDE_BARREL, DIESEL_BARREL, DRONE, EMPTY_BARREL, ETHANE_BARREL, ETHYLENE_BARREL,
+    HEAVY_OIL_BARREL, HYDROGEN_BARREL, LIGHT_FRAME, LOCOMOTIVE, LPG_BARREL, LUBRICANT_BARREL, METHANE_BARREL,
+    NAPHTHA_BARREL, OXYGEN_BARREL, PERSONAL_DRONE, PURE_WATER_BARREL, RAIL_SIGNAL, RAW_GAS_BARREL, ROCKET_FUEL_BARREL,
+    WAGON,
 };
 
 const METAL: u16 = tex::MAT_METAL;
@@ -37,6 +38,11 @@ pub(super) fn parts(item: ItemId) -> &'static [Part] {
         OXYGEN_BARREL => &OXYGEN_DRUM,
         PURE_WATER_BARREL => &PURE_WATER_DRUM,
         ROCKET_FUEL_BARREL => &ROCKET_FUEL_DRUM,
+        RAW_GAS_BARREL => &RAW_GAS_DRUM,
+        METHANE_BARREL => &METHANE_DRUM,
+        ETHANE_BARREL => &ETHANE_DRUM,
+        LPG_BARREL => &LPG_DRUM,
+        ETHYLENE_BARREL => &ETHYLENE_DRUM,
         LIGHT_FRAME => &FRAME,
         _ => &[],
     }
@@ -189,6 +195,11 @@ const HYDROGEN_DRUM: [Part; 10] = drum(tex::HYDROGEN_BARREL);
 const OXYGEN_DRUM: [Part; 10] = drum(tex::OXYGEN_BARREL);
 const PURE_WATER_DRUM: [Part; 10] = drum(tex::PURE_WATER_BARREL);
 const ROCKET_FUEL_DRUM: [Part; 10] = drum(tex::ROCKET_FUEL_BARREL);
+const RAW_GAS_DRUM: [Part; 10] = drum(tex::RAW_GAS_BARREL);
+const METHANE_DRUM: [Part; 10] = drum(tex::METHANE_BARREL);
+const ETHANE_DRUM: [Part; 10] = drum(tex::ETHANE_BARREL);
+const LPG_DRUM: [Part; 10] = drum(tex::LPG_BARREL);
+const ETHYLENE_DRUM: [Part; 10] = drum(tex::ETHYLENE_BARREL);
 
 /// A light frame: an aluminium space frame of two square rings of bars on four corner posts, each ring crossed by
 /// a diagonal brace.

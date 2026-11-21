@@ -315,6 +315,18 @@ size.
   9 blocks a second. **Nuclear power**: the centrifuge makes fuel cells from uranium ore and a steel plate; the
   **reactor** (3×3×3, fuel cells at the back, up to 2 MW) heats as it gives, a water pipe to its blue inlet keeps it
   cool, and it shuts down when overheated until it has cooled. Gold science and Mk5 Machines close the milestone.
+- **Natural gas** (Gas Wells after Oil Processing, then Gas Processing after Gas Wells and Acids and Lubricants;
+  four packs). Deep **gas shale** veins and lodes lie 35–75 blocks under plains, lowlands and deserts at least 220
+  blocks from spawn (new worlds from v0.10.0 or older worlds upgraded via **Worlds → Upgrade deposits**); scan for them.
+  A **gas well** (2×2×3, 90 kW) fills empty barrels with **raw gas**; a **wellhead separator** (2×3×3, 110 kW, uses
+  lubricant) sits over any **oil sand** deposit (old worlds included) to recover associated raw gas (1 per 2–4 crude,
+  out the right-hand hatch) alongside crude oil. A **gas plant** (3×3×4, 140 kW, water pipe) sweetens 4 raw gas barrels
+  into 2 **methane**, 1 **ethane**, 1 **LPG** and 1 sulfur (6 s). A **gas turbine** (3×2×2, uses lubricant) gives 600 kW
+  of clean power from methane (40 s) or LPG (60 s), returns empties and runs ahead of diesel generators. A **steam
+  reformer** (2×2×3, 100 kW, water pipe) turns 1 methane + 2 empty barrels + 2 water into 3 hydrogen barrels in 4 s.
+  Crackers steam-crack ethane (→ ethylene + hydrogen) and LPG (→ ethylene + methane), and the chemical plant polymerises
+  2 **ethylene** barrels into 6 plastic + 2 empty barrels without naphtha. Every new chemical recipe carries a one-line
+  real-world process note (`recipes/process_notes.rs`).
 - **Recycling.** After Blue Science, the **recycler** (2×2×2, 90 kW, six input hatches, two output hatches) destroys
   any item belts bring it and pays **recycling coins** (1024 to a stack; one day they buy cosmetics). Every item pays a whole number of coins, from 1
   for raw things and basic parts (80 of the 227 items) up to 64 for the dearest item, the datacenter. The price follows the

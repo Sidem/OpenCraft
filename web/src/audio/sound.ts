@@ -23,9 +23,11 @@ import {
   type SoundSettings,
 } from './settings';
 import { Ambience } from './ambience';
+import { FlameLoop } from './flame-loop';
 import { Music, type MusicGame } from './music';
 import { ACTION_BASE, EVENT_ACTIONS, PREVIEW_DISTANCE, PREVIEW_VOLUME } from './sound-actions';
 import { blip, breakSound, denied, hitSound, mulberry32, ping, powerDown, powerUp, splash, tick, whoosh, type HitMods } from './synth';
+import { flame } from './synth-fire';
 import { launch, podDown, podUp } from './synth-orbit';
 
 const EVENT_FLOATS = 6;
@@ -52,6 +54,7 @@ export class SoundSystem {
   lastMaterial = 0;
   readonly music = new Music(() => this.notify());
   readonly ambience = new Ambience(() => this.notify());
+  private readonly torch = new FlameLoop();
 
   private ctx: AudioContext | null = null;
   /** The effects channel's level; its sounds go through the compressor, then `out`. */
@@ -117,15 +120,18 @@ export class SoundSystem {
       this.scheduleWarm(0);
       this.music.start(ctx, out);
       this.ambience.start(ctx, out);
+      this.torch.start(ctx, this.effects);
       this.hush();
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
 
-  /** Call every frame (not while hidden): ambience and music read the player's place a few times a second. */
-  poll(game: MusicGame, dt: number): void {
+  /** Call every frame (not while hidden): ambience, music and the continuous flamethrower torch read game state. */
+  poll(game: MusicGame & { torch_burning?: () => boolean; camera_yaw?: () => number; camera_pitch?: () => number }, dt: number): void {
     this.ambience.poll(game, dt);
     this.music.poll(game, dt);
+    const a = this.design.actions.flame;
+    this.torch.poll(Boolean(game.torch_burning?.()), game.camera_yaw?.() ?? 0, game.camera_pitch?.() ?? 0, dt, level(a.volume), ACTION_BASE.flame.pitch * 2 ** ((a.pitch / 100 - 0.5) * 2));
   }
 
   setMuted(muted: boolean): void {
@@ -379,20 +385,15 @@ export class SoundSystem {
       length: base.length * 4 ** (a.length / 100 - 0.5), // ×0.5 .. ×2
       weight: base.weight + (a.weight / 100 - 0.5),
     };
-    let data: Float32Array;
-    if (action === 'break') data = breakSound(sr, rand, m, mods, 1 + Math.round((a.debris / 100) * 10));
-    else if (action === 'pickup') data = blip(sr, mods);
-    else if (action === 'drop') data = whoosh(sr, rand, mods);
-    else if (action === 'click') data = tick(sr, mods);
-    else if (action === 'scan') data = ping(sr, mods);
-    else if (action === 'splash') data = splash(sr, rand, mods);
-    else if (action === 'powerdown') data = powerDown(sr, rand, mods);
-    else if (action === 'powerup') data = powerUp(sr, rand, mods);
-    else if (action === 'launch') data = launch(sr, rand, mods);
-    else if (action === 'podup') data = podUp(sr, rand, mods);
-    else if (action === 'poddown') data = podDown(sr, rand, mods);
-    else if (action === 'denied') data = denied(sr, mods);
-    else data = hitSound(sr, rand, m, mods);
+    const data =
+      action === 'break' ? breakSound(sr, rand, m, mods, 1 + Math.round((a.debris / 100) * 10))
+      : action === 'pickup' ? blip(sr, mods) : action === 'drop' ? whoosh(sr, rand, mods)
+      : action === 'click' ? tick(sr, mods) : action === 'scan' ? ping(sr, mods)
+      : action === 'splash' ? splash(sr, rand, mods) : action === 'powerdown' ? powerDown(sr, rand, mods)
+      : action === 'powerup' ? powerUp(sr, rand, mods) : action === 'launch' ? launch(sr, rand, mods)
+      : action === 'podup' ? podUp(sr, rand, mods) : action === 'poddown' ? podDown(sr, rand, mods)
+      : action === 'denied' ? denied(sr, mods) : action === 'flame' ? flame(sr, rand, mods)
+      : hitSound(sr, rand, m, mods);
     const buffer = ctx.createBuffer(1, data.length, sr);
     buffer.getChannelData(0).set(data);
     return buffer;

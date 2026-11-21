@@ -106,6 +106,9 @@ impl Action {
             76 => Action::BuildGhost { pos: r.ivec3()? },
             77 => Action::SetLed { pos: r.ivec3()?, step: r.u8()?, rgb: r.u32()? },
             78 => Action::SetMachineEnabled { pos: r.ivec3()?, on: r.bool()? },
+            79 => Action::UpgradeDeposits,
+            80 => Action::Ignite { pos: r.ivec3()?, heat: r.u8()? },
+            81 => Action::Flame { origin: r.vec3()?, dir: r.vec3()? },
             35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })

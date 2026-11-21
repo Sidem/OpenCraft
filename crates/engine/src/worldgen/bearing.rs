@@ -30,7 +30,7 @@ impl WorldGen {
     /// The nearest sampled ground at or round (x, z) whose biome can hold deposits of `ore`; `None` for a world
     /// that has no such ground or no biome ores, or within `MAX_RING` rings.
     pub fn bearing_to(&self, ore: BlockId, x: i32, z: i32) -> Option<Bearing> {
-        if self.version < 2 || !self.has_ore(ore) {
+        if self.layers.deposits < 2 || !self.has_ore(ore) {
             return None;
         }
         let holds = |px: i32, pz: i32| {

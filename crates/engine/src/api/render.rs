@@ -296,6 +296,24 @@ impl Game {
         crate::halos::HALO_FLOATS
     }
 
+    /// Byte offset of this frame's fire emitters (`fire_view.rs`): `fire_count()` records of `fire_floats()` f32.
+    pub fn fire_ptr(&self) -> usize {
+        self.fire_view.emitters.as_ptr() as usize
+    }
+
+    pub fn fire_count(&self) -> usize {
+        self.fire_view.emitters.len() / crate::fire_view::FIRE_FLOATS
+    }
+
+    pub fn fire_floats(&self) -> usize {
+        crate::fire_view::FIRE_FLOATS
+    }
+
+    /// Interpolated render time (seconds) for shader animations (fire flames, embers).
+    pub fn render_time(&self) -> f32 {
+        self.render_time as f32
+    }
+
     /// Byte offset of this frame's sound events: `sound_count()` records of
     /// (kind, material, camera-relative x, y, z, volume) as f32.
     pub fn sound_ptr(&self) -> usize {
@@ -309,6 +327,11 @@ impl Game {
     /// Call after the host has played this frame's sounds.
     pub fn clear_sounds(&mut self) {
         self.sounds.clear();
+    }
+
+    /// Whether the local player is actively burning the flamethrower this frame (drives continuous torch audio).
+    pub fn torch_burning(&self) -> bool {
+        self.flamethrower_burning()
     }
 
     pub fn texture_ptr(&self) -> usize {

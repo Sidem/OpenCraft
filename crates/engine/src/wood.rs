@@ -64,12 +64,17 @@ pub fn of(id: ItemId) -> Option<(usize, Form)> {
     }
 }
 
-/// The oak's item of the same form: what recipes name. Anything that is no wood item stays itself.
+/// The oak's item of the same form (what recipes name), or `COAL_ORE` for `CHARCOAL` (charcoal serves as coal
+/// everywhere: fuel, recipes, towns). Anything else stays itself.
 pub fn standard(id: ItemId) -> ItemId {
+    if id == crate::item::CHARCOAL {
+        return ItemId::block(block::COAL_ORE);
+    }
     of(id).map_or(id, |(_, f)| item(0, f))
 }
 
-/// Whether `have` will do where a recipe asks for `want`: the same item, or the same form of another wood.
+/// Whether `have` will do where a recipe asks for `want`: the same item, the same form of another wood, or charcoal
+/// for coal.
 pub fn like(have: ItemId, want: ItemId) -> bool {
     have == want || standard(have) == want && standard(want) == want
 }
@@ -83,10 +88,22 @@ pub fn in_wood_of(out: ItemId, input: ItemId) -> ItemId {
 }
 
 /// What can stand in for `want`, in the order stock is used up: for an oak item (what recipes name) the same form of
-/// every wood, oak's first, then by wood number; any other item only itself.
+/// every wood, oak's first, then by wood number; for coal, coal then charcoal; any other item only itself.
 pub fn kinds(want: ItemId) -> impl Iterator<Item = ItemId> {
     let form = of(want).filter(|&(w, _)| w == 0).map(|(_, f)| f);
-    (0..if form.is_some() { WOODS } else { 1 }).map(move |w| form.map_or(want, |f| item(w, f)))
+    let coal = want == ItemId::block(block::COAL_ORE);
+    let len = if form.is_some() {
+        WOODS
+    } else if coal {
+        2
+    } else {
+        1
+    };
+    (0..len).map(move |w| match form {
+        Some(f) => item(w, f),
+        None if coal && w == 1 => crate::item::CHARCOAL,
+        None => want,
+    })
 }
 
 /// What a craft or batch makes of `out`: in the wood of the first wood item among `used` (so pine planks make pine

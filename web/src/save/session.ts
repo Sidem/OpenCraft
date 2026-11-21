@@ -96,6 +96,11 @@ export class Session {
     pins.subscribe(() => (this.notesChanged = true));
   }
 
+  /** Marks the world modified so the next `save()` writes even if no game time passed. */
+  markChanged(): void {
+    this.notesChanged = true;
+  }
+
   /** Saves, gzipped; resolves once stored, rejects if storing failed (after `onError`). */
   async save(): Promise<void> {
     const time = this.game.play_seconds();

@@ -274,7 +274,30 @@ pub const fn stained_glass_layer(i: u16) -> u16 {
     STAINED_GLASS_FIRST + i
 }
 pub const STAINED_GLASS_LAST: u16 = stained_glass_layer(crate::block::STAINED_GLASS_COUNT as u16 - 1);
-pub const COUNT: usize = STAINED_GLASS_LAST as usize + 1;
+/// Natural gas (`block/gas.rs`, `textures/gas.rs`): gas shale (cube layer 507, under 512), then the five gas barrels
+/// and the five gas machines' side/top paints (508..=522; non-cube item and box textures have no 512 cap).
+pub const GAS_SHALE: u16 = STAINED_GLASS_LAST + 1;
+pub const RAW_GAS_BARREL: u16 = GAS_SHALE + 1;
+pub const METHANE_BARREL: u16 = GAS_SHALE + 2;
+pub const ETHANE_BARREL: u16 = GAS_SHALE + 3;
+pub const LPG_BARREL: u16 = GAS_SHALE + 4;
+pub const ETHYLENE_BARREL: u16 = GAS_SHALE + 5;
+pub const GAS_WELL_SIDE: u16 = GAS_SHALE + 6;
+pub const GAS_WELL_TOP: u16 = GAS_SHALE + 7;
+pub const SEPARATOR_SIDE: u16 = GAS_SHALE + 8;
+pub const SEPARATOR_TOP: u16 = GAS_SHALE + 9;
+pub const GAS_PLANT_SIDE: u16 = GAS_SHALE + 10;
+pub const GAS_PLANT_TOP: u16 = GAS_SHALE + 11;
+pub const GAS_TURBINE_SIDE: u16 = GAS_SHALE + 12;
+pub const GAS_TURBINE_TOP: u16 = GAS_SHALE + 13;
+pub const REFORMER_SIDE: u16 = GAS_SHALE + 14;
+pub const REFORMER_TOP: u16 = GAS_SHALE + 15;
+/// Fire items (FIRE1/FIRE2, model/item layers past 512): charred wood billets, tan vented shroud, olive tank, chrome bell.
+pub const CHARCOAL: u16 = REFORMER_TOP + 1;
+pub const FLAMETHROWER: u16 = CHARCOAL + 1;
+pub const FLAMETHROWER_TANK: u16 = FLAMETHROWER + 1;
+pub const FLAMETHROWER_CHROME: u16 = FLAMETHROWER_TANK + 1;
+pub const COUNT: usize = FLAMETHROWER_CHROME as usize + 1;
 
 /// The case layer of the kit of tier `tier` (1 is Mk2, the green kit).
 pub const fn kit_paint(tier: u8) -> u16 {

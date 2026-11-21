@@ -23,6 +23,8 @@ pub(super) enum Stroke {
     Dig,
     /// Sickle: wide horizontal sweep right to left.
     Sweep,
+    /// Flamethrower: held by its rear grip, barrel aimed straight ahead.
+    Aim,
     /// Bare fist or non-tool item: cock back, active forward strike, impact recoil.
     Punch,
 }
@@ -56,6 +58,7 @@ pub(super) fn hold(held: ItemId) -> Option<Hold> {
         // Just below the T-handle.
         ToolKind::Shovel => ([0.0, 0.3, 0.0], Stroke::Dig),
         ToolKind::Sickle => ([0.0, -0.3, 0.0], Stroke::Sweep),
+        ToolKind::Flamethrower => ([-0.24, 0.04, 0.0], Stroke::Aim),
         _ => return None,
     };
     Some(Hold { grip, stroke })
@@ -112,6 +115,8 @@ pub(super) fn pose(stroke: Stroke, phase: f64, mining: f64) -> Pose {
             lift: keyframes(t, &[(0.0, 0.0), (0.46, 0.02), (0.68, -0.025), (1.0, 0.0)]),
             swing: 0.0,
         },
+        // Flamethrower: stays aimed forward with a subtle forward nudge on left-click.
+        Stroke::Aim => Pose { thrust: keyframes(t, &[(0.0, 0.0), (0.4, 0.04), (1.0, 0.0)]), ..Pose::default() },
         // Bare hand / non-tool: cock fist back & out, punch forward-inward with wrist snap, crisp impact recoil.
         Stroke::Punch => Pose {
             thrust: keyframes(t, &[(0.0, 0.0), (0.36, -0.055), (0.58, PUNCH_THRUST), (0.72, 0.065), (1.0, 0.0)]),
@@ -145,6 +150,7 @@ pub(super) fn arm(held: ItemId, phase: f64) -> f64 {
         }
         Stroke::Dig => (pose(Stroke::Dig, phase, 1.0).thrust / DIG_STAB).clamp(-1.0, 1.0),
         Stroke::Sweep => (-pose(Stroke::Sweep, phase, 1.0).sweep / SWEEP_ACROSS).clamp(-1.0, 1.0),
+        Stroke::Aim => (pose(Stroke::Aim, phase, 1.0).thrust / 0.04).clamp(-1.0, 1.0),
         Stroke::Punch => (pose(Stroke::Punch, phase, 1.0).thrust / PUNCH_THRUST).clamp(-1.0, 1.0),
     }
 }

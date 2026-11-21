@@ -22,6 +22,8 @@ use crate::item::{
 mod belts;
 mod components;
 mod craft;
+mod fire;
+mod gas;
 mod icon_frame;
 mod machines;
 mod machines_plant;
@@ -349,6 +351,7 @@ pub fn parts(item: ItemId) -> &'static [Part] {
                 stock::parts,
                 components::parts,
                 wear::parts,
+                fire::parts,
                 craft::parts,
                 space::parts,
                 power::parts,

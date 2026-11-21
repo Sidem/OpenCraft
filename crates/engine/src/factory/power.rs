@@ -34,7 +34,9 @@ use super::miner::Miner;
 use super::pipes::{Part, Pipework};
 use super::pole::{dist2, hang_cable, linked, nearest_of, Pole};
 use super::power_mix::{Mix, Source, SOURCES};
-use super::process::{run_diesel, run_hydro, run_reactor, run_rectenna, run_renewables, run_turbine, Kinds, Processor};
+use super::process::{
+    run_diesel, run_gas, run_hydro, run_reactor, run_rectenna, run_renewables, run_turbine, Kinds, Processor,
+};
 use super::quarry::Quarry;
 use super::render::push_box;
 use super::wiring::{takes_pole, Hooked};
@@ -232,6 +234,7 @@ impl Power {
             let (given, could) = run_turbine(processors, t, want);
             self.give(Source::Turbine, grid, given, could);
         }
+        run_gas(self, processors, &kinds.gas, manual_off);
         run_diesel(self, processors, &kinds.diesel, manual_off);
     }
 

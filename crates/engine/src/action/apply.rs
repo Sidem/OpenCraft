@@ -228,6 +228,15 @@ impl Sim {
                     inv.add(item, count);
                 }
             }
+            Action::UpgradeDeposits => {
+                if player == PlayerId(0) {
+                    self.upgrade_deposits();
+                }
+            }
+            Action::Ignite { pos, heat } => {
+                self.ignite(pos, heat);
+            }
+            Action::Flame { origin, dir } => self.flame_cast(player, origin, dir),
         }
     }
 }

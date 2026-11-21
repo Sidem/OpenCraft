@@ -39,7 +39,7 @@ impl WorldGen {
         // Version 8 bends the distance from spawn, so the lifted ground and the mesas' fade end in no ring.
         // Bent at most 35% either way; beyond `BENT` neither fade can tell, so the noise is skipped there.
         let dist = (fx * fx + fz * fz).sqrt();
-        let dist = if self.version >= 8 && dist < BENT {
+        let dist = if self.layers.ground >= 8 && dist < BENT {
             dist * (1.0 + 0.35 * self.meander.noise2(fx / 160.0, fz / 160.0).clamp(-1.0, 1.0))
         } else {
             dist
@@ -58,7 +58,7 @@ impl WorldGen {
         }
         // Version 11 starts every world in low, gentle country: near spawn whatever rises above the lowland base keeps
         // only `LOW_KEEP` of its height (hills become rolls, ranges become hills), easing back to full by `SPAWN_LOW.1`.
-        if self.version >= 11 && h > LOW_BASE {
+        if self.layers.ground >= 11 && h > LOW_BASE {
             let keep = lerp(smoothstep(SPAWN_LOW.0, SPAWN_LOW.1, dist), LOW_KEEP, 1.0);
             h = LOW_BASE + (h - LOW_BASE) * keep;
         }

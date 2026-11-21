@@ -3,6 +3,9 @@
 
 use wasm_bindgen::prelude::*;
 
+use crate::action::Action;
+use crate::net::Role;
+use crate::worldgen::{DEPOSITS_LATEST, WORLDGEN_VERSION};
 use crate::{Game, TICK};
 
 #[wasm_bindgen]
@@ -24,9 +27,41 @@ impl Game {
         self.sim.world.generator().seed()
     }
 
-    /// The generator version this world was made with (1 = the terrain before Milestone 4).
+    /// The primary terrain (`ground`) generator version this world was made with (1 = before Milestone 4).
     pub fn worldgen_version(&self) -> u32 {
         self.sim.world.generator().version()
+    }
+
+    /// The four generator layer versions `[ground, water, cover, deposits]`.
+    pub fn worldgen_layers(&self) -> Vec<u32> {
+        self.sim.world.generator().layers().all().to_vec()
+    }
+
+    /// The `deposits` layer version of this world.
+    pub fn deposits_version(&self) -> u32 {
+        self.sim.world.generator().layers().deposits
+    }
+
+    /// The newest generator version that changed the `deposits` layer.
+    pub fn latest_deposits_version(&self) -> u32 {
+        DEPOSITS_LATEST
+    }
+
+    /// The newest overall world generator version.
+    pub fn latest_worldgen_version(&self) -> u32 {
+        WORLDGEN_VERSION
+    }
+
+    /// Whether this world can safely upgrade its `deposits` layer (host/solo only).
+    pub fn can_upgrade_deposits(&self) -> bool {
+        !matches!(self.role, Role::Client(_)) && self.sim.can_upgrade_deposits()
+    }
+
+    /// Queues upgrading this world's `deposits` layer to the newest version (host/solo only).
+    pub fn upgrade_deposits(&mut self) {
+        if self.can_upgrade_deposits() {
+            self.act(Action::UpgradeDeposits);
+        }
     }
 
     /// Game time played in this world, in seconds.

@@ -17,6 +17,7 @@ fn natural_layers_and_their_alternates_turn_but_machines_and_leaves_do_not() {
     let leaves = tex::alternates(tex::LEAVES);
     assert!(mode(tex::LEAVES) == 0 && (leaves..leaves + tex::ALTERNATES).all(|l| mode(l) == 0));
     assert!(mode(tex::BELT_TOP) == 0 && mode(tex::STONE_BRICKS) == 0 && mode(tex::WATER) == 0);
-    let turning = (0..tex::COUNT as u16).filter(|&l| mode(l) != 0).count();
+    let limit = tex::COUNT.min(MASK_WORDS * 16) as u16;
+    let turning = (0..limit).filter(|&l| mode(l) != 0).count();
     assert_eq!(turning, TURNS.len() + LAYERED.len() + UPRIGHT.len() + 5 * tex::ALTERNATES as usize);
 }

@@ -113,6 +113,7 @@ fn a_tools_head_comes_down_and_forward_onto_the_strike() {
             Stroke::Dig => (at(0.36), at(0.66)),
             Stroke::Sweep => (at(0.46), at(0.68)),
             Stroke::Punch => (at(0.36), at(0.58)),
+            Stroke::Aim => (at(0.0), at(0.5)),
         };
         let name = item::name(item);
         match stroke {
@@ -127,6 +128,7 @@ fn a_tools_head_comes_down_and_forward_onto_the_strike() {
                 assert!(hit.y < back.y - 0.01, "{name} drops diagonally into the trunk: {back:?} {hit:?}");
                 assert!(hit.z < back.z, "{name} drives forward into the wood: {back:?} {hit:?}");
             }
+            Stroke::Aim => assert!(hit.z < -0.08, "{name} aims ahead of the hand: {hit:?}"),
             Stroke::Punch => {}
         }
     }

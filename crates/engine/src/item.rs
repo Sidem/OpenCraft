@@ -234,13 +234,18 @@ pub fn stack_size(id: ItemId) -> u32 {
 
 /// Blocks with ids of 256 and up and the item each is. Item ids stay dense (the tables are `0..ITEM_COUNT`), so
 /// such an item is an ordinary `EXTRA` row whose `places` is the block; list the pair here, in block order.
-/// Empty until `BLOCK_COUNT` passes 255.
-pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 0] = [];
+pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 5] = [
+    (block::GAS_WELL, GAS_WELL_ITEM),
+    (block::WELLHEAD_SEPARATOR, WELLHEAD_SEPARATOR_ITEM),
+    (block::GAS_PLANT, GAS_PLANT_ITEM),
+    (block::GAS_TURBINE, GAS_TURBINE_ITEM),
+    (block::STEAM_REFORMER, STEAM_REFORMER_ITEM),
+];
 
 /// How many item ids there are: the table is `0..ITEM_COUNT`, blocks then `EXTRA`.
 pub const ITEM_COUNT: usize = 256 + EXTRA.len();
 
-const EXTRA: [ItemDef; 174] = [
+const EXTRA: [ItemDef; 186] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -415,6 +420,22 @@ const EXTRA: [ItemDef; 174] = [
     part("Brown Pigment", tex::tint_layer(8), [0.6, 0.4, 0.6]),
     part("Maroon Pigment", tex::tint_layer(9), [0.6, 0.4, 0.6]),
     part("Navy Pigment", tex::tint_layer(10), [0.6, 0.4, 0.6]),
+    barrel("Raw Gas Barrel", tex::RAW_GAS_BARREL),
+    barrel("Methane Barrel", tex::METHANE_BARREL),
+    barrel("Ethane Barrel", tex::ETHANE_BARREL),
+    barrel("LPG Barrel", tex::LPG_BARREL),
+    barrel("Ethylene Barrel", tex::ETHYLENE_BARREL),
+    wide_machine("Gas Well", [tex::GAS_WELL_TOP, tex::GAS_WELL_SIDE, tex::FRAME], block::GAS_WELL),
+    wide_machine(
+        "Wellhead Separator",
+        [tex::SEPARATOR_TOP, tex::SEPARATOR_SIDE, tex::FRAME],
+        block::WELLHEAD_SEPARATOR,
+    ),
+    wide_machine("Gas Plant", [tex::GAS_PLANT_TOP, tex::GAS_PLANT_SIDE, tex::FRAME], block::GAS_PLANT),
+    wide_machine("Gas Turbine", [tex::GAS_TURBINE_TOP, tex::GAS_TURBINE_SIDE, tex::FRAME], block::GAS_TURBINE),
+    wide_machine("Steam Reformer", [tex::REFORMER_TOP, tex::REFORMER_SIDE, tex::FRAME], block::STEAM_REFORMER),
+    part("Charcoal", tex::CHARCOAL, [0.55, 0.35, 0.55]),
+    device("Flamethrower", tex::FLAMETHROWER, [0.9, 0.35, 0.28]),
 ];
 
 /// A wood's log: bark round, the oak's rings at the ends; it places nothing.

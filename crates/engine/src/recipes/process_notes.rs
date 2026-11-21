@@ -51,6 +51,31 @@ const NOTES: &[(u16, &str)] = &[
         "Hydrogen burning in oxygen leaves only steam and a great deal of thrust: it is what the Space Shuttle's main \
          engines ran on.",
     ),
+    (
+        GAS_PROCESS_RECIPE,
+        "Raw gas is scrubbed of toxic hydrogen sulfide (recovered as sulfur), then chilled to separate methane, ethane \
+         and LPG.",
+    ),
+    (
+        REFORM_RECIPE,
+        "Steam methane reforming reacts hot methane with steam over a nickel catalyst (CH₄ + 2 H₂O → CO₂ + 4 H₂), the \
+         cheapest industrial hydrogen.",
+    ),
+    (
+        ETHANE_CRACK_RECIPE,
+        "Steam cracking heats ethane past 800 °C for a split second so it drops two hydrogens and becomes ethylene \
+         plus hydrogen gas.",
+    ),
+    (
+        LPG_CRACK_RECIPE,
+        "Thermal cracking breaks propane and butane in LPG into ethylene for plastics, leaving methane behind as \
+         fuel gas.",
+    ),
+    (
+        POLYETHYLENE_RECIPE,
+        "Under pressure with a catalyst, ethylene molecules snap end to end into long chains of polyethylene — the \
+         world's most common plastic.",
+    ),
 ];
 
 const BLUE_NOTE: &str =

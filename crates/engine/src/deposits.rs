@@ -275,6 +275,14 @@ impl Deposits {
         self.states.len()
     }
 
+    /// Whether every tracked deposit resolves to the exact same shape under `gen` (deposits-layer upgrade).
+    pub fn all_keys_match(&self, gen: &crate::worldgen::WorldGen) -> bool {
+        self.states.values().all(|st| {
+            gen.deposit_by_key(st.deposit.key)
+                .is_some_and(|d| (d.center, d.radii, d.seed) == (st.deposit.center, st.deposit.radii, st.deposit.seed))
+        })
+    }
+
     /// Core state: every tracked deposit, sorted by key, with what is left of it. Its geometry and
     /// members follow from generation; the draw budget only lives within a tick.
     pub fn write_state(&self, w: &mut ByteWriter) {

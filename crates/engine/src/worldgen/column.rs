@@ -20,7 +20,7 @@ impl WorldGen {
         let mut rock = vec![STONE; 1024];
         let mut water = vec![i32::MIN; 1024];
         // Version 3: every padded column's top water block (`i32::MIN` when dry).
-        let wet: Vec<i32> = if self.version >= 3 {
+        let wet: Vec<i32> = if self.layers.water >= 3 {
             hm.iter()
                 .enumerate()
                 .map(|(i, &h)| self.water_top(x0 + (i % P) as i32 - 2, z0 + (i / P) as i32 - 2, h))
@@ -38,16 +38,16 @@ impl WorldGen {
                     .max((hm[(z + 3) * P + x + 2] - hm[(z + 1) * P + x + 2]).abs());
                 let i = z * 32 + x;
                 heights[i] = h;
-                if self.version >= 2 {
+                if self.layers.ground >= 2 {
                     let biome = self.local_biome_at(x0 + x as i32, z0 + z as i32, h);
                     biomes.push(biome);
                     (surface[i], rock[i]) = Self::surface_v2(biome, h, slope);
-                    if self.version >= 3 {
-                        water[i] = wet[(z + 2) * P + x + 2];
-                        surface[i] = Self::surface_v3(surface[i], h, water[i] > h);
-                    }
                 } else {
                     surface[i] = Self::surface_for(h, slope);
+                }
+                if self.layers.water >= 3 {
+                    water[i] = wet[(z + 2) * P + x + 2];
+                    surface[i] = Self::surface_v3(surface[i], h, water[i] > h);
                 }
                 max_ground = max_ground.max(h);
             }
@@ -56,11 +56,11 @@ impl WorldGen {
         let ruins = self.ruins_near(x0, z0);
         let max_y = trees.iter().map(|t| t.top()).fold(max_ground, i32::max);
         let max_y = ruins.iter().map(|r| r.top()).fold(max_y, i32::max);
-        let falls = if self.version >= 8 { falls(&wet, P) } else { Vec::new() };
+        let falls = if self.layers.water >= 8 { falls(&wet, P) } else { Vec::new() };
         let max_y = water.iter().chain(&falls).copied().fold(max_y, i32::max);
-        let guard = (self.version >= 3).then(|| WaterGuard::new(hm.iter().copied().zip(wet).collect())).flatten();
+        let guard = (self.layers.water >= 3).then(|| WaterGuard::new(hm.iter().copied().zip(wet).collect())).flatten();
         let near = self.deposits_near(cx, cz);
-        if self.version >= 2 {
+        if self.layers.deposits >= 2 {
             self.stain_surface(x0, z0, &near, &mut surface);
         }
         let deposits = ore::in_column(near, cx, cz);

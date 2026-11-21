@@ -17,7 +17,7 @@ use super::power::{Power, Users};
 use super::Factory;
 
 /// How many kinds of power source there are.
-pub const SOURCES: usize = 8;
+pub const SOURCES: usize = 9;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Source {
@@ -31,6 +31,8 @@ pub enum Source {
     Reactor,
     /// Power satellites' beams, received by rectennas.
     Rectenna,
+    /// Gas turbines burning methane or LPG barrels.
+    Gas,
 }
 
 pub const ALL: [Source; SOURCES] = [
@@ -42,6 +44,7 @@ pub const ALL: [Source; SOURCES] = [
     Source::Diesel,
     Source::Reactor,
     Source::Rectenna,
+    Source::Gas,
 ];
 
 impl Source {
@@ -55,6 +58,7 @@ impl Source {
             Source::Diesel => "Diesel generators",
             Source::Reactor => "Nuclear reactors",
             Source::Rectenna => "Orbital power",
+            Source::Gas => "Gas turbines",
         }
     }
 
@@ -69,6 +73,7 @@ impl Source {
             Source::Diesel => 0xfb923c,
             Source::Reactor => 0xc084fc,
             Source::Rectenna => 0xf472b6,
+            Source::Gas => 0x38bdf8,
         }
     }
 }

@@ -16,13 +16,35 @@ use std::f64::consts::{FRAC_PI_2, PI};
 const NEAR: f64 = 0.9;
 const LEG_LINK: f64 = 0.35;
 
+/// Camera-relative nozzle mouth, barrel forward axis and bell diameter of a held flamethrower.
+#[derive(Clone, Copy)]
+pub(super) struct Muzzle {
+    pub tip: Vec3,
+    pub dir: Vec3,
+    pub bell: f32,
+}
+
 /// `hands` is what the right and then the left hand hold.
+#[cfg(test)]
 pub(super) fn push_avatar(out: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64, m: &Motion, hands: [ItemId; 2]) -> bool {
+    push_avatar_muzzle(out, at, yaw, pitch, m, hands, &mut None)
+}
+
+/// `hands` is what the right and then the left hand hold. Writes any held flamethrower's nozzle into `muzzle`.
+pub(super) fn push_avatar_muzzle(
+    out: &mut Vec<f32>,
+    at: Vec3,
+    yaw: f64,
+    pitch: f64,
+    m: &Motion,
+    hands: [ItemId; 2],
+    muzzle: &mut Option<Muzzle>,
+) -> bool {
     let hip_y = 0.83 - m.crouch * 0.26;
     if (at + Vec3::new(0.0, hip_y + 0.78, 0.0)).length() < NEAR {
         return false;
     }
-    let mut rig = Rig { out, at, yaw, head_yaw: yaw };
+    let mut rig = Rig { out, at, yaw, head_yaw: yaw, muzzle: None };
     let stroke = tool_hold::stroke_of(hands[0]);
     let work_arm = tool_hold::arm(hands[0], m.work_phase);
     let work_pose = tool_hold::pose(stroke, m.work_phase, m.mining);
@@ -142,6 +164,7 @@ pub(super) fn push_avatar(out: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64, m:
                 Stroke::Axe => 1.08 - work_arm * 0.65 + pitch * 0.60,
                 Stroke::Dig => 0.85 + work_arm * 0.42 + pitch * 0.55,
                 Stroke::Sweep => 1.05 + pitch * 0.55,
+                Stroke::Aim => 0.95 + pitch * 0.75,
                 Stroke::Punch => 0.85 + work_arm * 0.65 + pitch * 0.60,
             };
             let work_elbow = match stroke {
@@ -149,6 +172,7 @@ pub(super) fn push_avatar(out: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64, m:
                 Stroke::Axe => 0.72 - work_arm * 0.20,
                 Stroke::Dig => 0.55 - work_arm * 0.30,
                 Stroke::Sweep => 0.45,
+                Stroke::Aim => 0.35,
                 Stroke::Punch => 0.95 - work_arm * 0.65,
             };
             upper = upper * (1.0 - m.mining) + work_upper * m.mining;
@@ -160,8 +184,18 @@ pub(super) fn push_avatar(out: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64, m:
             } else if stroke == Stroke::Dig {
                 item_pose = Pose { lean: work_pose.lean, ..Pose::default() };
             }
-            upper = upper * (1.0 - m.using) + (1.35 + pitch * 0.6 + m.use_phase.sin() * 0.13) * m.using;
-            elbow *= 1.0 - m.using * 0.8;
+            if stroke == Stroke::Aim {
+                // Rifle-style torch: arm_pitch = π/2 + pitch so the barrel tracks aim pitch 1:1.
+                upper = 0.85 + pitch;
+                elbow = FRAC_PI_2 - 0.85;
+            } else {
+                upper = upper * (1.0 - m.using) + (1.35 + pitch * 0.6 + m.use_phase.sin() * 0.13) * m.using;
+                elbow *= 1.0 - m.using * 0.8;
+            }
+        } else if stroke == Stroke::Aim {
+            // Left arm reaches forward to steady the front foregrip of the flamethrower.
+            upper = 0.78 + pitch * 0.85;
+            elbow = 0.76;
         } else {
             // Left arm counterbalances right-arm strikes naturally.
             upper += m.mining * (0.28 - work_arm * 0.22) + m.using * 0.55;
@@ -199,14 +233,15 @@ pub(super) fn push_avatar(out: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64, m:
         let anchor = if tool_hold::hold(held).is_some() { wrist + apply(hand_basis, hand::GRIP_POCKET) } else { wrist };
         rig.held_item(anchor, arm_pitch - FRAC_PI_2, 0.0, held, 1.0, false, &item_pose);
     }
+    *muzzle = rig.muzzle;
     true
 }
 
 /// First-person POV right arm & modelled hand: shares the exact Kestrel forearm gauntlet and articulated hand from
 /// `hand.rs`, scaled to [`VIEW_SCALE`] so it looks life-size while staying strictly inside the player's body cylinder.
 /// Active, tool-appropriate animations drive both the hand and elbow; no walking bob (motion-sickness safe).
-pub(super) fn push_view_hand(out: &mut Vec<f32>, yaw: f64, pitch: f64, m: &Motion, held: ItemId) {
-    let mut rig = Rig { out, at: Vec3::ZERO, yaw, head_yaw: yaw };
+pub(super) fn push_view_hand(out: &mut Vec<f32>, yaw: f64, pitch: f64, m: &Motion, held: ItemId) -> Option<Muzzle> {
+    let mut rig = Rig { out, at: Vec3::ZERO, yaw, head_yaw: yaw, muzzle: None };
     let tool = tool_hold::hold(held).map(|h| h.stroke);
     let stroke = tool.unwrap_or(Stroke::Punch);
     let sweeping = stroke == Stroke::Sweep && m.using > m.mining;
@@ -215,7 +250,9 @@ pub(super) fn push_view_hand(out: &mut Vec<f32>, yaw: f64, pitch: f64, m: &Motio
     } else {
         tool_hold::pose(stroke, m.work_phase, m.mining)
     };
-    let push = if sweeping { 0.0 } else { m.using * m.use_phase.sin().abs() };
+    let aiming = stroke == Stroke::Aim;
+    let push = if sweeping || aiming { 0.0 } else { m.using * m.use_phase.sin().abs() };
+    let brace = if aiming { m.using } else { 0.0 };
     // Subtle living idle breathing (quieted during active strokes; never tied to walking).
     let idle = (1.0 - m.mining).max(0.0) * (1.0 - m.using).max(0.0);
     let breath_y = m.breath.sin() * 0.008 * idle;
@@ -235,10 +272,12 @@ pub(super) fn push_view_hand(out: &mut Vec<f32>, yaw: f64, pitch: f64, m: &Motio
     };
     let eff_thrust = pose.thrust * thrust_scale;
     let eff_lift = if item_hold { pose.lift * 0.3 + strike_drop } else { pose.lift };
+    let aim_dx = if aiming { -0.03 } else { 0.0 };
+    let aim_dy = if aiming { 0.03 } else { 0.0 };
     let hand = Vec3::new(
-        0.31 + sweep_x + breath_x - 0.03 * push,
-        -0.31 + 0.045 * push + eff_lift + 0.04 * eff_thrust + breath_y,
-        -0.46 + near - 0.36 * eff_thrust - 0.03 * push,
+        0.31 + aim_dx + sweep_x + breath_x - 0.03 * push,
+        -0.31 + aim_dy + 0.045 * push + eff_lift + 0.04 * eff_thrust + breath_y + 0.012 * brace,
+        -0.46 + near - 0.36 * eff_thrust - 0.03 * push + 0.025 * brace,
     ) * VIEW_SCALE;
     // Elbow enters diagonally from the lower-right corner (natural shoulder line) while staying strictly ahead (z < 0).
     let elbow = Vec3::new(
@@ -291,6 +330,7 @@ pub(super) fn push_view_hand(out: &mut Vec<f32>, yaw: f64, pitch: f64, m: &Motio
     let item_anchor =
         if tool.is_some() { at(hand) + apply(hand_basis, hand::GRIP_POCKET * VIEW_SCALE) } else { at(hand) };
     rig.held_item(item_anchor, pitch, tip, held, VIEW_SCALE, true, &pose);
+    rig.muzzle
 }
 
 fn grip_for(held: ItemId, mining: f64) -> HandGrip {
@@ -316,6 +356,7 @@ struct Rig<'a> {
     at: Vec3,
     yaw: f64,
     head_yaw: f64,
+    muzzle: Option<Muzzle>,
 }
 
 impl Rig<'_> {
@@ -344,7 +385,14 @@ impl Rig<'_> {
     fn head_part(&mut self, head: Vec3, offset: Vec3, size: [f32; 3], pitch: f64, roll: f64, taper: f32, layer: u16) {
         let at = self.world(head);
         let yaw = self.head_yaw;
-        Rig { out: self.out, at, yaw, head_yaw: yaw }.part(rotate(offset, pitch), size, pitch, roll, taper, layer);
+        Rig { out: self.out, at, yaw, head_yaw: yaw, muzzle: None }.part(
+            rotate(offset, pitch),
+            size,
+            pitch,
+            roll,
+            taper,
+            layer,
+        );
     }
 
     fn link(&mut self, from: Vec3, to: Vec3, mut size: [f32; 3], layer: u16) {
@@ -364,7 +412,19 @@ impl Rig<'_> {
     /// `held` in the hand at `hand` turned by `pitch`, at `scale` times its size on an avatar.
     #[allow(clippy::too_many_arguments)]
     fn held_item(&mut self, hand: Vec3, pitch: f64, tip: f64, held: ItemId, scale: f64, view: bool, pose: &Pose) {
-        for p in grip::held_parts(held, hand, pitch, tip, scale, view, pose) {
+        let parts = grip::held_parts(held, hand, pitch, tip, scale, view, pose);
+        if held == crate::item::FLAMETHROWER && parts.len() >= 2 {
+            let rim = self.world(parts[parts.len() - 1].center);
+            let bell = self.world(parts[parts.len() - 2].center);
+            let d = rim - bell;
+            let len = d.length().max(1e-6);
+            let dir = d * (1.0 / len);
+            let last = &parts[parts.len() - 1];
+            // `last.size[1]` is the flared rim's length along the cylinder axis, `last.size[0]` its diameter.
+            let tip = rim + dir * (f64::from(last.size[1]) * 0.55);
+            self.muzzle = Some(Muzzle { tip, dir, bell: last.size[0] });
+        }
+        for p in parts {
             self.part(p.center, p.size, p.pitch, p.roll, 1.0, p.tex[1]);
             let i = self.out.len() - INSTANCE_FLOATS;
             self.out[i + 8..i + 11].copy_from_slice(&p.tex.map(f32::from));

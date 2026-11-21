@@ -219,6 +219,9 @@ mod glass;
 #[cfg(test)]
 pub use glass::is_stained_glass;
 pub use glass::{is_glass, STAINED_GLASS_COUNT, STAINED_GLASS_FIRST};
+/// Natural gas deposit and machines, ids 255–260 (`gas.rs`).
+mod gas;
+pub use gas::{GAS_COUNT, GAS_PLANT, GAS_SHALE, GAS_TURBINE, GAS_WELL, STEAM_REFORMER, WELLHEAD_SEPARATOR};
 const BASE_COUNT: usize = 129;
 pub const BLOCK_COUNT: usize = BASE_COUNT
     + DECOR_COUNT
@@ -233,7 +236,8 @@ pub const BLOCK_COUNT: usize = BASE_COUNT
     + LED_COUNT
     + STREET_COUNT
     + TINT_COUNT
-    + STAINED_GLASS_COUNT;
+    + STAINED_GLASS_COUNT
+    + GAS_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;

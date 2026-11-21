@@ -28,6 +28,11 @@ pub(super) const fn machine(name: &'static str, tex: [u16; 3]) -> ItemDef {
     ItemDef { name, stack: MAX_STACK, tex, size: [1.0; 3], places: AIR }
 }
 
+/// A wide machine block (block id >= 256) stored in `EXTRA` and paired in `WIDE_BLOCK_ITEMS`.
+pub(super) const fn wide_machine(name: &'static str, tex: [u16; 3], places: crate::block::BlockId) -> ItemDef {
+    ItemDef { name, stack: MAX_STACK, tex, size: [1.0; 3], places }
+}
+
 /// A tool: a flat plate showing it, whose stack size is its uses.
 pub(super) const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }

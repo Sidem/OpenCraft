@@ -1,6 +1,6 @@
 {
   "name": "opencraft",
-  "version": "0.9.8",
+  "version": "0.11.0",
   "private": true,
   "license": "MIT",
   "type": "module",

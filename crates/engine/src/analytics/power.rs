@@ -74,9 +74,11 @@ impl PowerHistory {
         self.scope(grid).map_or_else(Vec::new, Rows::rows)
     }
 
-    /// The block of each user row (after the totals and sources), as raw ids.
+    /// The item id of each user row (after the totals and sources: equals the block id below 256, else `WIDE_BLOCK_ITEMS`).
     pub fn user_blocks(&self, grid: i32) -> Vec<u32> {
-        self.scope(grid).map_or_else(Vec::new, |r| r.users.iter().map(|u| u.block as u32).collect())
+        self.scope(grid).map_or_else(Vec::new, |r| {
+            r.users.iter().map(|u| u32::from(crate::item::ItemId::block(u.block).0)).collect()
+        })
     }
 
     /// What each kind of source could give right now.

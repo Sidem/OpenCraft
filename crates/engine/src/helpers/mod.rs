@@ -118,9 +118,9 @@ impl Helpers {
         }
     }
 
-    /// Burns a coal from `inv` into the tank if it is empty; whether there is fuel.
+    /// Burns a coal (or charcoal) from `inv` into the tank if it is empty; whether there is fuel.
     fn refuel(&mut self, inv: &mut Inventory) -> bool {
-        if self.jet == 0 && inv.remove(coal(), 1) {
+        if self.jet == 0 && !inv.remove_like(coal(), 1).is_empty() {
             self.jet = JET_TICKS_PER_COAL;
         }
         self.jet > 0

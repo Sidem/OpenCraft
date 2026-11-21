@@ -22,6 +22,8 @@ pub const POD_UP: u8 = 11;
 pub const POD_DOWN: u8 = 12;
 /// A placement that cannot happen (the player's body or a taken cell is in the way: `place_refusal.rs`).
 pub const DENIED: u8 = 13;
+/// Flamethrower burst and fire ignition/collapse crackle (`flame_hands.rs`, `sim/fire/`).
+pub const FLAME: u8 = 14;
 
 /// Floats per event: kind, sound material, camera-relative x, y, z, volume (0..1).
 pub const EVENT_FLOATS: usize = 6;

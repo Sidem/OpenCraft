@@ -13,7 +13,9 @@
 
 use crate::block::{self, BlockId};
 use crate::factory::{first_maker, tenths, tenths_a_minute, tiers};
-use crate::item::{ItemId, COIN, CRUDE_BARREL, DIESEL_BARREL, SCRAP_METAL};
+use crate::item::{
+    ItemId, CHARCOAL, COIN, CRUDE_BARREL, DIESEL_BARREL, LPG_BARREL, METHANE_BARREL, RAW_GAS_BARREL, SCRAP_METAL,
+};
 use crate::recipes::{Category, MACHINE_RECIPES, RECIPES};
 use crate::research::{Research, Unlock, TECHS};
 use crate::wood::Form;
@@ -118,8 +120,9 @@ pub fn use_line(research: &Research, item: ItemId) -> Option<String> {
     (!each.is_empty()).then(|| format!("{}.", upper_first(&each.join("; "))))
 }
 
-/// What a machine burns for power that no recipe takes, so `uses` does not list it: item, then the block that burns it.
-const BURNED_BY: &[(ItemId, BlockId)] = &[(DIESEL_BARREL, block::DIESEL_GENERATOR)];
+/// What a machine burns for power, so the guide also names its generator: item, then the block that burns it.
+const BURNED_BY: &[(ItemId, BlockId)] =
+    &[(DIESEL_BARREL, block::DIESEL_GENERATOR), (METHANE_BARREL, block::GAS_TURBINE), (LPG_BARREL, block::GAS_TURBINE)];
 
 /// " (research Recycling)" while the block's recipe is locked.
 fn block_note(research: &Research, b: BlockId) -> String {
@@ -253,8 +256,18 @@ const FOUND: &[(ItemId, &str)] = &[
     (b(block::BASALT), "The black rock of basalt fields."),
     (b(block::SPENT_ROCK), "What ore turns into once a miner has drawn its share out: dig it where a deposit ran dry."),
     (SCRAP_METAL, "Break the rusted plating, girders and machines of ruins. Taking iron things apart gives some too."),
-    (CRUDE_BARREL, "A pumpjack set on oil sand fills empty barrels with crude oil."),
+    (CRUDE_BARREL, "A pumpjack or wellhead separator set over oil sand fills empty barrels with crude oil."),
+    (
+        RAW_GAS_BARREL,
+        "A gas well set over a gas shale field fills empty barrels with raw gas, or a wellhead separator over oil sand \
+         recovers associated gas alongside crude oil.",
+    ),
     (COIN, "A recycler pays coins for the items it destroys."),
+    (
+        CHARCOAL,
+        "Left behind at the foot of a grown tree that burns down. Serves as coal everywhere: fuel, recipes, jetpack, \
+         flamethrower and towns.",
+    ),
 ];
 
 /// How `item` is found or dug, if it is.

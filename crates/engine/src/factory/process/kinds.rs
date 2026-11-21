@@ -23,6 +23,7 @@ pub(in crate::factory) struct Kinds {
     pub rectenna: Vec<u32>,
     pub reactor: Vec<u32>,
     pub turbine: Vec<u32>,
+    pub gas: Vec<u32>,
     pub diesel: Vec<u32>,
     /// Ground stations (`ground.rs`), optimizers and swarm hubs (`optimizer.rs`, `hub.rs`), by block.
     pub ground: Vec<u32>,
@@ -49,6 +50,7 @@ impl Kinds {
                 Energy::Rectenna => Some(&mut k.rectenna),
                 Energy::Reactor => Some(&mut k.reactor),
                 Energy::Turbine => Some(&mut k.turbine),
+                Energy::Gas => Some(&mut k.gas),
                 Energy::Diesel => Some(&mut k.diesel),
                 _ => None,
             };

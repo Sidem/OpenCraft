@@ -93,6 +93,25 @@ impl Game {
                 SimEvent::Launched { .. } | SimEvent::PodSent { .. } | SimEvent::PodLanded { .. } => {
                     self.orbit_event(event)
                 }
+                SimEvent::DepositsUpgraded => self.surveyed = None,
+                SimEvent::FireIgnited { pos } => {
+                    let at = pos.as_vec3() + Vec3::new(0.5, 1.5, 0.5);
+                    if (at - self.body().eye()).length() < MINER_SOUND_RANGE {
+                        self.play(sound::FLAME, 0, at, 0.55);
+                    }
+                }
+                SimEvent::TreeBurned { pos } => {
+                    let at = pos.as_vec3() + Vec3::new(0.5, 1.0, 0.5);
+                    if (at - self.body().eye()).length() < MINER_SOUND_RANGE {
+                        self.play(sound::BREAK, block::sound::WOOD, at, 0.65);
+                    }
+                }
+                SimEvent::Flamed { player, origin, dir } => {
+                    if player != local {
+                        self.note_flame_jet(player, origin, dir);
+                        self.play(sound::FLAME, 0, origin + dir * 1.5, 0.85);
+                    }
+                }
             }
         }
         if picked_up {

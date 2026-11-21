@@ -27,6 +27,11 @@ impl Game {
         block::def(id).sound
     }
 
+    /// The item id that represents `id` (the same number below 256, else its `WIDE_BLOCK_ITEMS` entry).
+    pub fn block_item(&self, id: BlockId) -> u16 {
+        ItemId::block(id).0
+    }
+
     /// The first of a texture layer's three alternate looks, or 0 when it has none (`block::tex`).
     pub fn texture_alternates(&self, layer: u16) -> u16 {
         block::tex::alternates(layer)

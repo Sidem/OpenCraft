@@ -47,7 +47,14 @@ const B: PlayerId = PlayerId(1);
 /// hash was 0x7da4_9ec8_a301_3e01.
 /// On 2026-11-19 manually switched-off machines (`factory/switch.rs`, save 80) added their count (4 zero bytes) at the
 /// end of the core and nothing else; the previous hash was 0x22fd_80b0_5699_aac0.
-const GOLDEN_HASH: u64 = 0xd0b7_46a6_c02e_b6c0;
+/// On 2026-11-21 generator layers (`worldgen/layers.rs`, save 81) were folded into `state_hash` (16 bytes `[12; 4]` at
+/// the end of the hash input) so co-op checksums cover `Action::UpgradeDeposits`; `write_state` itself is unchanged
+/// and still hashes to the previous 0xd0b7_46a6_c02e_b6c0.
+/// On 2026-11-21 CHEM-GAS added two research entries (Gas Wells 90, Gas Processing 91) and generator version 13
+/// (`[13; 4]` in `Layers`); the previous hash was 0x4dd6_71a5_86c3_8440.
+/// On 2026-11-21 FIRE added one research entry (Flamethrower 92) and active fires (`sim/fire/`, save 82, 12 zero
+/// bytes when empty) at the end of the core; the previous hash was 0xee53_5ac3_e737_f7e2.
+const GOLDEN_HASH: u64 = 0xbf81_021e_48c3_41cd;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

@@ -15,7 +15,7 @@ mod read;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 79;
+pub const TAG_COUNT: u8 = 82;
 /// Tags only read, never written: 4, the filter's old one item straight on, now a `FilterPick` (tag 73); 38, the
 /// personal drone's old fetch, now an `Action::Drone` (tag 72).
 #[cfg(test)]
@@ -383,12 +383,23 @@ impl Action {
                 w.ivec3(pos);
                 w.bool(on);
             }
+            Action::UpgradeDeposits => w.u8(79),
+            Action::Ignite { pos, heat } => {
+                w.u8(80);
+                w.ivec3(pos);
+                w.u8(heat);
+            }
+            Action::Flame { origin, dir } => {
+                w.u8(81);
+                w.vec3(origin);
+                w.vec3(dir);
+            }
         }
     }
 
-    /// Whether a peer may send this for its own player. Joining, leaving and pickups are the
+    /// Whether a peer may send this for its own player. Joining, leaving, pickups and world upgrades are the
     /// authority's (the host's) to issue.
     pub fn is_peer_input(&self) -> bool {
-        !matches!(self, Action::Join { .. } | Action::Leave { .. } | Action::PickUp { .. })
+        !matches!(self, Action::Join { .. } | Action::Leave { .. } | Action::PickUp { .. } | Action::UpgradeDeposits)
     }
 }

@@ -6,6 +6,7 @@
 // and canopies are a second list beside its cubes (shaped.ts), drawn in passes of their own after each cube pass.
 
 import { BoxPipeline } from './boxes';
+import { FirePipeline } from './fire';
 import { HaloPipeline } from './halos';
 import type { FrameInfo, RenderStats } from './frame';
 import { deleteShaped, shapedVert, uploadShaped, type ShapedPart } from './shaped';
@@ -67,6 +68,7 @@ export class Renderer {
 
   private readonly boxes: BoxPipeline;
   private readonly halos: HaloPipeline;
+  private readonly fire: FirePipeline;
   private readonly sky: SkyPass;
   private readonly water: WaterPass;
   private readonly overlays: Overlays;
@@ -107,13 +109,12 @@ export class Renderer {
 
     this.quadIndex = gl.createBuffer()!;
     this.ensureQuadCapacity(1 << 15);
-
     this.boxes = new BoxPipeline(gl, instanceFloats, roundBit);
     this.halos = new HaloPipeline(gl);
+    this.fire = new FirePipeline(gl);
     this.sky = new SkyPass(gl);
     this.water = new WaterPass(gl);
     this.precip = new PrecipPass(gl);
-
     this.overlays = new Overlays(gl);
     this.falling = new Falling(gl, this.quadIndex, (quads) => this.ensureQuadCapacity(quads));
   }
@@ -373,6 +374,7 @@ export class Renderer {
     // The ghost writes no depth, so a port behind it still shows its marks; a wall still hides them.
     drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.marks, f.marksCount, f.marksRound, f.marksRoundCount, undefined, f.beltScroll);
     drawCalls += this.halos.draw(this.view, this.proj, sky, fog.range, f.halos, f.haloCount, f.haloFloats);
+    drawCalls += this.fire.draw(this.view, this.proj, f.renderTime, fog.range, f.fire, f.fireCount, f.fireFloats);
     if (!f.underwater) drawCalls += this.precip.draw(this.viewProj, f.eye, sky, drawn, this.skySettings.precip, now);
 
     drawCalls += this.overlays.draw(this.viewProj, f, [ex, ey, ez]);

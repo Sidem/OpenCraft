@@ -289,6 +289,7 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   The hover pack (9.5a): `tex::HOVER_PACK` (200) is an icon only; the worn pack has no model and hovering draws nothing yet.
   The cargo drone (9.5b): `tex::CARGO_DRONE` (201) is the icon; in flight it is the builder's boxes with a crate slung
   under it (`drone_view.rs`). It should read as a heavier hauler; a route has no line drawn between its ports yet.
+- [ ] (CHEM-GAS, landed 2026-11-21) Natural gas (`textures/gas.rs`, layers 507–522): `GAS_SHALE` (507, cube layer under 512: dark blue-grey laminated shale with pale blue-cyan veins, must read apart from stone and oil sand), five barrel bands `RAW_GAS_BARREL` (508), `METHANE_BARREL` (509), `ETHANE_BARREL` (510), `LPG_BARREL` (511), `ETHYLENE_BARREL` (512; non-cube layers start past 512), and five machine vessel paints `GAS_WELL_SIDE`/`TOP` (513–514), `SEPARATOR_SIDE`/`TOP` (515–516), `GAS_PLANT_SIDE`/`TOP` (517–518), `GAS_TURBINE_SIDE`/`TOP` (519–520), `REFORMER_SIDE`/`TOP` (521–522). Placed models in `factory/process/gas.rs`, item icons in `item_models/gas.rs`.
 - [ ] (10.2, landed) Barrels and the pumpjack (`textures/chemistry.rs`): `tex::EMPTY_BARREL`, `CRUDE_BARREL` (204–205) are icons of one
   steel drum with a coloured band (every later fluid reuses the drum: the band is the colour cue); `PUMPJACK_SIDE`, `PUMPJACK_TOP` (206–207)
   are the jack's flat green and yellow paint; the model is drawn in `factory/process/pump/view.rs`. Refining (10.3): barrel bands `NAPHTHA`/`DIESEL`/`HEAVY_OIL_BARREL` (208–210),
@@ -389,29 +390,8 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
 - [ ] (woods, 2026-11-14) Art for the 36 wood layers 432-467 (`block/woods.rs`); oak recolours now.
 - [ ] (LOOK, 2026-11-17) Router roofs `splitter_top`/`filter_top`/`merger_top` (31, 32, 472; cyan in, gold out); models
   `router_model.rs`, doorways `process/port_mouth.rs` (dark, `FRAME` lintel): existing layers, want a frame face.
+- [ ] (FIRE, 2026-11-21) `tex::CHARCOAL` (523), `FLAMETHROWER` (524, tan shroud), `FLAMETHROWER_TANK` (525, olive), `FLAMETHROWER_CHROME` (526, bell) in `textures/fire.rs` & `item_models/fire.rs`; shader flames in `web/src/render/fire.ts`.
 
 ## 8. Log
 
-Detailed entries for A0–A4 live in git history (`git log -- docs/ART_HANDOVER.md`); in short:
-
-- **2026-09-26, A0–A4 (art branch):** Alpine direction chosen (section 2b); the fixed review scene is
-  `web/art-preview.html` with `web/art/scene.js` (eye `(30,75.62,19)`, yaw `-0.65`, pitch `-0.55`;
-  `?view=materials`, `?view=items`, `?view=machines`); screenshots under `artifacts/`. Natural blocks,
-  ores, item assemblies (`item_models.rs`) and machine silhouettes (about 12 boxes each, animated only
-  while working) landed. Wasm grew 131.5 → 143.4 KB gzipped over those steps.
-- **2026-09-26, salvage (roadmap agent, on the user's request; merged to `main`):** the art branch's
-  terrain was replaced; the machine models, item assemblies and preview tooling stayed. The UV drift and
-  multi-sample blending are gone (only a gentle world-anchored tint remains). Repetition is broken by
-  **alternates** (layers 73–90, `tex::WITH_ALTERNATES`, one of four looks per block). Textures are pixel
-  art from 5-tone ramps (`textures/paint.rs`). Surface hints are grass (blocks 36–39) and sand (40–43) a
-  shade off. Tool, scanner and core-drill box models; handle and steel layers 103–104. Wasm 154.6 KB
-  gzipped. The `art` branch is superseded: start any further art work from `main`.
-  **Left for the next art session:** quartz crystals read a bit square; grass blades could be more
-  legible up close; granite, sandstone and basalt are still plain grain; held tool models; the
-  leaf-decay puff; the `?view=materials` change is untested in the browser; tools on belts show flat
-  pictures.
-- **2026-09-27 (roadmap agent):** Milestone 4 added day and night (`render/sky.ts`) and per-vertex sky
-  and block light (`light.rs`, the light curve in `shaders.ts`), and the lamp (block 44, layer 105).
-- **2026-10-10 (main, on the user's request):** about 20 machine models redone for legibility (round bodies as two
-  crossed parts, `paint::round_shade`; vessel sides without window-like rivet rows), a steam locomotive and new
-  wagons, smoke (`factory/smoke.rs`, layers 281–282) and `SOOT` (284). Rebase art work on these.
+Entries for A0–A4, the 2026-09-26 salvage, Milestone 4 sky/light and the 2026-10-10 machine model rework live in git history (`git log -p -- docs/ART_HANDOVER.md`). Rebase art work on `main`.

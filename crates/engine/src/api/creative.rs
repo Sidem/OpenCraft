@@ -39,4 +39,11 @@ impl Game {
             self.act(Action::Give { item, count });
         }
     }
+
+    /// Lights whatever grows at `(x, y, z)` with spread budget `heat`; only in a creative world.
+    pub fn creative_ignite(&mut self, x: i32, y: i32, z: i32, heat: u8) {
+        if self.is_creative() {
+            self.act(Action::Ignite { pos: crate::math::IVec3::new(x, y, z), heat });
+        }
+    }
 }

@@ -34,7 +34,7 @@ impl Game {
         let (jet, charge) = self.sim.player(self.local).map_or((0, 0), |p| (p.helpers.jet, p.helpers.charge));
         let packed = inv.has_hover_pack();
         let hover = packed && charge > 0 && in_air && (self.hover_sent || jump);
-        let fuel = jet > 0 || inv.count(helpers::coal()) > 0;
+        let fuel = jet > 0 || inv.count_like(helpers::coal()) > 0;
         let thrust = jump && in_air && fuel && inv.has_jetpack() && !hover;
         let pole = self.charging_pole(feet, packed, charge);
         if hover != self.hover_sent {
@@ -99,7 +99,7 @@ impl Game {
             lines.push(drone);
         }
         if p.helpers.thrusting || (p.helpers.jet > 0 && p.inventory.has_jetpack()) {
-            let coal = p.inventory.count(helpers::coal());
+            let coal = p.inventory.count_like(helpers::coal());
             let secs = (p.helpers.jet + JET_TICKS_PER_COAL * coal).div_ceil(TICK_RATE);
             lines.push(format!("Jetpack · {secs} s of fuel ({coal} coal)"));
         }

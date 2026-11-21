@@ -13,6 +13,7 @@
 use super::automate::AUTOMATE;
 use super::decor::DECOR;
 use super::dye::DYE;
+use super::gas::GAS_MACHINES;
 use super::glass::STAINED_GLASS;
 use super::machine_later::LATER;
 use super::orbit::ORBIT;
@@ -64,6 +65,10 @@ pub enum Category {
     Launch,
     /// A Mk1 item and the kits of each step into a higher tier's item (the upgrader; rows are `refit.rs`'s).
     Refit,
+    /// Raw natural gas and water into methane, ethane, LPG and sulfur (the gas plant).
+    GasProcessing,
+    /// Methane, empty barrels and water into hydrogen barrels (the steam reformer).
+    Reforming,
 }
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `outputs` appear after
@@ -99,8 +104,9 @@ pub const MACHINE_RECIPES: &[MachineRecipe] =
                 + REFIT_LATER.len()
                 + DYE.len()
                 + STAINED_GLASS.len()
+                + GAS_MACHINES.len()
         },
-    >(&[MAIN, LATER, ORBIT, AUTOMATE, REFIT, SCRAP, DECOR, REFIT_LATER, DYE, STAINED_GLASS]);
+    >(&[MAIN, LATER, ORBIT, AUTOMATE, REFIT, SCRAP, DECOR, REFIT_LATER, DYE, STAINED_GLASS, GAS_MACHINES]);
 
 const MAIN: &[MachineRecipe] = &[
     MachineRecipe { category: Smelting, inputs: &[(b(IRON_ORE), 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },
@@ -279,6 +285,10 @@ const WATER_USE: &[(u16, u32)] = &[
     (WASH_RECIPES[2], 1),
     (PURE_WATER_RECIPE, 2),
     (DYE_FIRST, 1),
+    (GAS_PROCESS_RECIPE, 1),
+    (REFORM_RECIPE, 2),
+    (ETHANE_CRACK_RECIPE, 1),
+    (LPG_CRACK_RECIPE, 1),
 ];
 
 /// Water units one batch of machine recipe `i` uses.
@@ -295,8 +305,14 @@ impl MachineRecipe {
 
 /// Fuel: the seconds of smelting one item keeps a fire going, and the energy it gives a generator in
 /// kJ (a coal runs a Mk1 miner long enough to mine about 32 coal).
-pub const FUELS: &[(ItemId, f64, u32)] =
-    &[(b(COAL_ORE), 8.0, 270), (b(LOG), 4.0, 135), (b(PLANKS), 1.0, 34), (b(OIL_SAND), 2.5, 90)];
+pub const FUELS: &[(ItemId, f64, u32)] = &[
+    (b(COAL_ORE), 8.0, 270),
+    (crate::item::CHARCOAL, 8.0, 270),
+    (b(LOG), 4.0, 135),
+    (b(PLANKS), 1.0, 34),
+    (b(OIL_SAND), 2.5, 90),
+    (b(GAS_SHALE), 2.5, 90),
+];
 
 /// Seconds of work one `item` fuels, if it burns.
 pub fn burn_time(item: ItemId) -> Option<f64> {

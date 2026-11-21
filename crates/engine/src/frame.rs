@@ -89,6 +89,7 @@ impl Game {
         self.write_leds(eye);
         self.write_streets(eye);
         self.write_port_pads(eye);
+        self.write_fire(dt, eye, time);
         {
             let world = &mut self.sim.world;
             factory::light_boxes(&mut self.instances, eye, |c| world.light_at(c));
@@ -102,6 +103,7 @@ impl Game {
         self.write_scope_beacons(eye);
         self.write_strategy_fog(eye);
         self.write_halos(eye);
+        self.append_fire_halos();
         factory::split_round(&self.instances, &mut self.round_instances);
         self.write_xray(factory_from..factory_to, eye);
         self.minimap.atlas.refresh_some(&self.sim.world);

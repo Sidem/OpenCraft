@@ -17,10 +17,11 @@ fn the_decor_rows_are_the_last_of_the_table_where_research_says() {
     let later = crate::recipes::refit::REFIT_LATER.len();
     let dye = crate::recipes::dye::DYE.len();
     let glass = crate::recipes::glass::STAINED_GLASS.len();
+    let gas = crate::recipes::gas::GAS_MACHINES.len();
     assert_eq!(
         MACHINE_RECIPES.len(),
-        DECOR_FIRST as usize + DECOR.len() + later + dye + glass,
-        "only upgrader, dye and stained glass rows follow"
+        DECOR_FIRST as usize + DECOR.len() + later + dye + glass + gas,
+        "only upgrader, dye, stained glass and gas rows follow"
     );
     assert_eq!(MACHINE_RECIPES[DECOR_FIRST as usize - 1].inputs, &[(item::SCRAP_METAL, 3)][..], "the salvage row");
     assert_eq!(

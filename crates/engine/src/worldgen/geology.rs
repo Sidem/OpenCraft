@@ -10,8 +10,8 @@
 //! the same helpers as version 1 (`ore.rs`). To tune: `ORES_BY_BIOME` (weights, not rates).
 
 use crate::block::{
-    BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, DARK_SAND, DARK_SOIL, GRASS, GREEN_SAND, GREEN_SOIL, IRON_ORE,
-    LIMESTONE, OIL_SAND, PALE_SAND, PALE_SOIL, QUARTZ_ORE, RUSTY_SAND, RUSTY_SOIL, SAND, URANIUM_ORE,
+    BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, DARK_SAND, DARK_SOIL, GAS_SHALE, GRASS, GREEN_SAND, GREEN_SOIL,
+    IRON_ORE, LIMESTONE, OIL_SAND, PALE_SAND, PALE_SOIL, QUARTZ_ORE, RUSTY_SAND, RUSTY_SOIL, SAND, URANIUM_ORE,
 };
 use crate::chunk::CHUNK_SIZE;
 use crate::deposits::{Deposit, DepositKey, Tier};
@@ -144,7 +144,7 @@ impl WorldGen {
     /// A vein or lode's stain area: its full radius, and from version 8 a shore bending it (a circle before).
     fn hint_area(&self, d: &Deposit) -> (f32, Option<Shore>) {
         let r = d.radii[0].max(d.radii[2]) + HINT_MARGIN;
-        if self.version >= 8 {
+        if self.layers.deposits >= 8 {
             (r * 1.25, Some(Shore::new(d.seed)))
         } else {
             (r, None)
@@ -175,6 +175,9 @@ impl WorldGen {
 
     /// Whether deposits of `ore` can lie in `biome` around `at` (version 2 on: before it ore had no biome).
     pub(super) fn holds_ore(&self, ore: BlockId, biome: Biome, at: IVec3) -> bool {
+        if ore == GAS_SHALE {
+            return self.layers.deposits >= super::gas::GAS_SINCE && super::gas::holds_gas(biome, at);
+        }
         match EXTRAS.iter().find(|e| e.ore == ore) {
             Some(e) => self.extra_weight(e, biome, at) > 0,
             None => ores_in(biome).iter().any(|o| o.0 == ore),
@@ -183,19 +186,25 @@ impl WorldGen {
 
     /// Whether this world's generator makes `ore` at all (the extra ores came with later versions).
     pub fn has_ore(&self, ore: BlockId) -> bool {
-        EXTRAS.iter().find(|e| e.ore == ore).is_none_or(|e| self.version >= e.since)
+        if ore == GAS_SHALE {
+            return self.layers.deposits >= super::gas::GAS_SINCE;
+        }
+        EXTRAS.iter().find(|e| e.ore == ore).is_none_or(|e| self.layers.deposits >= e.since)
     }
 
     /// How far from the start (blocks) `ore` first appears in this world; 0 for the ores found everywhere.
     pub fn ore_from(&self, ore: BlockId) -> i32 {
-        EXTRAS.iter().find(|e| e.ore == ore).map_or(0, |e| e.distance(self.version))
+        if ore == GAS_SHALE {
+            return super::gas::GAS_FROM;
+        }
+        EXTRAS.iter().find(|e| e.ore == ore).map_or(0, |e| e.distance(self.layers.deposits))
     }
 
     /// The weight of an extra ore among the ores of `biome` at `at`: none before its version or nearer spawn
     /// than its distance, else its row for the biome.
     fn extra_weight(&self, e: &Extra, biome: Biome, at: IVec3) -> u32 {
-        let far = (at.x as i64).pow(2) + (at.z as i64).pow(2) >= (e.distance(self.version) as i64).pow(2);
-        if self.version < e.since || !far {
+        let far = (at.x as i64).pow(2) + (at.z as i64).pow(2) >= (e.distance(self.layers.deposits) as i64).pow(2);
+        if self.layers.deposits < e.since || !far {
             return 0;
         }
         e.weights.iter().find(|w| w.0 == biome).map_or(0, |w| w.1)
@@ -216,9 +225,9 @@ impl Extra {
 /// takes stains.
 pub fn hint_for(ore: BlockId, top: BlockId) -> Option<BlockId> {
     let (grass, sand) = match ore {
-        // Bauxite shows itself (exposed on bare rock) and leaves no stain; neither do oil sand and uranium, which
-        // lie too deep and are found by scanning.
-        BAUXITE_ORE | OIL_SAND | URANIUM_ORE => return None,
+        // Bauxite shows itself (exposed on bare rock) and leaves no stain; neither do oil sand, uranium and gas shale,
+        // which lie too deep and are found by scanning.
+        BAUXITE_ORE | OIL_SAND | URANIUM_ORE | GAS_SHALE => return None,
         IRON_ORE => (RUSTY_SOIL, RUSTY_SAND),
         COAL_ORE => (DARK_SOIL, DARK_SAND),
         COPPER_ORE => (GREEN_SOIL, GREEN_SAND),

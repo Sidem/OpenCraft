@@ -125,7 +125,10 @@ impl WorldGen {
 
     /// The top water block of the column at (x, z), whose ground is at `h`, or `i32::MIN` when dry.
     pub(super) fn water_top(&self, x: i32, z: i32, h: i32) -> i32 {
-        if self.version >= 7 {
+        if self.layers.water < 3 {
+            return i32::MIN;
+        }
+        if self.layers.water >= 7 {
             if let Some(level) = self.river_water(x, z, h) {
                 return level;
             }
@@ -145,11 +148,11 @@ impl WorldGen {
     /// Whether the column at (x, z) lies under the sea or a river or lake as generated; `None` when dry or a pond.
     /// A query (no chunks), like `biome_at`.
     pub fn open_water(&self, x: i32, z: i32) -> Option<Water> {
-        if self.version < 3 {
+        if self.layers.water < 3 {
             return None;
         }
         let h = self.height_at(x, z);
-        if self.version >= 7 && self.river_water(x, z, h).is_some() {
+        if self.layers.water >= 7 && self.river_water(x, z, h).is_some() {
             return Some(Water::River);
         }
         (h < SEA_LEVEL).then_some(Water::Sea)
@@ -202,12 +205,12 @@ impl WorldGen {
         if x * x + z * z < (POND_SPAWN_CLEARING + r + BANK).pow(2) {
             return None;
         }
-        let shore = (self.version >= 8).then(|| Shore::new(hash2(self.seed ^ 0x90DF, gx, gz)));
+        let shore = (self.layers.water >= 8).then(|| Shore::new(hash2(self.seed ^ 0x90DF, gx, gz)));
         let h0 = self.base_height(x, z);
         if !matches!(self.biome_at(x, z, h0), Biome::Plains | Biome::Lowlands) {
             return None;
         }
-        if self.version >= 7 && self.river_near(x, z) {
+        if self.layers.water >= 7 && self.river_near(x, z) {
             return None;
         }
         let rim = DIRS16.map(|(dx, dz)| self.base_height(x + dx * (r + 1) / 1000, z + dz * (r + 1) / 1000));

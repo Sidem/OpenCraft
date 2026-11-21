@@ -47,7 +47,8 @@ impl Game {
         }
         let fresh = Game::read_snapshot(bytes, self.local, 2)?;
         let (a, b) = (fresh.sim.world.generator(), self.sim.world.generator());
-        if (a.seed(), a.version()) != (b.seed(), b.version()) {
+        let (al, bl) = (a.layers(), b.layers());
+        if (a.seed(), al.ground, al.water, al.cover) != (b.seed(), bl.ground, bl.water, bl.cover) {
             return Err(DAMAGED.into());
         }
         let old = std::mem::replace(&mut self.sim, fresh.sim);

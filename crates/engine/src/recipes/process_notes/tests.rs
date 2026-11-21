@@ -1,9 +1,16 @@
 use super::*;
 use crate::recipes::{Category, MACHINE_RECIPES};
 
-/// The machines that teach: the refinery, the cracker, the chemical plant, the electrolyser and the centrifuge.
-const TEACHING: [Category; 5] =
-    [Category::Distilling, Category::Cracking, Category::Chemistry, Category::Splitting, Category::Enrichment];
+/// The machines that teach: refinery, cracker, chemical plant, electrolyser, centrifuge, gas plant and steam reformer.
+const TEACHING: [Category; 7] = [
+    Category::Distilling,
+    Category::Cracking,
+    Category::Chemistry,
+    Category::Splitting,
+    Category::Enrichment,
+    Category::GasProcessing,
+    Category::Reforming,
+];
 
 #[test]
 fn every_row_of_a_chemical_machine_has_a_note() {

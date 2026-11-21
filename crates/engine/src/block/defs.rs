@@ -5,6 +5,7 @@
 use super::coal_miner::COAL_MINER_DEFS;
 use super::ejector::EJECTOR_DEFS;
 use super::forester::FORESTER_DEFS;
+use super::gas::GAS_DEFS;
 use super::glass::STAINED_GLASS_DEFS;
 use super::house::HOUSE_DEFS;
 use super::led::LED_DEFS;
@@ -34,6 +35,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = crate::join::join(&[
     &STREET_DEFS,
     &TINT_DEFS,
     &STAINED_GLASS_DEFS,
+    &GAS_DEFS,
 ]);
 
 const BASE_DEFS: [BlockDef; BASE_COUNT] = [

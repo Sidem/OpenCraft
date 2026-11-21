@@ -19,6 +19,7 @@ mod decor;
 pub mod dye;
 mod electronics;
 mod first;
+pub(crate) mod gas;
 mod gear;
 pub mod glass;
 mod gold;
@@ -51,6 +52,7 @@ use chemistry::*;
 use compute::*;
 use electronics::*;
 use first::*;
+use gas::{GAS_PLANT_RECIPE, GAS_TURBINE_RECIPE, GAS_WELL_RECIPE, STEAM_REFORMER_RECIPE, WELLHEAD_SEPARATOR_RECIPE};
 use gear::*;
 use gold::*;
 pub use group::{Group, GROUPS};
@@ -273,6 +275,12 @@ pub const RECIPES: &[Recipe] = &[
     BLACK_PIGMENT_RECIPE,
     WHITE_PIGMENT_RECIPE,
     YELLOW_PIGMENT_RECIPE,
+    GAS_WELL_RECIPE,
+    WELLHEAD_SEPARATOR_RECIPE,
+    GAS_PLANT_RECIPE,
+    GAS_TURBINE_RECIPE,
+    STEAM_REFORMER_RECIPE,
+    FLAMETHROWER_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

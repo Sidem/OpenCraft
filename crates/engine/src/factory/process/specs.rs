@@ -36,6 +36,8 @@ pub enum Energy {
     Accumulator,
     /// A diesel generator: a power source burning diesel barrels (diesel.rs).
     Diesel,
+    /// A gas turbine: a clean power source burning methane or LPG barrels (gas.rs).
+    Gas,
     /// A water wheel: a power source driven by the water that touches it (hydro.rs).
     Hydro,
     /// A hoist winch: a power sink that makes the shaft beside it fast (hoist.rs).
@@ -63,6 +65,7 @@ impl Energy {
                 | Energy::Solar
                 | Energy::Accumulator
                 | Energy::Diesel
+                | Energy::Gas
                 | Energy::Hydro
                 | Energy::Reactor
                 | Energy::Rectenna
@@ -165,6 +168,11 @@ pub const SPECS: &[ProcessSpec] = &[
     super::refinery::PLANT_SPEC,
     super::refinery::ELECTROLYSER_SPEC,
     super::diesel::DIESEL_SPEC,
+    super::gas::GAS_WELL_SPEC,
+    super::gas::WELLHEAD_SEPARATOR_SPEC,
+    super::gas::GAS_PLANT_SPEC,
+    super::gas::GAS_TURBINE_SPEC,
+    super::gas::STEAM_REFORMER_SPEC,
     super::washer::WASHER_SPEC,
     super::center::CENTER_SPEC,
     super::hydro::WHEEL_SPEC,

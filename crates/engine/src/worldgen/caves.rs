@@ -28,7 +28,7 @@ pub(super) struct CaveField {
 impl CaveField {
     /// The cave field of the chunk at `base`; `None` when version 6 puts no cave anywhere in it.
     pub fn new(g: &WorldGen, base: IVec3) -> Option<Self> {
-        let zone = (g.version >= 6).then(|| {
+        let zone = (g.layers.ground >= 6).then(|| {
             let mut z = [0.0f32; 81];
             for iz in 0..9 {
                 for ix in 0..9 {
@@ -41,7 +41,7 @@ impl CaveField {
         if zone.as_ref().is_some_and(|z| z.iter().all(|&v| v < ZONE_MIN - 0.05)) {
             return None;
         }
-        let limit = if g.version >= 6 { TUNNEL_V6 } else { TUNNEL };
+        let limit = if g.layers.ground >= 6 { TUNNEL_V6 } else { TUNNEL };
         let mut f = CaveField { a: [0.0; 729], b: [0.0; 729], zone, limit };
         for iy in 0..9 {
             for iz in 0..9 {
