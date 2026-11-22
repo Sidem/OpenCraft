@@ -19,6 +19,8 @@
 //   snapshot host → client   the answer (`game.snapshot()`, taken between frames like a welcome's)
 // To add a message: a type number (append), a `Message` case, and its arm in `encode` and `decode`.
 
+import { buildIdOf } from './build-id';
+
 export type Message =
   | { type: 'hello'; build: string; key: bigint; name: string }
   | { type: 'welcome'; player: number; snapshot: Uint8Array }
@@ -36,10 +38,10 @@ export type Message =
   | { type: 'resync' }
   | { type: 'snapshot'; bytes: Uint8Array };
 
-/** Which build this page runs. Peers must match: the lockstep needs the same engine everywhere. In a
- * production build this module's URL carries the bundle's content hash, which changes with any script
- * or the wasm; in development every tab serves the same files, so the URL is the same too. */
-export const BUILD_ID = new URL(import.meta.url).pathname;
+/** Which build this page runs. Peers must match: the lockstep needs the same engine everywhere. The id is
+ * this module's file name (see `buildIdOf`): in production it carries the bundle's content hash, and in
+ * development every tab serves the same files, so it is the same too. */
+export const BUILD_ID = buildIdOf(import.meta.url);
 
 const TYPES = [
   'hello', 'welcome', 'refuse', 'actions', 'frames', 'checksum', 'bye', 'state', 'states', 'items', 'names',
