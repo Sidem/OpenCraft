@@ -129,7 +129,8 @@ impl Game {
 
     /// How well the machine at a position has run lately, in words (empty if it has no efficiency).
     pub fn machine_efficiency(&self, x: i32, y: i32, z: i32) -> String {
-        self.efficiency_line(IVec3::new(x, y, z))
+        let anchor = self.sim.factory.anchor_of(IVec3::new(x, y, z));
+        anchor.map_or_else(String::new, |a| self.analytics.machines.words(a))
     }
 
     /// The same as a percentage, or -1 when it is idle or has none.

@@ -57,7 +57,14 @@ impl Inventory {
     pub fn wear_hand(&mut self, hand: Hand) -> bool {
         match hand {
             Hand::Right => {
-                self.take_slot(self.selected, 1);
+                let Some((item, _)) = self.take_slot(self.selected, 1) else {
+                    return true;
+                };
+                let broken = self.slots[self.selected].is_empty();
+                if broken {
+                    self.refill_hotbar(self.selected, item);
+                }
+                broken
             }
             Hand::Left => {
                 self.offhand.count = self.offhand.count.saturating_sub(1);
@@ -65,9 +72,9 @@ impl Inventory {
                     self.offhand = Stack::default();
                 }
                 self.version += 1;
+                self.offhand.is_empty()
             }
         }
-        self.in_hand(hand).is_empty()
     }
 }
 

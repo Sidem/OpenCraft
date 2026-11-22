@@ -162,10 +162,12 @@ fn signs_are_saved_and_older_saves_have_none() {
         sim.factory.write_manual_off(&mut off);
         let mut fire = ByteWriter::default();
         sim.fire.write_state(&mut fire);
-        let tail = [bytes.as_slice(), &felling.bytes, &leds.bytes, &off.bytes, &fire.bytes].concat();
+        let mut codex = ByteWriter::default();
+        sim.codex.write_state(&mut codex);
+        let tail = [bytes.as_slice(), &felling.bytes, &leds.bytes, &off.bytes, &fire.bytes, &codex.bytes].concat();
         assert!(
             core.bytes.ends_with(&tail),
-            "the core ends with the signs, the trees being felled, the LED colours, the switched-off machines, active fires"
+            "the core ends with the signs, the trees being felled, the LED colours, the switched-off machines, active fires, the codex"
         );
     }
     const { assert!(SAVE_VERSION >= 63, "signs came with save 63") };
@@ -174,8 +176,8 @@ fn signs_are_saved_and_older_saves_have_none() {
     let fresh = crate::sim::Sim::new(2024, 2);
     fresh.write_state(&mut w);
     let cut = crate::helpers::before_drone_orders(&fresh, &w.bytes);
-    // (Cut the signs' count, the LED colours', the switched-off machines' and active fires, which a save 62 does not have either.)
-    let old = &cut[..cut.len() - 24];
+    // (Cut the signs' count, the LED colours', the switched-off machines', active fires and the empty codex, which a save 62 does not have either.)
+    let old = &cut[..cut.len() - 25];
     let (mut r, mut sim) = (ByteReader::new(old), crate::sim::Sim::new(2024, 2));
     r.version = 62;
     assert!(sim.read_state(&mut r).is_some() && r.is_done(), "a version 62 core");

@@ -135,17 +135,22 @@ impl Game {
         let passes = cells.iter().filter(is_pass).count();
         let short = cells.iter().filter(is_pass).filter(|c| c.short).count();
         let lifts = cells.iter().filter(|c| c.piece == Piece::Lift).count();
+        let short_lifts = cells.iter().filter(|c| c.piece == Piece::Lift && c.short).count();
         let sloped = cells.iter().filter(|c| matches!(c.shape, Shape::Up | Shape::Down)).count();
         let have = self.inventory().count(self.inventory().selected_stack().item) as usize;
         let title = if self.line.route == super::Route::Found { "Auto-route" } else { "Belt line" };
-        let mut s = format!("{title}\n{}", plural(belts, "belt", "belts"));
+        let mut s = if belts == 0 && lifts > 0 {
+            format!("{title}\n{}", plural(lifts, "lift", "lifts"))
+        } else {
+            format!("{title}\n{}", plural(belts, "belt", "belts"))
+        };
         if sloped > 0 {
             s += &format!(", {sloped} on slopes");
         }
         if passes > 0 {
             s += &format!(", {}", plural(passes, "underpass", "underpasses"));
         }
-        if lifts > 0 {
+        if lifts > 0 && belts > 0 {
             s += &format!(", {} up or down a cliff", plural(lifts, "lift", "lifts"));
         }
         if have < belts && !self.ghost_mode {
@@ -153,6 +158,9 @@ impl Game {
         }
         if short > 0 {
             s += &format!(" · {} missing (red), left out", plural(short, "underpass", "underpasses"));
+        }
+        if short_lifts > 0 {
+            s += &format!(" · {} missing (red), left out", plural(short_lifts, "lift", "lifts"));
         }
         if self.line.blocked.is_some() {
             s += " · too wide to go under (red)";

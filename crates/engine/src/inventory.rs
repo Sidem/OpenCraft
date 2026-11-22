@@ -241,6 +241,29 @@ impl Inventory {
         Some((item, taken))
     }
 
+    /// Consumes up to `n` items from `slot` (e.g. placing a block). When a hotbar slot runs out and the
+    /// backpack holds another stack of the same item, moves that stack into the same hotbar slot.
+    pub fn consume_slot(&mut self, slot: usize, n: u32) -> Option<(ItemId, u32)> {
+        let (item, taken) = self.take_slot(slot, n)?;
+        if slot < HOTBAR_SLOTS && self.slots[slot].is_empty() {
+            self.refill_hotbar(slot, item);
+        }
+        Some((item, taken))
+    }
+
+    /// Moves the first stack of `item` from the backpack into the empty hotbar `slot`, if one is there.
+    pub(crate) fn refill_hotbar(&mut self, slot: usize, item: ItemId) {
+        let cap = self.capacity();
+        if slot >= HOTBAR_SLOTS || !self.slots[slot].is_empty() {
+            return;
+        }
+        let Some(src) = (HOTBAR_SLOTS..cap).find(|&s| self.slots[s].item == item && !self.slots[s].is_empty()) else {
+            return;
+        };
+        self.slots[slot] = std::mem::take(&mut self.slots[src]);
+        self.version += 1;
+    }
+
     pub fn select(&mut self, slot: usize) {
         if slot < HOTBAR_SLOTS && slot != self.selected {
             self.selected = slot;

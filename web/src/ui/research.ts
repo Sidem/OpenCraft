@@ -44,6 +44,8 @@ export class ResearchPanel {
   onClose: (resume: boolean) => void = () => {};
   /** Called when a tech is done. */
   onDone: () => void = () => {};
+  /** Called when the player clicks the Codex button in the header. */
+  onCodex: () => void = () => {};
 
   private readonly backdrop = h('div', 'mp-backdrop hidden');
   private readonly dialog = h('div', 'mp rs');
@@ -99,9 +101,10 @@ export class ResearchPanel {
     for (const [t, v] of this.views.entries()) this.wire(t, v);
 
     const head = h('div', 'mp-head');
+    const codexBtn = button('secondary-btn', 'Codex', () => this.onCodex());
     const close = button('close-btn', '×', () => this.close(true));
     close.setAttribute('aria-label', 'Close');
-    head.append(h('h2', '', 'Research'), this.total, this.eras.tabs, this.search.el, close);
+    head.append(h('h2', '', 'Research'), this.total, this.eras.tabs, this.search.el, codexBtn, close);
     const hud = h('div', 'rs-hud rs-hud-left');
     hud.append(this.legend(), this.controls());
     const hudMap = h('div', 'rs-hud rs-hud-right');

@@ -34,6 +34,7 @@ mod bytes;
 mod camera;
 mod cargo_tools;
 mod chunk;
+mod codex;
 mod companion_view;
 mod crafting;
 mod daytime;

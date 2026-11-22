@@ -16,7 +16,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `api/`: the JS API, one `#[wasm_bindgen] impl Game` per area; methods only forward. `engine.d.ts` (generated) lists them.
   `input`, `view`, `render`, `inventory`, `machine`, `crafting`, `research`, `creative`, `content`, `hud`, `sites`, `save`,
   `net`, `minimap`, `prospect`, `analytics`, `towns`, `orbit`, `ruins`, `signs`, `opening`, `blueprint`, `hand_waste`,
-  `lessons`, `guide`, `surroundings`, `xray`, `led`, `seismic`, `static_boxes`, `debug` (give, teleport, run_ticks, scene building).
+  `lessons`, `guide`, `surroundings`, `xray`, `led`, `seismic`, `codex`, `static_boxes`, `debug` (give, teleport, run_ticks, scene building).
 - `events.rs`: `SimEvent`s → item spawns, sounds, toasts, analytics. `authority.rs`: bodies, loose items, join/leave.
 
 ### Deterministic core (changes only through `Action`s at a tick)
@@ -28,6 +28,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `doors.rs`, `deposits.rs` (pools, tiers, `HAND_YIELD`), `daytime.rs`, `crafting.rs`, `take_apart.rs`, `perks.rs`, `mode.rs`, `tools.rs`.
 - `inventory.rs` + `inventory/stacks.rs` + `inventory/kinds.rs`; `equipment.rs` (worn gear, packs); `offhand.rs`.
 - `research.rs`; `research/`: `techs.rs` (first era), `electronics.rs`, `later.rs` (open end), `queue.rs`, `bonus.rs`.
+- `codex/`: world-wide obtained-items bitset (save 83), `data.rs` (periodic table forms/facts), `achievements.rs`.
 - `ghosts.rs` (planned blocks). `drones/` (construction drones, `earthworks.rs`, `cargo/`).
 - `helpers/`: jetpack, hover pack, `drone/` (personal drone, `trip.rs`). `blueprint/mod.rs` (data, bytes; `plan.rs` the view from above).
 - `signs/` (note signs; `view.rs` draws boards). `led/` (LED lamp colours, `SetLed`; `view.rs` the tint box). `street/` (street lamps: placing and breaking a 1×1×4 column of blocks, no state; `model.rs` the model, `view.rs` draws it from the head). `satellites.rs`, `pods.rs`, `opening.rs` (+ `opening/miners.rs`).
@@ -136,7 +137,7 @@ local player's hands, presentation, then the **deterministic core**, which never
     `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`, `sign.ts` (`colour-wheel.ts`,
     `colour.ts`), `seismic.ts` + `seismic-controls.ts` + `seismic-render.ts` + `seismic-volume.ts` + `seismic-data.ts`, `train.ts`.
   - Research: `research.ts` (+ `research-card.css`), `research-view.ts`, `tech-tree.ts`, `research-eras.ts`, `research-node.ts`,
-    `research-kinds.ts`, `research-map.ts`, `research-search.ts`, `research-queue.ts`.
+    `research-kinds.ts`, `research-map.ts`, `research-search.ts`, `research-queue.ts`, `codex.ts` (+ `codex-elements.ts`: periodic table & achievements).
   - Maps: `worldmap.ts`, `pins.ts`, `map-pin-list.ts`, `map-filter.ts` + `map-filter-panel.ts`, `map-info.ts`, `map-key.ts` (+
     `map-key-rows.ts`), `map-focus.ts` + `map-focus-layer.ts`, `ore-guide.ts`. Analytics (P): `analytics.ts`, a tab each in
     `analytics-overview.ts`, `analytics-power.ts` (+ `analytics-grids.ts`), `analytics-items.ts`, `analytics-machines.ts`

@@ -107,6 +107,35 @@ impl Machines {
         }
     }
 
+    /// The plain-text readout for the machine panel (`machine.ts`): pace and what cost it the rest (empty if untracked).
+    pub fn words(&self, pos: IVec3) -> String {
+        let Some(e) = self.map.get(&pos) else { return String::new() };
+        if e.idle || !e.ready {
+            return "Efficiency: idle, nothing to do".to_string();
+        }
+        let pct = (e.work * 100.0).round() as u32;
+        if e.work >= FULL {
+            return "Efficiency 100%: full speed".to_string();
+        }
+        let mut text = format!("Efficiency {pct}% (last {WINDOW_SECS} s)");
+        let mut left = e.lost;
+        let mut sep = ": lost ";
+        let mut power = false;
+        for _ in 0..2 {
+            let (c, &share) = left.iter().enumerate().max_by(|a, b| a.1.total_cmp(b.1)).expect("causes");
+            if share < MINOR {
+                break;
+            }
+            power |= CAUSE_LIST[c] == Cause::Power;
+            text += &format!("{sep}{}% to {}", (share * 100.0).round() as u32, loss_name(CAUSE_LIST[c]));
+            (left[c], sep) = (0.0, ", ");
+        }
+        if power && pct > 0 {
+            text += " · [P] shows what each grid makes and uses";
+        }
+        text
+    }
+
     /// Counts of the machines that have something to do: `[working, at full pace, then one count per cause]`, each
     /// short machine counted under what costs it most.
     pub fn summary(&self) -> [u32; CAUSES + 2] {

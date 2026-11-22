@@ -38,6 +38,26 @@ fn take_clears_empty_slot() {
 }
 
 #[test]
+fn consuming_the_last_item_in_a_hotbar_slot_refills_it_from_the_backpack() {
+    let mut inv = Inventory::default();
+    let belt = ItemId(crate::block::BELT);
+    inv.slots[2] = Stack { item: belt, count: 2 };
+    inv.slots[5] = Stack { item: belt, count: 4 };
+    inv.slots[HOTBAR_SLOTS + 3] = Stack { item: belt, count: 10 };
+    assert_eq!(inv.consume_slot(2, 1), Some((belt, 1)));
+    assert_eq!(inv.slots[2], Stack { item: belt, count: 1 });
+    assert_eq!(inv.slots[HOTBAR_SLOTS + 3].count, 10, "not refilled while items remain");
+    assert_eq!(inv.consume_slot(2, 1), Some((belt, 1)));
+    assert_eq!(inv.slots[2], Stack { item: belt, count: 10 }, "refilled from backpack into the same slot");
+    assert!(inv.slots[HOTBAR_SLOTS + 3].is_empty());
+    assert_eq!(inv.slots[5].count, 4, "other hotbar slots stay untouched");
+    // When the backpack has no more, emptying the hotbar slot does not steal from another hotbar slot.
+    assert_eq!(inv.consume_slot(2, 10), Some((belt, 10)));
+    assert!(inv.slots[2].is_empty());
+    assert_eq!(inv.slots[5].count, 4);
+}
+
+#[test]
 fn scroll_wraps() {
     let mut inv = Inventory::default();
     inv.scroll(-1);

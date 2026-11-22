@@ -13,6 +13,7 @@ export type Action =
   | { kind: 'sound-lab' }
   | { kind: 'inventory' }
   | { kind: 'research' }
+  | { kind: 'codex' }
   | { kind: 'analytics' }
   | { kind: 'rotate' }
   | { kind: 'bend' }
@@ -211,7 +212,7 @@ export class Input {
       else if (e.code === 'KeyZ') this.actions.push({ kind: 'blueprint-mark' });
       else if (e.code === 'Enter') this.actions.push({ kind: 'blueprint-copy' });
       else if (e.code === 'KeyL') this.actions.push({ kind: 'blueprints' });
-      else if (e.code === 'KeyT') this.actions.push({ kind: 'research' });
+      else if (e.code === 'KeyT') this.actions.push({ kind: e.shiftKey ? 'codex' : 'research' });
       else if (e.code === 'KeyP') this.actions.push({ kind: 'analytics' });
       else if (e.code === 'KeyH') this.actions.push({ kind: 'hint' });
       else if (e.code === 'Slash' || e.code === 'Backquote') this.actions.push({ kind: 'console' });

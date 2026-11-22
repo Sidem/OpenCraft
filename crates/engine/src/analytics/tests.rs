@@ -383,4 +383,6 @@ fn a_miner_without_power_reads_low_power_and_one_with_it_reads_full() {
     let line = g.efficiency_line(m);
     assert!(line.contains("low power"), "{line}");
     assert!(g.machine_efficiency_percent(m.x, m.y, m.z) < 20, "{line}");
+    let panel = g.machine_efficiency(m.x, m.y, m.z);
+    assert!(panel.contains("Efficiency") && panel.contains("low power") && !panel.contains("@eff|"), "{panel}");
 }

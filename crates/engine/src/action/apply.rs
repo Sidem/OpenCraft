@@ -226,6 +226,7 @@ impl Sim {
             Action::Give { item, count } => {
                 if item.is_valid() {
                     inv.add(item, count);
+                    self.codex.record(item);
                 }
             }
             Action::UpgradeDeposits => {

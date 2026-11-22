@@ -54,6 +54,9 @@ pub fn plan(
 ) -> (Vec<LineCell>, Option<IVec3>) {
     let free = |p: IVec3| block(p).is_some_and(block::replaceable);
     let solid = |p: IVec3| block(p).is_some_and(|b| SOLID[b as usize] && factory::machine(b).is_none());
+    if let Some(wall_lifts) = wall_lift_column(&block, &free, start, end, facing, lifts) {
+        return (wall_lifts, None);
+    }
     // The level the belt takes in column (x, z) coming from level `y`; none if something is in the way.
     let level = |(x, z): (i32, i32), y: i32| {
         let at = |y: i32| IVec3::new(x, y, z);
@@ -115,6 +118,9 @@ pub fn plan(
         cells.push(LineCell::belt(IVec3::new(col.0, y, col.1), dir, Shape::Flat));
         i += 1;
     }
+    if blocked.is_none() {
+        climb_end_wall(&block, &free, &mut cells, end, lifts);
+    }
     slopes(&mut cells);
     (cells, blocked)
 }
@@ -122,6 +128,87 @@ pub fn plan(
 /// A lift (`Shape::Lift`) or drop (`Shape::Drop`) of a planned line.
 fn lift_cell(pos: IVec3, dir: u8, shape: Shape) -> LineCell {
     LineCell { piece: Piece::Lift, ..LineCell::belt(pos, dir, shape) }
+}
+
+/// Dragging vertically up or down a wall face: builds a column of lifts (up, facing into the wall) or drops (down,
+/// facing away from it) in `start`'s column. Returns `None` when the drag is not primarily vertical along a wall.
+fn wall_lift_column(
+    block: &impl Fn(IVec3) -> Option<BlockId>,
+    free: &impl Fn(IVec3) -> bool,
+    start: IVec3,
+    end: IVec3,
+    facing: u8,
+    lifts: usize,
+) -> Option<Vec<LineCell>> {
+    let dy = end.y - start.y;
+    let horiz = (end.x - start.x).abs() + (end.z - start.z).abs();
+    if dy == 0 || dy.abs() <= horiz || !free(start) {
+        return None;
+    }
+    let wall = |p: IVec3| {
+        block(p)
+            .is_some_and(|b| SOLID[b as usize] && !factory::machine(b).is_some_and(|m| m.kind == factory::Kind::Belt))
+    };
+    let delta = end - start;
+    let order = [facing, (facing + 2) % 4, (facing + 1) % 4, (facing + 3) % 4];
+    let wall_dir = order.into_iter().find(|&d| {
+        let v = factory::DIRS[d as usize];
+        delta.x * v.x + delta.z * v.z == 0 && (wall(start + v) || wall(IVec3::new(start.x, end.y, start.z) + v))
+    })?;
+    let (dir, shape) = if dy > 0 { (wall_dir, Shape::Lift) } else { ((wall_dir + 2) % 4, Shape::Drop) };
+    let step = dy.signum();
+    let height = (dy.abs() + 1).min(MAX_LIFT) as usize;
+    let mut cells = Vec::with_capacity(height);
+    for k in 0..height {
+        let pos = start + IVec3::new(0, k as i32 * step, 0);
+        if !free(pos) {
+            break;
+        }
+        let mut cell = lift_cell(pos, dir, shape);
+        cell.short = k >= lifts;
+        cells.push(cell);
+    }
+    (!cells.is_empty()).then_some(cells)
+}
+
+/// When a horizontal line reaches a wall at `end`'s column and `end.y` lies higher up that wall face, turns the
+/// final belt into the foot of a lift column climbing up to `end.y` (capped at `MAX_LIFT`; lifts past `lifts` are
+/// marked `short`).
+fn climb_end_wall(
+    block: &impl Fn(IVec3) -> Option<BlockId>,
+    free: &impl Fn(IVec3) -> bool,
+    cells: &mut Vec<LineCell>,
+    end: IVec3,
+    lifts: usize,
+) {
+    let Some(&foot) = cells.last().filter(|c| c.piece == Piece::Belt) else { return };
+    if foot.pos.x != end.x || foot.pos.z != end.z || end.y <= foot.pos.y {
+        return;
+    }
+    let behind = cells.len().checked_sub(2).map(|i| cells[i]);
+    if behind.is_some_and(|b| b.pos.y > foot.pos.y || b.dir != foot.dir) {
+        return;
+    }
+    let wall = |p: IVec3| {
+        block(p)
+            .is_some_and(|b| SOLID[b as usize] && !factory::machine(b).is_some_and(|m| m.kind == factory::Kind::Belt))
+    };
+    let ahead = factory::DIRS[foot.dir as usize];
+    if !wall(foot.pos + ahead) && !wall(end + ahead) {
+        return;
+    }
+    let height = (end.y - foot.pos.y + 1).min(MAX_LIFT) as usize;
+    let last = cells.last_mut().expect("checked above");
+    (last.piece, last.shape, last.short) = (Piece::Lift, Shape::Lift, lifts == 0);
+    for j in 1..height {
+        let pos = foot.pos + IVec3::new(0, j as i32, 0);
+        if !free(pos) {
+            break;
+        }
+        let mut cell = lift_cell(pos, foot.dir, Shape::Lift);
+        cell.short = j >= lifts;
+        cells.push(cell);
+    }
 }
 
 /// How many drops take a line at level `y` down into column `col`: from the cell below the line down to the ground,

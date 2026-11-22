@@ -23,7 +23,7 @@ impl Sim {
             _ => false,
         };
         if done {
-            core.inventory.take_slot(slot as usize, 1);
+            core.inventory.consume_slot(slot as usize, 1);
         }
     }
 
@@ -40,7 +40,7 @@ impl Sim {
         } else if core.inventory.slots.get(slot as usize).is_some_and(|s| s.count > 0 && s.item == RAIL_SIGNAL)
             && self.factory.set_signal(pos, true)
         {
-            core.inventory.take_slot(slot as usize, 1);
+            core.inventory.consume_slot(slot as usize, 1);
         }
     }
 
@@ -150,7 +150,7 @@ impl Sim {
             return;
         }
         if let Some(Some(core)) = self.players.get_mut(player.0 as usize) {
-            core.inventory.take_slot(slot as usize, 1);
+            core.inventory.consume_slot(slot as usize, 1);
         }
     }
 

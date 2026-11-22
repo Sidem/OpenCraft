@@ -42,6 +42,7 @@ function itemHudExtras(state: number): { note: string; controls: HudControl[] } 
 /** Toast keys below this are towns' news, one per town; how often the towns' states are read; `town_states`'s values
  * (api/towns.rs) for a stalled and a dormant town. */
 const TOWN_KEY = -200000;
+const CODEX_KEY = -300000;
 const TOWN_MS = 1000;
 const STALLED = 1;
 const DORMANT = 2;
@@ -111,6 +112,7 @@ export class Hud {
   private readonly helperStatus = $<HTMLDivElement>('helper-status');
   private helperText = '';
   private townStates: number[] | null = null;
+  private codexMask: number | null = null;
   private lastTowns = 0;
   private readonly toastBox = $<HTMLDivElement>('toasts');
   private readonly debug = $<HTMLPreElement>('debug');
@@ -239,7 +241,10 @@ export class Hud {
 
     while (g.next_pickup()) this.pushToast(g.pickup_item(), g.pickup_count(), now);
     for (let sat = g.next_launch(); sat !== 0; sat = g.next_launch()) this.pushToast(sat, LAUNCHED, now);
-    if (now - this.lastTowns > TOWN_MS) this.townNews(now);
+    if (now - this.lastTowns > TOWN_MS) {
+      this.townNews(now);
+      this.codexNews(now);
+    }
     for (const [item, t] of this.toasts) {
       if (now > t.until) {
         this.toasts.delete(item);
@@ -329,6 +334,23 @@ export class Hud {
       this.addToast(TOWN_KEY - i, this.game.town_depot_item(), label, 0, now, this.game.town_news(i));
       this.toasts.get(TOWN_KEY - i)!.el.classList.toggle('warn', stalled);
     });
+  }
+
+  /** Toasts each codex achievement newly unlocked since the previous check (first check only snapshots). */
+  private codexNews(now: number): void {
+    const mask = this.game.codex_unlocked_mask();
+    const before = this.codexMask;
+    this.codexMask = mask;
+    if (before === null) return;
+    const newly = mask & ~before;
+    if (newly === 0) return;
+    const count = this.game.codex_achievement_count();
+    for (let i = 0; i < count; i++) {
+      if ((newly & (1 << i)) === 0) continue;
+      const [title, , iconStr] = this.game.codex_achievement(i).split('\n');
+      this.toasts.get(CODEX_KEY - i)?.el.remove();
+      this.addToast(CODEX_KEY - i, Number(iconStr) || 0, 'Achievement', 0, now, title);
+    }
   }
 
   private addToast(key: number, item: number, amount: string, count: number, now: number, words = ''): void {

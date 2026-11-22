@@ -17,7 +17,7 @@ const ENGINE = 'crates/engine/src';
 const SKIP = new Set(['node_modules', 'target', 'dist', '.git', '.claude', 'trailer']);
 /** Top-level engine modules that make up the deterministic core. */
 const CORE = ['sim', 'action', 'bytes', 'join', 'math', 'deposits', 'daytime', 'inventory', 'equipment', 'offhand', 'tools',
-  'crafting', 'perks', 'mode', 'research', 'ghosts', 'drones', 'helpers', 'blueprint', 'satellites', 'pods', 'opening',
+  'crafting', 'perks', 'mode', 'research', 'codex', 'ghosts', 'drones', 'helpers', 'blueprint', 'satellites', 'pods', 'opening',
   'settlements', 'factory', 'block', 'item', 'recipes', 'chunk', 'world', 'worldgen', 'noise'];
 /** Top-level engine modules the core must never name: presentation state, the local player's hands, the API. */
 const VIEW = ['api', 'interaction', 'camera', 'strategy', 'avatars', 'analytics', 'minimap', 'sound', 'orbit_fx',

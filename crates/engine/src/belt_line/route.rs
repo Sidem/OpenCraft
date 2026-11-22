@@ -155,17 +155,36 @@ impl Game {
     /// The route from `start` to the machine the pointer rests on, if it does: Some(None) when it is a machine but
     /// no route reaches it (`line.route` says so), None when the pointer is elsewhere (the plain path applies).
     pub(super) fn plan_route(&self, start: IVec3, end: IVec3) -> Option<Option<Vec<LineCell>>> {
+        if start == end {
+            return None;
+        }
         let into = self.aimed_machine()?;
+        // Don't loop around and onto the top/bottom of an immediately adjacent machine.
+        if into.is_none() && (end.x - start.x).abs() + (end.z - start.z).abs() <= 1 {
+            return None;
+        }
         let world = &self.sim.world;
         Some(find(|p| world.get_block(p), start, end, into).filter(|r| r.len() <= MAX_ROUTE))
     }
 
     /// The machine under the pointer (a block with a machine, or part of a multi-block one) and the way a belt
-    /// in front of the aimed face runs to feed it (None for a top or bottom face).
+    /// in front of the aimed face runs to feed it (None for a top or bottom face). Belts and non-machine
+    /// infrastructure (poles, pipes, rails, fibre nodes) are excluded so clicking near an existing belt never
+    /// triggers an auto-route loop over it.
     fn aimed_machine(&self) -> Option<Option<u8>> {
         let hit = self.line_hit()?;
-        let machine = self.sim.world.get_block(hit.block).is_some_and(|b| factory::machine(b).is_some())
-            || self.sim.factory.footprint_at(hit.block).is_some();
+        let machine = self.sim.world.get_block(hit.block).is_some_and(|b| {
+            factory::machine(b).is_some_and(|m| {
+                !matches!(
+                    m.kind,
+                    factory::Kind::Belt
+                        | factory::Kind::Pole
+                        | factory::Kind::Pipe
+                        | factory::Kind::Rail
+                        | factory::Kind::Node
+                )
+            })
+        }) || self.sim.factory.footprint_at(hit.block).is_some();
         machine.then(|| dir_of(IVec3::ZERO - hit.normal))
     }
 

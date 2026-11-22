@@ -48,6 +48,10 @@ pub const MAX_LINE: usize = 64;
 const LINE_REACH: f64 = 48.0;
 /// Cells placed per tick while a line is built (fast, but the placing sounds don't all land at once).
 const BUILD_PER_TICK: usize = 3;
+/// Ticks RMB must be held before a 1-cell aim jitter turns a single belt click into a drag.
+const DRAG_HOLD_TICKS: u8 = 8;
+/// Look-angle sweep (radians) that enters drag mode immediately when aiming >= 2 cells away.
+const DRAG_SWEEP_RAD: f64 = 0.06;
 const UP: IVec3 = IVec3::new(0, 1, 0);
 
 /// What a planned cell is: a belt, or one end of a tunnel under an obstacle (`pass.rs`).
@@ -105,6 +109,10 @@ pub enum Route {
 pub struct BeltLine {
     /// The cell the drag started in, and the direction a single click lays a belt.
     start: Option<(IVec3, u8)>,
+    /// Ticks held since `start` was set, initial `(yaw, pitch)`, and whether the click has become a drag.
+    hold_ticks: u8,
+    start_look: (f64, f64),
+    dragging: bool,
     pub cells: Vec<LineCell>,
     /// Placements still to send (the next one last), and the item their slots must hold.
     building: Vec<Build>,
@@ -159,36 +167,53 @@ impl Game {
                 true
             }
             (Some((start, facing)), true) => {
+                self.line.hold_ticks = self.line.hold_ticks.saturating_add(1);
                 let end = self.line_end(start).unwrap_or_else(|| self.line.cells.last().map_or(start, |c| c.pos));
-                self.line.cells = match kit {
-                    Some(tier) => {
-                        let belt_tier = |p| {
-                            self.sim.factory.tiered_at(p).filter(|t| matches!(t.0, BELT | UNDERPASS_IN)).map(|t| t.1)
-                        };
-                        plan_upgrade(belt_tier, start, end, tier - 1)
+                if !self.line.dragging {
+                    let dist = (end.x - start.x).abs() + (end.y - start.y).abs() + (end.z - start.z).abs();
+                    let moved = (self.body().yaw - self.line.start_look.0).abs()
+                        + (self.body().pitch - self.line.start_look.1).abs();
+                    if self.line.hold_ticks >= DRAG_HOLD_TICKS || (dist >= 2 && moved >= DRAG_SWEEP_RAD) {
+                        self.line.dragging = true;
                     }
-                    None => match self.auto_route_known().then(|| self.plan_route(start, end)).flatten() {
-                        Some(route) => {
-                            (self.line.route, self.line.blocked) = (Route::Found, None);
-                            route.unwrap_or_else(|| {
-                                (self.line.route, self.line.blocked) = (Route::Blocked, Some(end));
-                                Vec::new()
-                            })
+                }
+                if self.line.dragging {
+                    self.line.cells = match kit {
+                        Some(tier) => {
+                            let belt_tier = |p| {
+                                self.sim
+                                    .factory
+                                    .tiered_at(p)
+                                    .filter(|t| matches!(t.0, BELT | UNDERPASS_IN))
+                                    .map(|t| t.1)
+                            };
+                            plan_upgrade(belt_tier, start, end, tier - 1)
                         }
-                        None => {
-                            let lifts = self.inventory().count(ItemId::block(block::LIFT)) as usize;
-                            let (cells, blocked) = plan(|p| self.sim.world.get_block(p), start, end, facing, lifts);
-                            (self.line.route, self.line.blocked) = (Route::Off, blocked);
-                            cells
-                        }
-                    },
-                };
-                self.assign_passes();
+                        None => match self.auto_route_known().then(|| self.plan_route(start, end)).flatten() {
+                            Some(route) => {
+                                (self.line.route, self.line.blocked) = (Route::Found, None);
+                                route.unwrap_or_else(|| {
+                                    (self.line.route, self.line.blocked) = (Route::Blocked, Some(end));
+                                    Vec::new()
+                                })
+                            }
+                            None => {
+                                let lifts = self.inventory().count(ItemId::block(block::LIFT)) as usize;
+                                let (cells, blocked) = plan(|p| self.sim.world.get_block(p), start, end, facing, lifts);
+                                (self.line.route, self.line.blocked) = (Route::Off, blocked);
+                                cells
+                            }
+                        },
+                    };
+                    self.assign_passes();
+                }
                 self.bend_line_start();
                 true
             }
             (Some(_), false) => {
                 self.line.start = None;
+                self.line.dragging = false;
+                self.line.hold_ticks = 0;
                 self.line.route = Route::Off;
                 self.held_bend = factory::BEND_STRAIGHT; // the bend was for this line only
                 let cells = std::mem::take(&mut self.line.cells);
@@ -255,6 +280,8 @@ impl Game {
     pub(crate) fn cancel_belt_line(&mut self) {
         self.held_bend = factory::BEND_STRAIGHT;
         self.line.start = None;
+        self.line.dragging = false;
+        self.line.hold_ticks = 0;
         self.line.route = Route::Off;
         self.line.cells.clear();
     }
@@ -287,6 +314,9 @@ impl Game {
             }
             Some((BELT | UNDERPASS_IN, t)) => {
                 self.line.start = Some((hit.block, 0));
+                self.line.hold_ticks = 0;
+                self.line.dragging = false;
+                self.line.start_look = (self.body().yaw, self.body().pitch);
                 let cell = LineCell::belt(hit.block, 0, Shape::Flat);
                 self.line.cells = if t + 1 == tier { vec![cell] } else { Vec::new() };
             }
@@ -311,6 +341,9 @@ impl Game {
         if self.sim.world.get_block(start).is_some_and(block::replaceable) {
             let facing = factory::dir_from_yaw(self.body().yaw);
             self.line.start = Some((start, facing));
+            self.line.hold_ticks = 0;
+            self.line.dragging = false;
+            self.line.start_look = (self.body().yaw, self.body().pitch);
             self.line.cells = vec![LineCell::belt(start, facing, Shape::Flat)];
             self.bend_line_start();
         }
@@ -344,15 +377,20 @@ impl Game {
         }
         for _ in 0..BUILD_PER_TICK {
             let Some(Build { pos, dir, item, slot }) = self.line.building.last().copied() else { break };
-            let holds = if self.line.upgrading {
-                self.inventory().count(item) > 0
+            let live_slot = if self.line.upgrading {
+                (self.inventory().count(item) > 0).then_some(slot)
             } else {
-                self.inventory().slots[slot as usize].item == item
+                let inv = self.inventory();
+                let has = |s: usize| inv.slots[s].item == item && !inv.slots[s].is_empty();
+                has(slot as usize)
+                    .then_some(slot)
+                    .or_else(|| has(inv.selected).then_some(inv.selected as u8))
+                    .or_else(|| (0..inv.capacity()).find(|&s| has(s)).map(|s| s as u8))
             };
-            if !holds {
+            let Some(slot) = live_slot else {
                 self.line.building.clear();
                 return false;
-            }
+            };
             self.line.building.pop();
             if self.line.upgrading {
                 let Some(tier) = upgrades::kit_tier(item) else { continue };

@@ -219,3 +219,41 @@ fn a_machine_that_cannot_be_reached_says_so_and_builds_nothing() {
     }
     assert_eq!((g.sim.factory.count(factory::Kind::Belt), g.sim.ghosts.len(), g.slot_count(slot)), (0, 0, 20));
 }
+
+#[test]
+fn aiming_at_an_existing_belt_never_triggers_an_auto_route_loop() {
+    let (mut g, _) = routed_game();
+    // Place an existing belt on the slab at (2, 201, 0).
+    let prev = at(2, 201, 0);
+    g.sim.world.set_block(prev, crate::block::BELT);
+    g.sim.factory.add_belt(prev, EAST);
+    g.teleport(0.5, 202.0, 0.5);
+    // Aim at the top of the existing belt while starting a belt beside it at (3, 201, 0): never auto-routes.
+    let east = std::f64::consts::FRAC_PI_2;
+    g.set_look(east, -0.6);
+    g.update(1.0 / 60.0);
+    assert!(g.plan_route(at(3, 201, 0), at(2, 202, 0)).is_none(), "belts are not auto-route targets");
+}
+
+#[test]
+fn a_quick_single_click_with_small_aim_jitter_places_one_belt() {
+    let (mut g, slot) = routed_game();
+    let east = std::f64::consts::FRAC_PI_2;
+    g.set_look(east, -1.3);
+    g.update(1.0 / 60.0);
+    g.set_using(true);
+    g.update(1.0 / 60.0);
+    // Tiny hand jitter during a 3-tick click must not turn the single belt into a dragged line.
+    g.set_look(east + 0.02, -1.28);
+    for _ in 0..3 {
+        g.update(1.0 / 60.0);
+    }
+    assert_eq!(g.line.cells.len(), 1);
+    assert_eq!(g.line.route, Route::Off);
+    g.set_using(false);
+    for _ in 0..30 {
+        g.update(1.0 / 60.0);
+    }
+    assert_eq!(g.sim.factory.count(factory::Kind::Belt), 1);
+    assert_eq!(g.slot_count(slot), 19);
+}

@@ -25,6 +25,7 @@ import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/ses
 import { WorldStore } from './save/store';
 import { noStorage } from './ui/no-storage';
 import { AnalyticsPanel } from './ui/analytics';
+import { CodexPanel } from './ui/codex';
 import { ComfortPanel } from './ui/comfort';
 import { SkyStore } from './render/sky/settings';
 import { SkyPanel } from './ui/sky';
@@ -167,6 +168,8 @@ async function main(): Promise<void> {
   const machine = new MachinePanel(game, (id) => hud.itemIcon(id), inventory), trains = new TrainPanel(game, inventory);
   const research = new ResearchPanel(game, (id) => hud.itemIcon(id));
   research.onDone = () => sound.ui();
+  const codex = new CodexPanel(game, (id) => hud.itemIcon(id));
+  research.onCodex = () => (research.close(false), codex.open());
   const analytics = new AnalyticsPanel(game, (id) => hud.itemIcon(id));
   const hints = new Hints(game, renderer, () => sound.preview('powerup', 0));
   const blueprints = new BlueprintPanel(game, (id) => hud.itemIcon(id));
@@ -198,12 +201,12 @@ async function main(): Promise<void> {
   });
   document.getElementById('coop')!.append(coopPanel.el);
   // Screens the keys open (the action's kind names them); each frees the mouse while open.
-  const screens = { blueprints, research, analytics, drone, 'world-map': worldMap };
-  const panels = [inventory, research, worldMap, blueprints, sites, analytics, logbook, vault, signEditor, ledPanel, seismic, adminConsole, drone]; // a machine's panel is in the inventory
+  const screens = { blueprints, research, codex, analytics, drone, 'world-map': worldMap };
+  const panels = [inventory, research, codex, worldMap, blueprints, sites, analytics, logbook, vault, signEditor, ledPanel, seismic, adminConsole, drone]; // a machine's panel is in the inventory
   const panelOpen = () => panels.some((p) => p.isOpen);
 
   // ---- menu / pointer lock (pause.ts)
-  const closers = [research, blueprints, sites, worldMap, analytics, logbook, vault, signEditor, ledPanel, seismic, adminConsole, drone];
+  const closers = [research, codex, blueprints, sites, worldMap, analytics, logbook, vault, signEditor, ledPanel, seismic, adminConsole, drone];
   const pause = wirePause({ game, opened, viewRadius: () => quality.settings.radius, menu, canvas, input, sound, soundLab, session, inventory, closers, panelOpen });
   wireHome(menu, game, sound, [
     { code: 'KeyE', name: 'Inventory and crafting', screen: inventory },
@@ -222,7 +225,7 @@ async function main(): Promise<void> {
   document.getElementById('quality-suggestion')!.append(qualityPanel.suggestion);
 
   const handles = {
-    frames, perf, quality, qualityPanel, game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, drone, logbook, vault, signEditor, seismic, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
+    frames, perf, quality, qualityPanel, game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, codex, analytics, blueprints, sites, drone, logbook, vault, signEditor, seismic, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -399,6 +402,7 @@ async function main(): Promise<void> {
     hud.update(now, { frames, frameMs, workMs, ...renderer.stats });
     inventory.update(); // and the machine panel shown in it
     research.update(now);
+    codex.update();
     analytics.update(now);
     hints.update();
     craftQueue.update();

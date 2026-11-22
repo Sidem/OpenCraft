@@ -17,6 +17,7 @@
 
 use crate::action::Action;
 use crate::bytes::{fnv1a, ByteReader, ByteWriter};
+use crate::codex::Codex;
 use crate::crafting::CraftQueue;
 use crate::drones::{cargo::Cargo, Drones};
 use crate::factory::Factory;
@@ -113,6 +114,8 @@ pub struct Sim {
     pub felling: Felling,
     /// Active tree blazes and grass fire fronts (`sim/fire/`).
     pub fire: Fire,
+    /// World-wide discovered items bitset for the periodic table & achievements (`codex/`).
+    pub codex: Codex,
     /// Trees that came down since the last drain, for the host to draw falling; not state.
     pub fallen: Vec<Fallen>,
     /// How far the main tips and the lessons got in this world (hints.rs, lessons.rs); neither ever goes back.
@@ -153,6 +156,7 @@ impl Sim {
             leds: Leds::default(),
             felling: Felling::default(),
             fire: Fire::default(),
+            codex: Codex::default(),
             fallen: Vec::new(),
             hints_reached: 0,
             taught: 0,
@@ -198,6 +202,7 @@ impl Sim {
     /// Advances the core by one tick of `TICK` seconds: this tick's actions, the timers and water checks due, the
     /// factory (its block changes start new ones), then towns, drones, cargo and the tips.
     pub fn step(&mut self) {
+        let events_from = self.events.len();
         self.sync_depots();
         let due = self.pending.iter().take_while(|q| q.tick <= self.tick).count();
         let later = self.pending.split_off(due);
@@ -220,6 +225,7 @@ impl Sim {
         self.step_tips();
         self.run_felling();
         self.run_fire();
+        self.codex.note(&self.events[events_from..]);
         self.tick += 1;
     }
 
@@ -303,6 +309,7 @@ impl Sim {
         self.leds.write_state(w);
         self.factory.write_manual_off(w);
         self.fire.write_state(w);
+        self.codex.write_state(w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed (`save.rs` lists the versions).
@@ -368,6 +375,11 @@ impl Sim {
             self.factory.read_manual_off(r)?;
         }
         self.fire = if r.version >= 82 { Fire::read_state(r)? } else { Fire::default() };
+        self.codex = if r.version >= 83 {
+            Codex::read_state(r)?
+        } else {
+            Codex::seed_from(&self.players, &self.away, &self.factory)
+        };
         Some(())
     }
 }

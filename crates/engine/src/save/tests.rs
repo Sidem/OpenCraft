@@ -178,7 +178,13 @@ fn a_version_76_save_still_loads_and_saves_with_only_the_head_slot_and_the_new_t
         g.sim.leds.write_state(&mut w);
         w.bytes.len()
     };
-    assert_eq!(saved.len(), V76_SAVE.len() + 2 * players + 32 + 4 + leds + 12 + 12);
+    let codex_bytes = {
+        let mut w = crate::bytes::ByteWriter::default();
+        g.sim.codex.write_state(&mut w);
+        w.bytes.len()
+    };
+    assert!(g.sim.codex.has(IRON_INGOT), "migrated v76 save seeds codex from existing inventory");
+    assert_eq!(saved.len(), V76_SAVE.len() + 2 * players + 32 + 4 + leds + 12 + 12 + codex_bytes);
     let back = Game::load(&saved, 2).expect("the new format loads");
     assert_eq!(back.sim.state_hash(), g.sim.state_hash());
 }

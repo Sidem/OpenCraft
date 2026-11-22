@@ -207,7 +207,8 @@ fn a_line_longer_than_the_held_stack_takes_belts_from_the_other_stacks() {
     let built = planned.min(14);
     assert_eq!(g.sim.factory.count(factory::Kind::Belt), built, "every cell the stacks pay for");
     assert_eq!(g.item_total(BELT), 14 - built as u32);
-    assert_eq!(g.slot_count(2), 0, "the held stack went first");
+    assert_eq!(g.slot_count(20), 0, "the backpack stack refilled the held hotbar slot");
+    assert_eq!(g.slot_count(2), 14 - built as u32, "the refilled hotbar slot holds what remains");
 }
 
 /// Drags a line east along the test slab (y 201) over a box at x = 1, with the inventory as given, builds it
@@ -427,4 +428,35 @@ fn a_line_dragged_down_a_cliff_builds_drops_that_the_factory_turns_downwards() {
     }
     assert_eq!((g.item_total(BELT), g.item_total(ItemId::block(block::LIFT).0)), (4, 2));
     assert!(f.describe(IVec3::new(2, 202, 0)).unwrap().contains("lowering items down"));
+}
+
+#[test]
+fn dragging_belts_up_and_down_a_wall_plans_a_vertical_lift_column() {
+    // A tall wall at x = 4, y = 10..=15.
+    let wall = |x: i32, _: i32| if x >= 4 { 16 } else { 10 };
+    // Dragging UP the wall from y = 10 to y = 14 facing EAST (into the wall).
+    let up = plan(terrain(wall, &[]), IVec3::new(3, 10, 0), IVec3::new(3, 14, 0), EAST, 10);
+    assert_eq!(positions(&up), [(3, 10, 0), (3, 11, 0), (3, 12, 0), (3, 13, 0), (3, 14, 0)]);
+    assert!(up.iter().all(|c| c.piece == Piece::Lift && c.shape == Shape::Lift && c.dir == EAST && !c.short));
+    // Slight horizontal drift along the wall still snaps to the vertical lift column.
+    let drifted = plan(terrain(wall, &[]), IVec3::new(3, 10, 0), IVec3::new(3, 14, 1), EAST, 10);
+    assert_eq!(drifted, up);
+    // Dragging DOWN the wall from y = 14 to y = 10 facing EAST (looking at the wall) faces drops AWAY (WEST).
+    let down = plan(terrain(wall, &[]), IVec3::new(3, 14, 0), IVec3::new(3, 10, 0), EAST, 10);
+    assert_eq!(positions(&down), [(3, 14, 0), (3, 13, 0), (3, 12, 0), (3, 11, 0), (3, 10, 0)]);
+    assert!(down.iter().all(|c| c.piece == Piece::Lift && c.shape == Shape::Drop && c.dir == 3 && !c.short));
+    // Short on lifts: first 2 are affordable, remaining 3 are marked short.
+    let short = plan(terrain(wall, &[]), IVec3::new(3, 10, 0), IVec3::new(3, 14, 0), EAST, 2);
+    let shorts: Vec<bool> = short.iter().map(|c| c.short).collect();
+    assert_eq!(shorts, [false, false, true, true, true]);
+    // Starting on flat ground and dragging into the wall and then up its face climbs on lifts.
+    let approach = plan(terrain(wall, &[]), IVec3::new(0, 10, 0), IVec3::new(3, 13, 0), NORTH, 10);
+    assert_eq!(
+        positions(&approach),
+        [(0, 10, 0), (1, 10, 0), (2, 10, 0), (3, 10, 0), (3, 11, 0), (3, 12, 0), (3, 13, 0)]
+    );
+    assert!(approach[..3].iter().all(|c| c.piece == Piece::Belt && c.dir == EAST));
+    assert!(approach[3..]
+        .iter()
+        .all(|c| c.piece == Piece::Lift && c.shape == Shape::Lift && c.dir == EAST && !c.short));
 }

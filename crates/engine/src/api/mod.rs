@@ -7,6 +7,7 @@
 
 mod analytics;
 mod blueprint;
+mod codex;
 mod content;
 mod crafting;
 mod creative;

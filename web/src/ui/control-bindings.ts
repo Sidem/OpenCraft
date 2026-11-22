@@ -61,6 +61,7 @@ export const BINDINGS: readonly Binding[] = [
 
   key('screens', ['KeyE'], '{KeyE}', 'Inventory and build menu'),
   key('screens', ['KeyT'], '{KeyT}', 'Research: choose what labs work on'),
+  key('screens', [...SHIFTS, 'KeyT'], '{ShiftLeft} + {KeyT}', 'Codex: periodic table of elements and achievements'),
   key('screens', ['Slash', 'Backquote'], '{Slash} or {Backquote}', 'Command line for testing: weather, time of day, teleport, items (type help)'),
   key('screens', ['KeyM'], '{KeyM}', "Map: where you've been, your pins, where each ore lies"),
   key('screens', ['KeyN'], '{KeyN}', 'Minimap on or off'),
