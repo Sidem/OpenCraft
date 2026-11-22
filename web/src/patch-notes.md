@@ -4,6 +4,9 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-22 · v0.14.1 · Co-op invites work between the itch.io and web versions
+- **Invite links now open the build you are playing.** Hosting from the itch.io version used to give a link to the web version, and joining it was refused as "a different version". The link now opens the same itch.io build, and the same game from either site is recognised as the same version.
+
 ## 2026-11-22 · v0.14.0 · Paint Sprayer, Glass Kiln & realistic wood and concrete art
 - **Surface-only Paint Sprayer (no more 16 concrete items).** Research **Architecture** to craft the handheld **Paint Sprayer**. Hold **right-click** to spray-paint **just the surface you aim at** on concrete, plaster, masonry bricks, basalt tiles, metal panels, catwalks, roof tiles and timber frame — including every slab, stair and pitched roof slope. Paint the inside of a single-block concrete wall white and the outside red! Press **`Shift + R`** or **`Shift + Wheel`** to cycle all 16 pigment swatches plus **Strip Paint** (free), and press **`R`** to eyedropper any painted surface. One pigment coats **24 surfaces** (free in Creative). Existing coloured concrete in older saves migrates seamlessly to painted concrete.
 - **Glass Kiln for stained glass.** Stained glass is now melted in a dedicated brick burner furnace — the **Glass Kiln** (unlocked with **Architecture**). Feed it **Glass**, **Sand** or **Quartz** plus any **Pigment** and fuel (by hand or by belt) to melt matching translucent stained glass (5 ground pigments with Architecture, all 11 mixed hues with Pigments).

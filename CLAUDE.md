@@ -33,6 +33,9 @@ costs tokens and time. **This matters as much as any feature.** The full rules a
 
 - **Pushing to `main` deploys the live site** (GitHub Pages). Ask the user before any push. Commit only when
   asked.
+- **Every push that changes the shipped build bumps the version** (`package.json`, `crates/engine/Cargo.toml`, a
+  patch-notes heading; fixes too, +0.0.1), so players can tell by the version whether co-op builds differ
+  (`docs/DECISIONS.md` "Version numbers"). Docs-only or test-only pushes don't.
 - Windows machine: use PowerShell and the file tools (the Bash tool fails here). For commit messages, write a
   file and use `git commit -F <file>`.
 - Checks: `npm run check` (fmt, clippy, tests, typecheck, budgets, code map; needs `npm run build:wasm` once).
