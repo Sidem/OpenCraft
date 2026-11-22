@@ -18,8 +18,11 @@
 
 use crate::block::{BlockId, HOIST, LADDER, LIFT, LIQUID};
 use crate::bytes::{ByteReader, ByteWriter};
+#[cfg(test)]
+use crate::math::IVec3;
 use crate::math::Vec3;
-use crate::physics::{move_axis, Aabb};
+use crate::physics::{move_axis_boxes, move_walk_boxes, Aabb};
+use crate::shape::CellBoxes;
 
 pub const HALF_WIDTH: f64 = 0.3;
 pub const HEIGHT: f64 = 1.8;
@@ -55,6 +58,10 @@ const CHEST_HEIGHT: f64 = 1.2;
 const CLIMB_SPEED: f64 = 3.0;
 /// Heights above the feet that hold on to a ladder or lift.
 const GRIP_HEIGHTS: [f64; 2] = [0.1, 0.9];
+/// Maximum vertical riser a walking body steps up smoothly without jumping (clears ¼ and ½ steps, not ¾ or full blocks).
+const STEP_HEIGHT: f64 = 0.55;
+/// Maximum drop snapped smoothly when walking down stairs, slabs or slopes without bouncing.
+const STEP_DOWN: f64 = 0.55;
 
 /// What worn gear does to a body (`equipment.rs`): multipliers on walking, sprinting (already including walking) and
 /// the jump. Set from the core each tick like `thrust`; never saved.
@@ -115,6 +122,8 @@ pub struct Player {
     pub hoist: f64,
     /// How far belts carried the body since the game last took it (for footsteps).
     pub carried: Vec3,
+    /// Vertical step-up/step-down shift accumulated since the game last took it (for camera `StepGlide`).
+    pub step_delta: f64,
 }
 
 impl Player {
@@ -138,6 +147,7 @@ impl Player {
             conveyor: Vec3::ZERO,
             hoist: 0.0,
             carried: Vec3::ZERO,
+            step_delta: 0.0,
         }
     }
 
@@ -189,10 +199,23 @@ impl Player {
         Vec3::new(sy * cp, sp, -cy * cp)
     }
 
+    #[cfg(test)]
     pub fn step(
         &mut self,
         dt: f64,
         solid: &mut impl FnMut(i32, i32, i32) -> bool,
+        block: &mut impl FnMut(i32, i32, i32) -> BlockId,
+    ) {
+        let mut boxes = |x, y, z| if solid(x, y, z) { CellBoxes::full(IVec3::new(x, y, z)) } else { CellBoxes::EMPTY };
+        self.step_boxes(dt, &mut boxes, block);
+    }
+
+    /// Advances one physics substep against exact sub-voxel collision boxes, with smooth auto step-up and
+    /// step-down on slabs, stairs and pitched slopes.
+    pub fn step_boxes(
+        &mut self,
+        dt: f64,
+        boxes: &mut impl FnMut(i32, i32, i32) -> CellBoxes,
         block: &mut impl FnMut(i32, i32, i32) -> BlockId,
     ) {
         let inp = self.input;
@@ -247,6 +270,7 @@ impl Player {
         self.vel.x += (wish.x * speed - self.vel.x) * k;
         self.vel.z += (wish.z * speed - self.vel.z) * k;
 
+        let jumped = !self.flying && !hovering && !swimming && !climbing && inp.jump && self.on_ground;
         if self.flying {
             let vy = (f64::from(u8::from(inp.jump)) - f64::from(u8::from(inp.crouch))) * speed * 0.8;
             self.vel.y += (vy - self.vel.y) * k;
@@ -267,14 +291,14 @@ impl Player {
             if self.thrust {
                 self.vel.y = (self.vel.y + JET_ACCEL * dt).min(self.vel.y.max(JET_CLIMB));
             }
-            if inp.jump && self.on_ground {
+            if jumped {
                 self.vel.y = JUMP_VELOCITY * self.boost.jump;
             }
         }
 
         let mut bb = self.aabb();
         let want_y = self.vel.y * dt;
-        let dy = move_axis(&mut bb, 1, want_y, solid);
+        let dy = move_axis_boxes(&mut bb, 1, want_y, boxes);
         if (dy - want_y).abs() > 1e-9 {
             if want_y < 0.0 {
                 if !self.on_ground {
@@ -287,32 +311,51 @@ impl Player {
             self.on_ground = false;
         }
 
-        // Crouching on the ground never walks off an edge.
+        // Crouching on the ground never walks off an edge; walking on slabs, stairs and slopes auto-steps smoothly.
         let edge_guard = inp.crouch && self.on_ground && !self.flying;
-        self.against_wall = false;
-        for axis in [0, 2] {
-            let want = self.vel.get(axis) * dt;
-            let before = bb;
-            let moved = move_axis(&mut bb, axis, want, solid);
-            if edge_guard && !bb.has_support(solid) {
-                bb = before;
-                self.vel.set(axis, 0.0);
-            } else if (moved - want).abs() > 1e-9 {
-                self.vel.set(axis, 0.0);
-                self.against_wall = true;
-            }
+        let can_step = self.on_ground && !self.flying && !hovering && !swimming && !climbing && !jumped;
+        let walk = move_walk_boxes(
+            &mut bb,
+            self.vel.x * dt,
+            self.vel.z * dt,
+            if can_step { STEP_HEIGHT } else { 0.0 },
+            edge_guard,
+            boxes,
+        );
+        self.against_wall = walk.blocked_x || walk.blocked_z;
+        if walk.blocked_x {
+            self.vel.x = 0.0;
+        }
+        if walk.blocked_z {
+            self.vel.z = 0.0;
+        }
+        if walk.step_dy > 0.0 {
+            self.step_delta += walk.step_dy;
+            self.on_ground = true;
         }
 
         // A belt under the feet carries the body on top of its own walking (collision still applies).
         if self.on_ground && !self.flying && !swimming && !climbing {
             for axis in [0, 2] {
                 let before = bb;
-                let moved = move_axis(&mut bb, axis, self.conveyor.get(axis) * dt, solid);
-                if edge_guard && !bb.has_support(solid) {
+                let moved = move_axis_boxes(&mut bb, axis, self.conveyor.get(axis) * dt, boxes);
+                if edge_guard && !bb.has_support_boxes(boxes) {
                     bb = before;
                 } else {
                     self.carried.set(axis, self.carried.get(axis) + moved);
                 }
+            }
+        }
+
+        // Smooth step-down ground snapping: walking down stairs, slabs or slopes stays grounded without bouncing.
+        if can_step && !edge_guard && !bb.has_support_boxes(boxes) {
+            let mut down = bb;
+            let drop = move_axis_boxes(&mut down, 1, -STEP_DOWN, boxes);
+            if drop < -1e-5 && (-drop) < STEP_DOWN - 1e-5 {
+                bb = down;
+                self.step_delta += drop;
+                self.on_ground = true;
+                self.vel.y = 0.0;
             }
         }
 

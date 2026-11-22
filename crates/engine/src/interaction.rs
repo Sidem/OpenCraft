@@ -116,18 +116,28 @@ impl Game {
                     world.get_block(p).filter(|&b| !block::replaceable(b) && !(inside(p) && player::climbable(b)));
                 solid.or_else(|| upper_pole(p).then_some(block::POLE))
             },
-            |p| factory.aim_boxes(p).or_else(|| factory.tall_pole_boxes(p)),
+            |p| factory.aim_boxes(p).or_else(|| factory.tall_pole_boxes(p)).or_else(|| self.shape_hit_boxes(p)),
         );
         // A multi-block machine's part cells stand for the machine (its name, panel, breaking time).
         let machine = |h: &RayHit| (h.id == block::MACHINE_PART).then(|| factory.block_at(h.block)).flatten();
         self.target = hit.map(|h| match factory.pole_below(h.block).filter(|_| upper_pole(h.block)) {
             Some(pole) => RayHit { block: pole, ..h },
-            None => RayHit { id: machine(&h).unwrap_or(h.id), ..h },
+            None => {
+                // For shaped blocks (slabs, stairs, slopes), refine the struck face normal from the exact sub-box
+                // so aiming at the top of a slab from the side reports +Y instead of the cell's side face.
+                let normal = self
+                    .shape_hit_boxes(h.block)
+                    .and_then(|b| b.enter_normal(origin - h.block.as_vec3(), dir))
+                    .filter(|&(_, n)| n != IVec3::ZERO)
+                    .map_or(h.normal, |(_, n)| n);
+                RayHit { id: machine(&h).unwrap_or(h.id), normal, ..h }
+            }
         });
         // A train car nearer than the block stands in for it (not with a locomotive, wagon or signal in hand, which aim
         // at the rail nodes under a train).
         let block_at = self.target.map_or(f64::MAX, |h| {
-            (aim::surface(origin, dir, h, factory.aim_boxes(h.block).as_ref()) - origin).length()
+            let slim = factory.aim_boxes(h.block).or_else(|| self.shape_hit_boxes(h.block));
+            (aim::surface(origin, dir, h, slim.as_ref()) - origin).length()
         });
         let reach = self.reach() + (origin - eye).length();
         self.target_car = factory
@@ -137,7 +147,10 @@ impl Game {
         if self.target_car.is_some() {
             self.target = None;
         }
-        self.target_fit = self.target.and_then(|h| factory.hit_boxes(h.block)).map(|b| b.bounds());
+        self.target_fit = self
+            .target
+            .and_then(|h| factory.hit_boxes(h.block).or_else(|| self.shape_hit_boxes(h.block)))
+            .map(|b| b.bounds());
         // Aiming at a belt's item outlines the item instead of the belt.
         self.target_item = self.target.and_then(|h| factory.belt_item_under(h.block, origin, dir));
         if let Some(item) = self.target_item {
@@ -208,6 +221,7 @@ impl Game {
         if self.update_telescope()
             || self.update_sickle(dt)
             || self.update_flamethrower(dt)
+            || self.update_paint_sprayer(dt)
             || self.update_planner()
             || self.update_prospecting(dt)
             || self.update_belt_line()
@@ -283,6 +297,10 @@ impl Game {
             let facing =
                 if block == block::LONG_POLE && body.input.crouch { facing | factory::POLE_UNLINKED } else { facing };
             return free.then_some(Action::PlaceBlock { pos, slot: inv.selected as u8, facing, against: hit.block });
+        }
+        if self.held_shape_mode != crate::shape::MODE_CUBE && self.held_shapeable().is_some() {
+            let (_, pos, shape, blocked) = self.shape_placement()?;
+            return (!blocked).then_some(Action::PlaceShaped { pos, slot: inv.selected as u8, shape });
         }
         let stack = inv.selected_stack();
         let placed = stack.item.places().filter(|_| !stack.is_empty())?;

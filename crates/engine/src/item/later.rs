@@ -135,3 +135,7 @@ pub const FLAMETHROWER: ItemId = ItemId(441);
 pub const THUMPER_ITEM: ItemId = ItemId(442);
 pub const THUMPER_MK2: ItemId = ItemId(443);
 pub const THUMPER_MK3: ItemId = ItemId(444);
+/// Glass Kiln (L-COLOUR, wide block 262, `factory/process/kiln.rs`): melts silica + pigment into stained glass.
+pub const GLASS_KILN_ITEM: ItemId = ItemId(445);
+/// Handheld Paint Sprayer (L-COLOUR, `colour_hands.rs`): sprays paintable building surfaces in place using pigments.
+pub const PAINT_SPRAYER: ItemId = ItemId(446);

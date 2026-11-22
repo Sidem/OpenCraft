@@ -22,17 +22,18 @@ pub(super) const KEY_TRANSLUCENT: usize = KEY_LIQUID + 1;
 pub(super) const KEY_FLAG: u64 = 1 << 63;
 
 pub struct MeshOutput {
-    /// The vertices, opaque quads first, then cutout, liquid, translucent; then their light bytes in
-    /// the same order, packed four per `u32` (little-endian, so the bytes read in order).
+    /// The vertices, opaque quads first, then cutout, liquid, translucent; then their `[light, paint]` byte pairs
+    /// in the same order, packed two vertices per `u32` (little-endian, so bytes read in order).
     pub verts: Vec<u32>,
     pub opaque_quads: u32,
     pub cutout_quads: u32,
     pub liquid_quads: u32,
     pub translucent_quads: u32,
-    /// The shaped list (`shaped.rs`): opaque quads, then cutout ones, three `u32` a vertex.
+    /// The shaped list (`shaped.rs`): opaque quads, then cutout, then translucent, three `u32` a vertex.
     pub shaped: Vec<u32>,
     pub shaped_opaque: u32,
     pub shaped_cutout: u32,
+    pub shaped_translucent: u32,
 }
 
 #[cfg(test)]
@@ -43,7 +44,12 @@ impl MeshOutput {
 
     /// The light byte of vertex `i`.
     pub fn light(&self, i: usize) -> u8 {
-        (self.verts[self.vertex_count() + i / 4] >> (i % 4 * 8)) as u8
+        (self.verts[self.vertex_count() + i / 2] >> ((i % 2) * 16)) as u8
+    }
+
+    /// The paint palette index (`0..=16`) of vertex `i`.
+    pub fn paint(&self, i: usize) -> u8 {
+        (self.verts[self.vertex_count() + i / 2] >> ((i % 2) * 16 + 8)) as u8
     }
 }
 
@@ -78,7 +84,7 @@ pub(super) fn emit_quad(
     plane: u32,
     (bu, bv): (u32, u32),
     (w, h): (u32, u32),
-    key: u64,
+    (key, paint): (u64, u8),
 ) {
     let layer = (key >> KEY_LAYER) as u32 & 0x1FF; // for a liquid quad: its kind and direction (`water.rs`)
     let corner = corners_of(key);
@@ -100,9 +106,9 @@ pub(super) fn emit_quad(
     // Split the quad along the brighter diagonal to avoid the anisotropic AO and light seam.
     if bright[0] + bright[2] < bright[1] + bright[3] {
         out.extend_from_slice(&[vs[1], vs[2], vs[3], vs[0]]);
-        lights.extend_from_slice(&[ls[1], ls[2], ls[3], ls[0]]);
+        lights.extend_from_slice(&[ls[1], paint, ls[2], paint, ls[3], paint, ls[0], paint]);
     } else {
         out.extend_from_slice(&vs);
-        lights.extend_from_slice(&ls);
+        lights.extend_from_slice(&[ls[0], paint, ls[1], paint, ls[2], paint, ls[3], paint]);
     }
 }

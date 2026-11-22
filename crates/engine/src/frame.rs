@@ -38,6 +38,7 @@ impl Game {
         let eye = self.prev_eye + (self.body().eye() - self.prev_eye) * alpha;
         let feet = eye - Vec3::new(0.0, self.body().eye_height(), 0.0);
         let eye = self.crouch_glide.apply(eye, self.body().crouched(), dt);
+        let eye = self.step_glide.apply(eye, dt);
         let (look, solid) = (self.body().look_dir(), &self.sim.world);
         let solid = |p| solid.get_block(p).is_some_and(|b| block::SOLID[b as usize]);
         let before = self.render_eye;
@@ -90,6 +91,7 @@ impl Game {
         self.write_streets(eye);
         self.write_port_pads(eye);
         self.write_fire(dt, eye, time);
+        self.write_paint_spray(dt, eye, time);
         {
             let world = &mut self.sim.world;
             factory::light_boxes(&mut self.instances, eye, |c| world.light_at(c));

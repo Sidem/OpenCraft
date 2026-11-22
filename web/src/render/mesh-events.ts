@@ -17,7 +17,7 @@ export function drainMeshes(game: Game, memory: WebAssembly.Memory, renderer: Re
     const verts = new Uint32Array(memory.buffer, game.mesh_ptr(), game.mesh_len());
     const shaped = new Uint32Array(memory.buffer, game.mesh_shaped_ptr(), game.mesh_shaped_len());
     renderer.upsertChunk(x, y, z, verts, game.mesh_opaque_quads(), game.mesh_cutout_quads(), game.mesh_liquid_quads(),
-      game.mesh_translucent_quads(), shaped, game.mesh_shaped_opaque(), game.mesh_shaped_cutout());
+      game.mesh_translucent_quads(), shaped, game.mesh_shaped_opaque(), game.mesh_shaped_cutout(), game.mesh_shaped_translucent());
   }
   const floats = game.instance_floats();
   for (;;) {

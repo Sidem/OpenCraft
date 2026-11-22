@@ -12,11 +12,11 @@ use crate::research::{pack_slot, Research, Unlock};
 use crate::tools;
 use Category::{
     Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Fabrication,
-    GasProcessing, Launch, Pressing, Refit, Reforming, Smelting, Splitting, Washing,
+    GasProcessing, Glassmaking, Launch, Pressing, Refit, Reforming, Smelting, Splitting, Washing,
 };
 
 /// Every category (the match below stops compiling until a new one is listed).
-const CATEGORIES: [Category; 18] = [
+const CATEGORIES: [Category; 19] = [
     Smelting,
     Pressing,
     Assembly,
@@ -35,10 +35,11 @@ const CATEGORIES: [Category; 18] = [
     Refit,
     GasProcessing,
     Reforming,
+    Glassmaking,
 ];
 const _: fn(Category) = |c| match c {
     Smelting | Pressing | Assembly | Blasting | Crushing | Arc | Electrolysis | Distilling | Cracking | Chemistry
-    | Splitting | Washing | Enrichment | Fabrication | Launch | Refit | GasProcessing | Reforming => {}
+    | Splitting | Washing | Enrichment | Fabrication | Launch | Refit | GasProcessing | Reforming | Glassmaking => {}
 };
 
 /// Blocks the world has (generated, or left by worked-out deposits): breaking them is how their drops

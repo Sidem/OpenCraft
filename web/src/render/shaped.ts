@@ -5,19 +5,20 @@
 
 import { LIGHT } from './shaders';
 
-/** A chunk's shaped list on the GPU: opaque quads, then cutout ones. */
+/** A chunk's shaped list on the GPU: opaque quads, then cutout, then translucent. */
 export interface ShapedPart {
   vao: WebGLVertexArrayObject;
   vbo: WebGLBuffer;
   capacity: number;
   opaque: number;
   cutout: number;
+  translucent: number;
 }
 
 /** Uploads `words` (a view into wasm memory, used now and dropped) into `part`, made if null; null when empty. */
 export function uploadShaped(gl: WebGL2RenderingContext, part: ShapedPart | null, quadIndex: WebGLBuffer,
-  words: Uint32Array, opaque: number, cutout: number): ShapedPart | null {
-  if (opaque + cutout === 0) {
+  words: Uint32Array, opaque: number, cutout: number, translucent = 0): ShapedPart | null {
+  if (opaque + cutout + translucent === 0) {
     if (part) deleteShaped(gl, part);
     return null;
   }
@@ -30,7 +31,7 @@ export function uploadShaped(gl: WebGL2RenderingContext, part: ShapedPart | null
     gl.vertexAttribIPointer(0, 3, gl.UNSIGNED_INT, 12, 0);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, quadIndex);
     gl.bindVertexArray(null);
-    part = { vao, vbo, capacity: 0, opaque: 0, cutout: 0 };
+    part = { vao, vbo, capacity: 0, opaque: 0, cutout: 0, translucent: 0 };
   }
   gl.bindBuffer(gl.ARRAY_BUFFER, part.vbo);
   if (words.byteLength > part.capacity) {
@@ -41,6 +42,7 @@ export function uploadShaped(gl: WebGL2RenderingContext, part: ShapedPart | null
   }
   part.opaque = opaque;
   part.cutout = cutout;
+  part.translucent = translucent;
   return part;
 }
 
@@ -74,6 +76,7 @@ out vec2 v_open;
 out vec3 v_pos;
 out vec2 v_card;
 flat out uint v_kind;
+flat out uint v_paintId;
 
 const float SCALE = 100.0; // engine SHAPED_SCALE
 const float OFFSET = 2.0; // engine SHAPED_OFFSET
@@ -92,7 +95,8 @@ void main() {
   float u = float((w1 >> 12u) & 4095u) / 256.0;
   uint light = w1 >> 24u;
   vec3 n = u_turn * octahedral(w2 & 65535u);
-  float layer = float(w2 >> 16u);
+  float layer = float((w2 >> 16u) & 1023u);
+  v_paintId = (w2 >> 26u) & 31u;
   vec2 uv = vec2(0.0);
   v_card = vec2(-1.0);
   if (kind == 0u) {

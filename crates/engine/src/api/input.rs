@@ -65,7 +65,7 @@ impl Game {
     /// box of a quarry or the footprint of a multi-block machine in hand at once; with an advanced scanner in
     /// hand it steps the scanner's ore filter instead. False when nothing turns.
     pub fn rotate_target(&mut self) -> bool {
-        if self.cycle_scan_filter() || self.wire_toggle() {
+        if self.cycle_scan_filter() || self.wire_toggle() || self.eyedrop_paint_colour() {
             return true;
         }
         if self.ghost_mode || self.holds_boxed() || self.held_footprint().is_some() {
@@ -75,21 +75,60 @@ impl Game {
             self.play(sound::PLACE, block::sound::METAL, self.body().eye(), 0.4);
             return true;
         }
-        let Some(hit) = self.target else { return false };
+        let Some(hit) = self.target else {
+            return self.turn_held_shape();
+        };
+        if crate::shape::is_rotatable(self.sim.world.get_shape(hit.block)) {
+            self.act(Action::Rotate { pos: hit.block });
+            self.play(sound::PLACE, block::sound::STONE, hit.block.as_vec3() + Vec3::new(0.5, 0.5, 0.5), 0.5);
+            return true;
+        }
         let belt_like =
             factory::machine(hit.id).is_some_and(|m| matches!(m.kind, Kind::Belt | Kind::Router | Kind::Sensor));
         if !belt_like && !factory::turns(hit.id) {
-            return false;
+            return self.turn_held_shape();
         }
         self.act(Action::Rotate { pos: hit.block });
         self.play(sound::PLACE, block::sound::METAL, hit.block.as_vec3() + Vec3::new(0.5, 0.5, 0.5), 0.6);
         true
     }
 
-    /// Shift+R: bends the targeted flat belt to take items in from its left, its right or its back, in turn, or else steps
-    /// the bend the next belt laid by hand gets (`belt_bend.rs`). False when neither applies.
+    /// Shift+R: bends the targeted flat belt or held belt (`belt_bend.rs`), cycles paint colour when holding a
+    /// Paint Sprayer (`colour_hands.rs`), else cycles the shape mode when holding a shapeable building block.
     pub fn bend_target(&mut self) -> bool {
-        self.bend_target_belt()
+        self.bend_target_belt() || self.cycle_paint_colour(1) || self.cycle_shape_mode(1)
+    }
+
+    /// Shift+Wheel: cycles the Paint Sprayer colour or the shape placement mode.
+    pub fn cycle_shape(&mut self, delta: i32) -> bool {
+        self.cycle_paint_colour(delta) || self.cycle_shape_mode(delta)
+    }
+
+    /// Active Paint Sprayer status line (empty when not holding a Paint Sprayer).
+    pub fn held_paint_info(&self) -> String {
+        self.held_paint_status()
+    }
+
+    /// Active Paint Sprayer swatch CSS hex string (empty when not holding a Paint Sprayer or in Strip mode).
+    pub fn held_paint_hex(&self) -> String {
+        self.held_paint_hex_str().to_string()
+    }
+
+    /// Current shape placement mode (`0..shape::MODE_COUNT`) and whether the selected item is shapeable.
+    pub fn held_shape_mode(&self) -> u8 {
+        self.held_shape_mode
+    }
+
+    pub fn held_shapeable_block(&self) -> bool {
+        self.held_shapeable().is_some()
+    }
+
+    pub fn held_shape_name(&self) -> String {
+        if self.held_shapeable().is_some() {
+            crate::shape::mode_name(self.held_shape_mode).to_string()
+        } else {
+            String::new()
+        }
     }
 
     /// The bend the next belt laid by hand gets: 0 straight, 1 taking items in from its left, 2 from its right.

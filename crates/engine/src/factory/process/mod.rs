@@ -40,6 +40,7 @@ mod hoist;
 mod hub;
 mod hydro;
 mod intake;
+mod kiln;
 mod kinds;
 mod laser;
 mod launch;

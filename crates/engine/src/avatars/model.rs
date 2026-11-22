@@ -413,7 +413,7 @@ impl Rig<'_> {
     #[allow(clippy::too_many_arguments)]
     fn held_item(&mut self, hand: Vec3, pitch: f64, tip: f64, held: ItemId, scale: f64, view: bool, pose: &Pose) {
         let parts = grip::held_parts(held, hand, pitch, tip, scale, view, pose);
-        if held == crate::item::FLAMETHROWER && parts.len() >= 2 {
+        if matches!(held, crate::item::FLAMETHROWER | crate::item::PAINT_SPRAYER) && parts.len() >= 2 {
             let rim = self.world(parts[parts.len() - 1].center);
             let bell = self.world(parts[parts.len() - 2].center);
             let d = rim - bell;

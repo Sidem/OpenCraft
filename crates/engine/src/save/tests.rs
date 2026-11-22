@@ -184,7 +184,8 @@ fn a_version_76_save_still_loads_and_saves_with_only_the_head_slot_and_the_new_t
         w.bytes.len()
     };
     assert!(g.sim.codex.has(IRON_INGOT), "migrated v76 save seeds codex from existing inventory");
-    assert_eq!(saved.len(), V76_SAVE.len() + 2 * players + 32 + 4 + leds + 12 + 12 + codex_bytes);
+    // +4 bytes for the empty chunk-shapes list (save 84), +20 bytes for surface paint & charges (save 85).
+    assert_eq!(saved.len(), V76_SAVE.len() + 2 * players + 32 + 4 + leds + 12 + 12 + codex_bytes + 4 + 20);
     let back = Game::load(&saved, 2).expect("the new format loads");
     assert_eq!(back.sim.state_hash(), g.sim.state_hash());
 }

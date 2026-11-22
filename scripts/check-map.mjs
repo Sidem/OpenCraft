@@ -18,12 +18,12 @@ const SKIP = new Set(['node_modules', 'target', 'dist', '.git', '.claude', 'trai
 /** Top-level engine modules that make up the deterministic core. */
 const CORE = ['sim', 'action', 'bytes', 'join', 'math', 'deposits', 'daytime', 'inventory', 'equipment', 'offhand', 'tools',
   'crafting', 'perks', 'mode', 'research', 'codex', 'ghosts', 'drones', 'helpers', 'blueprint', 'satellites', 'pods', 'opening',
-  'settlements', 'factory', 'block', 'item', 'recipes', 'chunk', 'world', 'worldgen', 'noise'];
+  'settlements', 'shape', 'colour', 'factory', 'block', 'item', 'recipes', 'chunk', 'world', 'worldgen', 'noise'];
 /** Top-level engine modules the core must never name: presentation state, the local player's hands, the API. */
 const VIEW = ['api', 'interaction', 'camera', 'strategy', 'avatars', 'analytics', 'minimap', 'sound', 'orbit_fx',
   'drone_view', 'surroundings', 'quarry_preview', 'footprint_preview', 'town_preview', 'ghost_mode', 'upgrade_aim',
   'belt_line', 'power_tools', 'rail_tools', 'train_tools', 'cargo_tools', 'site_hands', 'helper_hands', 'hand_waste',
-  'held_light', 'survey', 'prospect', 'seismic', 'events', 'entities', 'authority'];
+  'held_light', 'survey', 'prospect', 'seismic', 'shape_hands', 'colour_hands', 'events', 'entities', 'authority'];
 /** Core files allowed to name some VIEW modules, and why. */
 const EXEMPT = {
   'blueprint/hands.rs': { may: VIEW, why: 'the local player blueprint hands, not core' },

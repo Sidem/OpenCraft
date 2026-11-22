@@ -47,6 +47,7 @@ impl Sim {
             Action::BreakBlock { pos } => self.break_block(player, pos),
             Action::ChopTree { pos, at, from } => self.chop_tree(player, pos, at, from),
             Action::PlaceBlock { pos, slot, facing, against } => self.place_block(player, pos, slot, facing, against),
+            Action::PlaceShaped { pos, slot, shape } => self.place_shaped(player, pos, slot, shape),
             Action::TakeContents { pos } => {
                 let events = &mut self.events;
                 self.factory.take_contents(pos, |item, n| {
@@ -113,7 +114,12 @@ impl Sim {
             }
             Action::SetQuarry { pos, width, depth, paused } => self.factory.set_quarry(pos, width, depth, paused),
             Action::Rotate { pos } => {
-                self.factory.rotate(pos);
+                let s = self.world.shape_anywhere(pos);
+                if crate::shape::is_rotatable(s) {
+                    self.world.set_shape_anywhere(pos, crate::shape::rotate_cw(s));
+                } else {
+                    self.factory.rotate(pos);
+                }
             }
             Action::BendBelt { pos, bend } => {
                 self.factory.set_bend(pos, bend);
@@ -238,6 +244,7 @@ impl Sim {
                 self.ignite(pos, heat);
             }
             Action::Flame { origin, dir } => self.flame_cast(player, origin, dir),
+            Action::PaintFace { pos, face, colour } => self.paint_face(player, pos, face, colour),
         }
     }
 }

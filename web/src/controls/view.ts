@@ -82,7 +82,7 @@ export class ViewControls {
     else if (a.kind === 'move-order') this.game.order_move();
     else if (a.kind === 'scroll') {
       if (this.game.view_mode() >= 2) this.game.zoom_strategy(a.delta);
-      else this.game.scroll_slot(a.delta);
+      else if (!a.shift || !this.game.cycle_shape(a.delta)) this.game.scroll_slot(a.delta);
     } else return false;
     this.sync();
     return true;

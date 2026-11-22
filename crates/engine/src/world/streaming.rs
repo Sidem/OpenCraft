@@ -239,7 +239,8 @@ impl World {
             + out.liquid_quads
             + out.translucent_quads
             + out.shaped_opaque
-            + out.shaped_cutout;
+            + out.shaped_cutout
+            + out.shaped_translucent;
         if quads == 0 && !entry.has_mesh {
             return true;
         }
@@ -254,6 +255,7 @@ impl World {
             shaped: out.shaped,
             shaped_opaque: out.shaped_opaque,
             shaped_cutout: out.shaped_cutout,
+            shaped_translucent: out.shaped_translucent,
         }));
         true
     }

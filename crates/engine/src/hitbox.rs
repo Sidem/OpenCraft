@@ -7,7 +7,8 @@
 //! To extend: nothing here; give another machine kind a hit box by adding it to `Factory::hit_boxes`.
 
 use crate::factory::INSTANCE_FLOATS;
-use crate::math::Vec3;
+use crate::math::{IVec3, Vec3};
+use crate::physics::Aabb;
 
 /// Slack around every box, so a thin post is not a hairline to hit.
 const PAD: f64 = 0.04;
@@ -37,11 +38,35 @@ impl Boxes {
         Boxes(vec![Obb { centre: [0.5; 3], half: [size * 0.5 + PAD; 3], rot }])
     }
 
+    /// Axis-aligned sub-boxes in cell-local `[0..1]³` space with no padding (for shaped slabs, stairs and slopes).
+    pub fn from_aabbs(aabbs: &[Aabb]) -> Option<Boxes> {
+        if aabbs.is_empty() {
+            return None;
+        }
+        let rot = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+        let boxes = aabbs
+            .iter()
+            .map(|a| Obb {
+                centre: [(a.min.x + a.max.x) * 0.5, (a.min.y + a.max.y) * 0.5, (a.min.z + a.max.z) * 0.5],
+                half: [(a.max.x - a.min.x) * 0.5, (a.max.y - a.min.y) * 0.5, (a.max.z - a.min.z) * 0.5],
+                rot,
+            })
+            .collect();
+        Some(Boxes(boxes))
+    }
+
     /// Distance along `dir` (a unit vector) at which a ray from `origin` (relative to the cell's lowest corner)
     /// first touches a box; 0 when it starts inside one.
     pub fn enter(&self, origin: Vec3, dir: Vec3) -> Option<f64> {
         let (o, d) = ([origin.x, origin.y, origin.z], [dir.x, dir.y, dir.z]);
         self.0.iter().filter_map(|b| b.enter(o, d)).min_by(f64::total_cmp)
+    }
+
+    /// Like [`Boxes::enter`], also returning the outward face normal of the axis-aligned face struck
+    /// (`IVec3::ZERO` if the ray started inside the box).
+    pub fn enter_normal(&self, origin: Vec3, dir: Vec3) -> Option<(f64, IVec3)> {
+        let (o, d) = ([origin.x, origin.y, origin.z], [dir.x, dir.y, dir.z]);
+        self.0.iter().filter_map(|b| b.enter_normal(o, d)).min_by(|a, b| a.0.total_cmp(&b.0))
     }
 
     /// The smallest axis-aligned box around all of them: its lowest corner and its size, in cell units.
@@ -81,9 +106,15 @@ impl Obb {
 
     /// Slab test in the box's own frame (the ray rotated by the transpose of `rot`).
     fn enter(&self, origin: [f64; 3], dir: [f64; 3]) -> Option<f64> {
+        self.enter_normal(origin, dir).map(|(t, _)| t)
+    }
+
+    /// Slab test returning both entry distance and outward face normal (in world axes for axis-aligned boxes).
+    fn enter_normal(&self, origin: [f64; 3], dir: [f64; 3]) -> Option<(f64, IVec3)> {
         let rel = [0, 1, 2].map(|i| origin[i] - self.centre[i]);
         let local = |v: [f64; 3], axis: usize| (0..3).map(|k| self.rot[k][axis] * v[k]).sum::<f64>();
         let (mut near, mut far) = (0.0_f64, f64::INFINITY);
+        let mut hit_axis: Option<(usize, i32)> = None;
         for (axis, &half) in self.half.iter().enumerate() {
             let (o, d) = (local(rel, axis), local(dir, axis));
             if d.abs() < 1e-12 {
@@ -93,10 +124,25 @@ impl Obb {
                 continue;
             }
             let (a, b) = ((-half - o) / d, (half - o) / d);
-            near = near.max(a.min(b));
+            let t_in = a.min(b);
+            if t_in > near {
+                near = t_in;
+                hit_axis = Some((axis, if d > 0.0 { -1 } else { 1 }));
+            }
             far = far.min(a.max(b));
         }
-        (near <= far).then_some(near)
+        if near > far {
+            return None;
+        }
+        let mut n = IVec3::ZERO;
+        if let Some((axis, sign)) = hit_axis {
+            match axis {
+                0 => n.x = sign,
+                1 => n.y = sign,
+                _ => n.z = sign,
+            }
+        }
+        Some((near, n))
     }
 }
 

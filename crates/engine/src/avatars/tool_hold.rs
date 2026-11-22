@@ -59,6 +59,7 @@ pub(super) fn hold(held: ItemId) -> Option<Hold> {
         ToolKind::Shovel => ([0.0, 0.3, 0.0], Stroke::Dig),
         ToolKind::Sickle => ([0.0, -0.3, 0.0], Stroke::Sweep),
         ToolKind::Flamethrower => ([-0.24, 0.04, 0.0], Stroke::Aim),
+        ToolKind::PaintSprayer => ([-0.24, -0.06, 0.0], Stroke::Aim),
         _ => return None,
     };
     Some(Hold { grip, stroke })

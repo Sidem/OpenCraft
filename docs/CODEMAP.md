@@ -33,6 +33,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `helpers/`: jetpack, hover pack, `drone/` (personal drone, `trip.rs`). `blueprint/mod.rs` (data, bytes; `plan.rs` the view from above).
 - `signs/` (note signs; `view.rs` draws boards). `led/` (LED lamp colours, `SetLed`; `view.rs` the tint box). `street/` (street lamps: placing and breaking a 1×1×4 column of blocks, no state; `model.rs` the model, `view.rs` draws it from the head). `satellites.rs`, `pods.rs`, `opening.rs` (+ `opening/miners.rs`).
 - `settlements/`: towns. `orders.rs`, `run.rs`, `plans.rs`, `plots.rs`, `build.rs`, `state.rs`, `perks/` (+ `harbour/`).
+- `shape/`: block shape modifiers (slabs ¼/½/¾, vertical slabs, auto-corner stairs, 45° pitched slopes/roofs); `boxes.rs`.
+- `colour/`: per-face surface paint modifier (`FacePaint`, 16-hue palette, `PaintCharges`, legacy concrete migration).
 - `hints.rs`: onboarding tips. `lessons.rs`: the bits of `Sim::taught`.
 
 ### Factory (core): `factory/`
@@ -54,7 +56,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs` (+ `pump/view.rs`, `Look::Jack`), `refinery.rs`, `gas.rs`, `washer.rs`, `recycler.rs`,
   `center.rs`, `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs` (+ `rocket.rs`),
   `pods.rs` + `pods/channels.rs`, `hangar.rs`, `hoist.rs`, `docks.rs`, `depot.rs`, `ejector.rs`, `upgrader.rs`, `laser.rs`,
-  `forester.rs` + `forester/` (`patch.rs`, `work.rs`, `fell.rs`, `view.rs`, `crane.rs`, `scene.rs`; `Look::Crane`), `thumper.rs` (`Look::Thumper`).
+  `forester.rs` + `forester/` (`patch.rs`, `work.rs`, `fell.rs`, `view.rs`, `crane.rs`, `scene.rs`; `Look::Crane`), `thumper.rs` (`Look::Thumper`), `kiln.rs` (`GLASS_KILN`).
 - Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs`, `render.rs` (instances; `push_round`, `push_cone`,
   `push_framed`; `plume.rs`, `capsule.rs`; `render/fake_round.rs` and `tests/face_fight.rs` are checks), `static_view.rs` (chunk index and static/dynamic split), `hitbox.rs`, `smoke.rs`,
   `placed.rs` (what blueprints copy).
@@ -68,6 +70,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   Stained glass: blocks 239–254 (`block/glass.rs`, translucent cubes), `recipes/glass.rs` (rows 177–192, Architecture).
   Natural gas (CHEM-GAS): blocks 255–260 (`block/gas.rs`; 256–260 first wide blocks in `WIDE_BLOCK_ITEMS`), items 430–439, `recipes/gas.rs` (rows 193–197), `worldgen/gas.rs` (v13 independent fields), `item_models/gas.rs`, `textures/gas.rs`.
   Seismic prospecting (F-SEIS): block 261 (`block/thumper.rs`), items 442–444 (Mk1–Mk3), `recipes/thumper.rs`, `item_models/thumper.rs`, `textures/thumper.rs`.
+  Glass Kiln & Paint Sprayer (L-COLOUR): block 262 (`block/kiln.rs`), items 445–446, `item_models/kiln.rs`, `textures/kiln.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs`): `ItemId`; ids below 256 are blocks, wider blocks pair with items in `WIDE_BLOCK_ITEMS`. `wood.rs`: the ten woods.
 - `recipes/`: `mod.rs` (`RECIPES`; `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`; `machine_later.rs`), `process_notes.rs` (one line of real chemistry a chemical machine row; shown on its card and in the item guide), `rows.rs`, `tiers.rs`,
   `refit.rs`, `timing.rs`, `group.rs` + `menu_order.rs`, `item_groups.rs`, `recycling.rs`, `content.rs`; one file per era or
@@ -78,7 +81,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `textures.rs` + `textures/`: procedural placeholder layers (the art pack overrides them in the browser).
 
 ### World and generation
-- `chunk.rs` (32³), `world/mod.rs` (`*_anywhere` accessors for core code), `world/streaming.rs`, `world/boxlight.rs`,
+- `chunk.rs` (32³ + sparse shapes/paint), `world/mod.rs` (`*_anywhere` accessors), `world/shapes.rs` (save 84), `world/colours.rs` (save 85), `world/streaming.rs`, `world/boxlight.rs`,
   `world/glows.rs`, `world/settle.rs` (simulation liquid edits wait 0.15 s), `world/cover_clear.rs` (sickle-cut columns; saved), `world/upgrade.rs` (in-place deposits-layer refresh).
 - `worldgen/mod.rs`: heights, caves, `generate`, generator versions (pinned by `released_versions_never_change`). `layers.rs` (`Layers`: ground, water, cover, deposits), `column.rs`,
   `biome.rs`, `landform.rs`, `caves.rs`, `water.rs`, `rivers.rs` + `rivers/`, `shore.rs`, `trees.rs` (up to version 11),
@@ -88,7 +91,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 ### Local player: hands, tools and previews (presentation; act only by queuing actions)
 - `interaction.rs` + `interaction/aim.rs` (+ `interaction/chop.rs`), `player.rs`, `physics.rs`, `raycast.rs`, `hitbox.rs`, `camera.rs`,
   `strategy.rs` + `strategy/navigation.rs`, `item_select.rs`.
-- `belt_line.rs` + `belt_line/` (`path.rs`, `preview.rs`, `route.rs`), `upgrade_aim.rs`, `belt_bend.rs`, `place_refusal.rs`.
+- `belt_line.rs` + `belt_line/` (`path.rs`, `preview.rs`, `route.rs`), `upgrade_aim.rs`, `belt_bend.rs`, `shape_hands.rs` (slab/stair/roof shape mode & ghost preview), `colour_hands.rs` (Paint Sprayer hands & eyedropper), `place_refusal.rs`.
 - Previews and hands: `quarry_preview.rs`, `forester_preview.rs`, `footprint_preview.rs`, `port_view.rs` + `port_view/`,
   `town_preview.rs`, `ghost_mode.rs` + `ghost_models.rs` (ghosts and blueprint stamps as see-through models), `ghost_build.rs` (X: build the aimed ghost from the pack), `power_tools.rs` + `power_tools/`, `rail_tools.rs`, `rail_snap.rs`, `train_tools.rs`,
   `dock_tools.rs`, `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `drone_hands.rs`, `blueprint/hands.rs`, `blueprint/repeat.rs`.
@@ -96,7 +99,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - Tools: `prospect.rs`, `seismic/` (`mod.rs`, `scan.rs`, `volume.rs`: 2D MRI slice + 48³ 3D volume query), `survey.rs` + `survey/orbit.rs`, `telescope.rs` + `telescope/` (`ground.rs`, `beacons.rs`), `sickle.rs`, `flame_hands.rs`.
 
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
-- `mesher.rs` + `mesher/` (`quad.rs`, `water.rs`, `cover.rs` + `cover/shape.rs`); trees: `shaped.rs`, `tree_grid.rs`, `logs.rs` + `logs/`
+- `mesher.rs` + `mesher/` (`quad.rs`, `water.rs`, `blocks/` + `blocks/slope.rs` shaped slabs/stairs/roofs, `cover.rs` + `cover/shape.rs`); trees: `shaped.rs`, `tree_grid.rs`, `logs.rs` + `logs/`
   (`node.rs`, `ring.rs`), `foliage.rs` + `foliage/style.rs`.
 - `entities.rs` + `entities/merge.rs`, `avatars.rs` + `avatars/` (`grip.rs`, `hand.rs`, `tool_hold.rs`; first-person hand & character rig), `halos.rs`, `fire_view.rs` + `fire_view/torch.rs` (burning tree/ember emitters, ballistic torch plumes, flame lights & glow), `wire_props.rs`,
   `held_light.rs`, `drone_view.rs` + `companion_view.rs`, `orbit_fx.rs`, `sound.rs`.

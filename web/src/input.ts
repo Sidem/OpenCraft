@@ -5,7 +5,7 @@
 
 export type Action =
   | { kind: 'slot'; slot: number }
-  | { kind: 'scroll'; delta: number }
+  | { kind: 'scroll'; delta: number; shift?: boolean }
   | { kind: 'fly' }
   | { kind: 'drop' }
   | { kind: 'swap-hands' }
@@ -106,7 +106,7 @@ export class Input {
       (e) => {
         if (!this.locked) return;
         e.preventDefault();
-        if (e.deltaY !== 0) this.actions.push({ kind: 'scroll', delta: Math.sign(e.deltaY) });
+        if (e.deltaY !== 0) this.actions.push({ kind: 'scroll', delta: Math.sign(e.deltaY), shift: e.shiftKey });
       },
       { passive: false },
     );

@@ -19,10 +19,11 @@ fn the_decor_rows_are_the_last_of_the_table_where_research_says() {
     let glass = crate::recipes::glass::STAINED_GLASS.len();
     let gas = crate::recipes::gas::GAS_MACHINES.len();
     let seis = crate::recipes::refit::REFIT_SEISMIC.len();
+    let glass_raw = crate::recipes::glass::STAINED_GLASS_RAW.len();
     assert_eq!(
         MACHINE_RECIPES.len(),
-        DECOR_FIRST as usize + DECOR.len() + later + dye + glass + gas + seis,
-        "only upgrader, dye, stained glass, gas and seismic refit rows follow"
+        DECOR_FIRST as usize + DECOR.len() + later + dye + glass + gas + seis + glass_raw,
+        "only upgrader, dye, stained glass, gas, seismic refit and raw glass rows follow"
     );
     assert_eq!(MACHINE_RECIPES[DECOR_FIRST as usize - 1].inputs, &[(item::SCRAP_METAL, 3)][..], "the salvage row");
     assert_eq!(
@@ -36,7 +37,8 @@ fn the_decor_rows_are_the_last_of_the_table_where_research_says() {
 fn every_decor_block_has_one_machine_row_and_no_hand_recipe() {
     for id in decor_blocks() {
         let def = block::def(id);
-        assert!(def.placeable && def.drop == id && def.break_time > 0.0, "{} is a plain block", def.name);
+        let expected_drop = if crate::colour::is_legacy_concrete(id) { block::CONCRETE } else { id };
+        assert!(def.placeable && def.drop == expected_drop && def.break_time > 0.0, "{} is a plain block", def.name);
         let rows = DECOR.iter().filter(|r| r.outputs[0].0 == b(id)).count();
         assert_eq!(rows, 1, "{} is made by exactly one machine row", def.name);
         assert!(!crate::recipes::RECIPES.iter().any(|r| r.output == b(id)), "{} is machine-made only", def.name);
@@ -80,13 +82,20 @@ fn architecture_unlocks_every_row_and_nothing_earlier_does() {
     let mut research = Research::default();
     let tech = TECHS.iter().position(|t| t.name == "Architecture").unwrap() as u8;
     assert_eq!(tech, 85, "saved index");
-    for row in DECOR_FIRST..DECOR_FIRST + DECOR_ROWS {
+    // The 5 legacy dyed-concrete rows are retired (`is_retired_recipe`); the 9 active decor rows unlock with Architecture.
+    for row in DECOR_FIRST..DECOR_FIRST + 5 {
+        assert!(!research.has(Unlock::MachineRecipe(row)));
+    }
+    for row in DECOR_FIRST + 5..DECOR_FIRST + DECOR_ROWS {
         assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), Some(tech));
     }
     for prerequisite in TECHS[tech as usize].needs.iter().copied().chain([tech]) {
         (0..TECHS[prerequisite as usize].units).for_each(|_| research.add_unit(prerequisite));
     }
-    for row in DECOR_FIRST..DECOR_FIRST + DECOR_ROWS {
+    for row in DECOR_FIRST..DECOR_FIRST + 5 {
+        assert!(!research.has(Unlock::MachineRecipe(row)), "retired dyed concrete stays hidden");
+    }
+    for row in DECOR_FIRST + 5..DECOR_FIRST + DECOR_ROWS {
         assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), None);
     }
 }

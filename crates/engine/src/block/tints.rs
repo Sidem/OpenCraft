@@ -12,7 +12,7 @@ pub const BLUE_CONCRETE: BlockId = 228;
 pub const TINT_COUNT: usize = 11;
 
 const fn concrete(name: &'static str, i: u16) -> BlockDef {
-    cube(name, 1.4, all(tex::tint_layer(i)), BLUE_CONCRETE + i, sound::STONE)
+    cube(name, 1.4, all(tex::tint_layer(i)), super::CONCRETE, sound::STONE)
 }
 
 /// The rows of `DEFS` from block 228 on, in id order.

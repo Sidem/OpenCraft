@@ -80,9 +80,10 @@ pub const DYE_FIRST: u16 = 155;
 pub const DYE_ROWS: u16 = 22;
 /// The first eleven rows of `DYE_ROWS` are the chemical plant's.
 pub const DYE_PLANT_ROWS: u16 = 11;
-/// Stained glass (`glass.rs`, unlocked by Architecture): sixteen hues in `block/glass.rs` order.
+/// Stained glass (`glass.rs`, Glass Kiln): sixteen hues in `block/glass.rs` order (5 primary + 11 mixed).
 pub const GLASS_FIRST: u16 = 177;
 pub const GLASS_ROWS: u16 = 16;
+pub const GLASS_PRIMARY_COUNT: u16 = 5;
 /// Natural gas (`gas.rs`, CHEM-GAS): gas plant sweetening (193), steam reforming (194), ethane cracking (195), LPG
 /// cracking (196), and ethylene polymerisation to plastic (197).
 pub const GAS_PROCESS_RECIPE: u16 = 193;
@@ -90,4 +91,13 @@ pub const REFORM_RECIPE: u16 = 194;
 pub const ETHANE_CRACK_RECIPE: u16 = 195;
 pub const LPG_CRACK_RECIPE: u16 = 196;
 pub const POLYETHYLENE_RECIPE: u16 = 197;
+/// Direct Sand (200..216) and Quartz (216..232) stained glass batches in the Glass Kiln (`glass.rs`, after `REFIT_SEISMIC`).
+pub const GLASS_RAW_FIRST: u16 = 200;
+#[cfg(test)]
+pub const GLASS_RAW_ROWS: u16 = 32;
+/// Legacy dyed-concrete assembler rows (136..141 in `DECOR`, 166..177 in `DYE`), kept at their indices for old-save
+/// machines but retired from new play in favour of spray-painting concrete in place (`L-COLOUR`).
+pub const fn is_retired_recipe(row: u16) -> bool {
+    (row >= DECOR_FIRST && row < DECOR_FIRST + 5) || (row >= DYE_FIRST + DYE_PLANT_ROWS && row < DYE_FIRST + DYE_ROWS)
+}
 // Rows 88 on are the upgrader's, one per tier (`refit.rs`; research locks them by category, `Research::locked_by`).

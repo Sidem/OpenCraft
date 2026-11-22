@@ -35,6 +35,8 @@ mod camera;
 mod cargo_tools;
 mod chunk;
 mod codex;
+pub mod colour;
+mod colour_hands;
 mod companion_view;
 mod crafting;
 mod daytime;
@@ -107,6 +109,8 @@ mod satellites;
 mod save;
 mod seismic;
 mod settlements;
+pub mod shape;
+mod shape_hands;
 mod sickle;
 pub mod signs;
 mod sim;
@@ -140,7 +144,7 @@ use wasm_bindgen::prelude::*;
 use action::Action;
 use avatars::Avatars;
 use belt_line::BeltLine;
-use camera::{CrouchGlide, ThirdPerson};
+use camera::{CrouchGlide, StepGlide, ThirdPerson};
 use deposits::DepositState;
 use entities::Items;
 use inventory::Inventory;
@@ -185,6 +189,8 @@ pub struct Game {
     render_eye: Vec3,
     /// Eases the eye between standing and crouching height (camera.rs).
     crouch_glide: CrouchGlide,
+    /// Eases vertical step-up / step-down shifts on stairs, slabs and slopes (camera.rs).
+    step_glide: StepGlide,
     /// The optional third-person camera and the avatar it shows (camera.rs).
     third_person: ThirdPerson,
     strategy: strategy::Strategy,
@@ -285,6 +291,12 @@ pub struct Game {
     place_turn: u8,
     /// The bend Shift+R gives the first belt of a line laid by hand (`belt_bend.rs`).
     held_bend: u8,
+    /// Placement shape mode (`0..shape::MODE_COUNT`) for shapeable building blocks (`shape_hands.rs`).
+    held_shape_mode: u8,
+    /// Active Paint Sprayer swatch (`0 = Strip`, `1..=16 = Red..Navy`), sound cooldown and spray mist (`colour_hands.rs`).
+    held_paint_colour: u8,
+    paint_cooldown: f32,
+    paint_spray: colour_hands::PaintSpray,
     /// Which note sign each text slot of the texture array shows (`signs/view.rs`).
     sign_slots: signs::view::Slots,
     /// Pole and cable placing (`power_tools.rs`).
@@ -324,6 +336,7 @@ impl Game {
             prev_eye: eye,
             render_eye: eye,
             crouch_glide: CrouchGlide::default(),
+            step_glide: StepGlide::default(),
             third_person: ThirdPerson::default(),
             strategy: strategy::Strategy::default(),
             target: None,
@@ -385,6 +398,10 @@ impl Game {
             rails: RailTools::default(),
             place_turn: 0,
             held_bend: 0,
+            held_shape_mode: 0,
+            held_paint_colour: 1,
+            paint_cooldown: 0.0,
+            paint_spray: colour_hands::PaintSpray::default(),
             sign_slots: Default::default(),
             analytics: analytics::Analytics::default(),
             tier_palette: tier_palette::STANDARD,
@@ -403,6 +420,11 @@ impl Game {
         self.update_jetpack();
         self.update_drone_hands();
         self.step_bodies();
+        let step_dy = std::mem::take(&mut self.body_mut().step_delta);
+        if step_dy.abs() > 1e-9 {
+            self.prev_eye.y += step_dy;
+            self.step_glide.add(step_dy);
+        }
         self.update_movement_sounds(feet);
         self.update_target();
         self.update_mining(TICK as f32);

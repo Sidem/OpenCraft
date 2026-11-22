@@ -64,17 +64,19 @@ pub struct Vert {
     pub layer: u16,
 }
 
-/// The shaped quads of one chunk, opaque and cutout apart until the mesher joins them.
+/// The shaped quads of one chunk: opaque, cutout, and translucent apart until the mesher joins them.
 #[derive(Default)]
 pub struct Shaped {
     pub opaque: Vec<u32>,
     pub cutout: Vec<u32>,
+    pub translucent: Vec<u32>,
 }
 
 impl Shaped {
     pub fn clear(&mut self) {
         self.opaque.clear();
         self.cutout.clear();
+        self.translucent.clear();
     }
 
     /// Appends a quad, wound counter-clockwise seen from where it faces, of vertices packed already (with layer 0),
@@ -85,6 +87,14 @@ impl Shaped {
         let out = if cutout { &mut self.cutout } else { &mut self.opaque };
         for w in q {
             out.extend_from_slice(&[w[0], w[1], w[2] | u32::from(layer) << 16]);
+        }
+    }
+
+    /// Appends a translucent shaped quad (e.g. stained glass slab, stair or skylight slope).
+    #[inline(never)]
+    pub fn packed_translucent(&mut self, q: [[u32; 3]; 4], layer: u16) {
+        for w in q {
+            self.translucent.extend_from_slice(&[w[0], w[1], w[2] | u32::from(layer) << 16]);
         }
     }
 }

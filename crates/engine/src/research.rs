@@ -182,7 +182,13 @@ impl Research {
     }
 
     /// Whether `unlock` is available: no tech lists it, or its tech is done.
+    /// Retired dyed-concrete machine recipes are never unlocked in new play (`is_retired_recipe`).
     pub fn has(&self, unlock: Unlock) -> bool {
+        if let Unlock::MachineRecipe(i) = unlock {
+            if crate::recipes::is_retired_recipe(i) {
+                return false;
+            }
+        }
         self.locked_by(unlock).is_none()
     }
 

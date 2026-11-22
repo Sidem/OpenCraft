@@ -51,12 +51,13 @@ pub mod layers {
 use layers as t;
 
 /// The rows of `DEFS` from block 129 on, in id order.
+/// Legacy dyed concretes (129–133) drop plain `CONCRETE` (L-COLOUR: concrete is spray-painted in place).
 pub(super) const DECOR_DEFS: [BlockDef; DECOR_COUNT] = [
-    cube("Red Concrete", 1.4, all(t::RED_CONCRETE), RED_CONCRETE, sound::STONE),
-    cube("Green Concrete", 1.4, all(t::GREEN_CONCRETE), GREEN_CONCRETE, sound::STONE),
-    cube("Black Concrete", 1.4, all(t::BLACK_CONCRETE), BLACK_CONCRETE, sound::STONE),
-    cube("White Concrete", 1.4, all(t::WHITE_CONCRETE), WHITE_CONCRETE, sound::STONE),
-    cube("Yellow Concrete", 1.4, all(t::YELLOW_CONCRETE), YELLOW_CONCRETE, sound::STONE),
+    cube("Red Concrete", 1.4, all(t::RED_CONCRETE), super::CONCRETE, sound::STONE),
+    cube("Green Concrete", 1.4, all(t::GREEN_CONCRETE), super::CONCRETE, sound::STONE),
+    cube("Black Concrete", 1.4, all(t::BLACK_CONCRETE), super::CONCRETE, sound::STONE),
+    cube("White Concrete", 1.4, all(t::WHITE_CONCRETE), super::CONCRETE, sound::STONE),
+    cube("Yellow Concrete", 1.4, all(t::YELLOW_CONCRETE), super::CONCRETE, sound::STONE),
     cube("Basalt Tiles", 1.4, all(t::BASALT_TILES), BASALT_TILES, sound::STONE),
     cube("Granite Bricks", 1.4, all(t::GRANITE_BRICKS), GRANITE_BRICKS, sound::STONE),
     cube("Sandstone Bricks", 1.0, all(t::SANDSTONE_BRICKS), SANDSTONE_BRICKS, sound::STONE),

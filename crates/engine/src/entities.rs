@@ -14,8 +14,11 @@ use crate::factory::{push_box, push_shape};
 use crate::inventory::Inventory;
 use crate::item::{self, ItemId};
 use crate::item_models;
+#[cfg(test)]
+use crate::math::IVec3;
 use crate::math::Vec3;
-use crate::physics::{move_axis, Aabb};
+use crate::physics::{move_axis_boxes, Aabb};
+use crate::shape::CellBoxes;
 
 mod merge;
 
@@ -91,11 +94,26 @@ impl Items {
 
     /// Steps all items. `collected(collector, item, n)` is called for every successful pickup, with the
     /// collector's index; ties in distance go to the lower index.
+    #[cfg(test)]
     pub fn update(
         &mut self,
         dt: f64,
         collectors: &mut [Collector],
         solid: &mut impl FnMut(i32, i32, i32) -> bool,
+        water: &impl Fn(Vec3) -> bool,
+        loaded: &impl Fn(Vec3) -> bool,
+        collected: impl FnMut(usize, ItemId, u32),
+    ) {
+        let mut boxes = |x, y, z| if solid(x, y, z) { CellBoxes::full(IVec3::new(x, y, z)) } else { CellBoxes::EMPTY };
+        self.update_boxes(dt, collectors, &mut boxes, water, loaded, collected);
+    }
+
+    /// Steps all items against exact sub-voxel collision boxes so dropped items rest cleanly on slabs and stairs.
+    pub fn update_boxes(
+        &mut self,
+        dt: f64,
+        collectors: &mut [Collector],
+        boxes: &mut impl FnMut(i32, i32, i32) -> CellBoxes,
         water: &impl Fn(Vec3) -> bool,
         loaded: &impl Fn(Vec3) -> bool,
         mut collected: impl FnMut(usize, ItemId, u32),
@@ -150,14 +168,14 @@ impl Items {
                 }
                 let mut bb = Aabb::centered(e.pos, HALF);
                 let want_y = e.vel.y * dt;
-                let dy = move_axis(&mut bb, 1, want_y, solid);
+                let dy = move_axis_boxes(&mut bb, 1, want_y, boxes);
                 e.on_ground = want_y < 0.0 && (dy - want_y).abs() > 1e-9;
                 if (dy - want_y).abs() > 1e-9 {
                     e.vel.y = 0.0;
                 }
                 for axis in [0, 2] {
                     let want = e.vel.get(axis) * dt;
-                    if (move_axis(&mut bb, axis, want, solid) - want).abs() > 1e-9 {
+                    if (move_axis_boxes(&mut bb, axis, want, boxes) - want).abs() > 1e-9 {
                         e.vel.set(axis, 0.0);
                     }
                 }

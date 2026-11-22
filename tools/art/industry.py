@@ -262,17 +262,11 @@ def port_side():
 
 
 def concrete(seed=0, tones=CONCRETE):
-    """Poured concrete: pale aggregate, tie-rod holes and board lines; wraps."""
+    """Poured concrete: pale smooth aggregate and subtle formwork panel seams; wraps."""
     X, Y = coords()
-    v = 0.5 + (fbm(X, Y, 8, 4, seed + 1) - 0.5) * 0.5 + (vnoise(X * 60, Y * 60, 60, seed + 2) - 0.5) * 0.2
-    v = v - ((YS % 64) < 2) * 0.18 - ((XS % 64) < 2) * 0.1
+    v = 0.5 + (fbm(X, Y, 8, 4, seed + 1) - 0.5) * 0.45 + (vnoise(X * 60, Y * 60, 60, seed + 2) - 0.5) * 0.16
+    v = v - ((YS % 64) < 2) * 0.16 - ((XS % 64) < 2) * 0.09
     img = paint(tones, v, 0.3)
-    for cx, cy in ((32, 32), (96, 96)):
-        yy, xx = np.ogrid[0:N, 0:N]
-        hole = np.hypot(xx - cx, yy - cy) < 5
-        img[hole] = tones[0]
-        rim = (np.hypot(xx - cx, yy - cy) < 7) & ~hole
-        img[rim] = tones[2]
     return rgba(img)
 
 

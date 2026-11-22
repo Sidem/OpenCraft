@@ -108,9 +108,14 @@ impl Game {
         self.cur_mesh.as_ref().map_or(0, |m| m.shaped_opaque)
     }
 
-    /// Shaped cutout quads (the leafy shell of a canopy), stored after the opaque ones.
+    /// Shaped cutout quads (the leafy shell of a canopy and cutout slabs/stairs), stored after the opaque ones.
     pub fn mesh_shaped_cutout(&self) -> u32 {
         self.cur_mesh.as_ref().map_or(0, |m| m.shaped_cutout)
+    }
+
+    /// Shaped translucent quads (stained glass slabs, stairs and skylight slopes), stored after the cutout ones.
+    pub fn mesh_shaped_translucent(&self) -> u32 {
+        self.cur_mesh.as_ref().map_or(0, |m| m.shaped_translucent)
     }
 
     /// Camera position for this frame, interpolated between the last two ticks.
@@ -353,5 +358,10 @@ impl Game {
     /// One bit per texture layer the terrain shader may turn and mirror per block (`block::turn`), 16 words.
     pub fn texture_turns(&self) -> Vec<u32> {
         block::turn::MASK.to_vec()
+    }
+
+    /// The 17-entry RGB surface paint palette (`0` = unpainted, `1..=16` = Red..Navy), 51 floats.
+    pub fn colour_palette(&self) -> Vec<f32> {
+        crate::colour::palette_flat()
     }
 }

@@ -12,6 +12,8 @@ use crate::player::CROUCH_DIP;
 
 /// How fast the eye settles, per second: about 95% of the way in a fifth of a second.
 const GLIDE_RATE: f64 = 15.0;
+/// How fast the eye glides across a stair or slab step (per second): smooth without feeling laggy.
+const STEP_GLIDE_RATE: f64 = 18.0;
 /// Longest distance behind the eye the host may ask for.
 pub const MAX_DISTANCE: f64 = 10.0;
 /// Gap kept between the camera and a block behind it, so the near plane never cuts into it.
@@ -38,6 +40,33 @@ impl CrouchGlide {
         let target = if crouched { CROUCH_DIP } else { 0.0 };
         self.dip += (target - self.dip) * (1.0 - (-GLIDE_RATE * dt.max(0.0)).exp());
         Vec3::new(eye.x, eye.y + target - self.dip, eye.z)
+    }
+}
+
+/// Eases sudden vertical step-up and step-down shifts on stairs, slabs and slopes so climbing feels
+/// continuous rather than snapping vertically (comfort / motion sickness).
+#[derive(Default)]
+pub struct StepGlide {
+    offset: f64,
+}
+
+impl StepGlide {
+    /// Records an instantaneous physics step of `dy` blocks; camera lags by `-dy` and eases to 0.
+    pub fn add(&mut self, dy: f64) {
+        self.offset = (self.offset - dy).clamp(-1.0, 1.0);
+    }
+
+    pub fn reset(&mut self) {
+        self.offset = 0.0;
+    }
+
+    pub fn apply(&mut self, eye: Vec3, dt: f64) -> Vec3 {
+        if self.offset.abs() < 1e-4 {
+            self.offset = 0.0;
+            return eye;
+        }
+        self.offset *= (-STEP_GLIDE_RATE * dt.max(0.0)).exp();
+        Vec3::new(eye.x, eye.y + self.offset, eye.z)
     }
 }
 

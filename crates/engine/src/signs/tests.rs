@@ -60,7 +60,8 @@ fn the_sign_is_followed_only_by_the_forester_and_the_trees() {
         usize::from(crate::block::GAS_SHALE)
     );
     assert_eq!(usize::from(crate::block::GAS_SHALE) + crate::block::GAS_COUNT, usize::from(crate::block::THUMPER));
-    assert_eq!(usize::from(crate::block::THUMPER) + crate::block::THUMPER_COUNT, BLOCK_COUNT);
+    assert_eq!(usize::from(crate::block::THUMPER) + crate::block::THUMPER_COUNT, usize::from(crate::block::GLASS_KILN));
+    assert_eq!(usize::from(crate::block::GLASS_KILN) + crate::block::KILN_COUNT, BLOCK_COUNT);
 }
 
 #[test]
@@ -164,10 +165,27 @@ fn signs_are_saved_and_older_saves_have_none() {
         sim.fire.write_state(&mut fire);
         let mut codex = ByteWriter::default();
         sim.codex.write_state(&mut codex);
-        let tail = [bytes.as_slice(), &felling.bytes, &leds.bytes, &off.bytes, &fire.bytes, &codex.bytes].concat();
+        let mut shapes = ByteWriter::default();
+        sim.world.write_shapes(&mut shapes);
+        let mut paint = ByteWriter::default();
+        sim.world.write_paint(&mut paint);
+        let mut charges = ByteWriter::default();
+        sim.paint.write_state(&mut charges);
+        let tail = [
+            bytes.as_slice(),
+            &felling.bytes,
+            &leds.bytes,
+            &off.bytes,
+            &fire.bytes,
+            &codex.bytes,
+            &shapes.bytes,
+            &paint.bytes,
+            &charges.bytes,
+        ]
+        .concat();
         assert!(
             core.bytes.ends_with(&tail),
-            "the core ends with the signs, the trees being felled, the LED colours, the switched-off machines, active fires, the codex"
+            "the core ends with the signs, the trees being felled, the LED colours, the switched-off machines, active fires, the codex, chunk shapes and surface paint"
         );
     }
     const { assert!(SAVE_VERSION >= 63, "signs came with save 63") };
@@ -176,8 +194,8 @@ fn signs_are_saved_and_older_saves_have_none() {
     let fresh = crate::sim::Sim::new(2024, 2);
     fresh.write_state(&mut w);
     let cut = crate::helpers::before_drone_orders(&fresh, &w.bytes);
-    // (Cut the signs' count, the LED colours', the switched-off machines', active fires and the empty codex, which a save 62 does not have either.)
-    let old = &cut[..cut.len() - 25];
+    // (Cut the signs' count, the LED colours', the switched-off machines', active fires, the empty codex, chunk shapes and surface paint + charges, which a save 62 does not have either.)
+    let old = &cut[..cut.len() - 49];
     let (mut r, mut sim) = (ByteReader::new(old), crate::sim::Sim::new(2024, 2));
     r.version = 62;
     assert!(sim.read_state(&mut r).is_some() && r.is_done(), "a version 62 core");

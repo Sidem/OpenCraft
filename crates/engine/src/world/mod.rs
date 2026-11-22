@@ -10,9 +10,11 @@
 //! around unloaded ground don't generate the same chunk over and over.
 
 mod boxlight;
+mod colours;
 mod cover_clear;
 mod glows;
 mod settle;
+mod shapes;
 mod streaming;
 mod upgrade;
 
@@ -41,10 +43,11 @@ pub struct MeshData {
     pub cutout_quads: u32,
     pub liquid_quads: u32,
     pub translucent_quads: u32,
-    /// Round trunks and canopies (`mesher/shaped.rs`): opaque quads, then cutout ones.
+    /// Round trunks, canopies and shaped building blocks (`mesher/shaped.rs`): opaque, cutout, translucent.
     pub shaped: Vec<u32>,
     pub shaped_opaque: u32,
     pub shaped_cutout: u32,
+    pub shaped_translucent: u32,
 }
 
 pub enum Event {
@@ -229,7 +232,7 @@ impl World {
         }
         let (x, y, z) = local_of(p);
         if let Some(chunk) = self.saved.get_mut(&c) {
-            if chunk.get(x, y, z) == b {
+            if chunk.get(x, y, z) == b && chunk.get_shape(x, y, z) == 0 {
                 return false;
             }
             chunk.set(x, y, z, b);
@@ -333,15 +336,16 @@ impl World {
         let Some(entry) = self.chunks.get_mut(&chunk_of(p)) else { return false };
         let (x, y, z) = local_of(p);
         let old = entry.chunk.get(x, y, z);
-        if old == b {
+        let old_shape = entry.chunk.get_shape(x, y, z);
+        if old == b && old_shape == 0 {
             return false;
         }
         entry.chunk.set(x, y, z, b);
         entry.chunk.modified = true;
-        if !remesh_now && (LIQUID[old as usize] || LIQUID[b as usize]) {
+        if !remesh_now && old_shape == 0 && (LIQUID[old as usize] || LIQUID[b as usize]) {
             self.settle_edit(p, old);
         } else {
-            self.invalidate(p, old, b, remesh_now);
+            self.invalidate_shaped(p, old, old_shape, b, 0, remesh_now);
         }
         true
     }

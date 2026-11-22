@@ -172,6 +172,8 @@ const EARLY_INGREDIENTS: &[(&str, &str)] = &[
     ("Mk5 Machines", "Seismic Thumper Mk2"),
     ("Ore Washing", "Crushed Bauxite"),
     ("Assembly", "Sand"),
+    ("Architecture", "Sand"),
+    ("Pigments", "Sand"),
     ("Architecture", "Slag"),
     ("Architecture", "Sulfur"),
 ];

@@ -15,7 +15,7 @@ mod read;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 82;
+pub const TAG_COUNT: u8 = 83;
 /// Tags only read, never written: 4, the filter's old one item straight on, now a `FilterPick` (tag 73); 38, the
 /// personal drone's old fetch, now an `Action::Drone` (tag 72).
 #[cfg(test)]
@@ -393,6 +393,18 @@ impl Action {
                 w.u8(81);
                 w.vec3(origin);
                 w.vec3(dir);
+            }
+            Action::PlaceShaped { pos, slot, shape } => {
+                w.u8(82);
+                w.ivec3(pos);
+                w.u8(slot);
+                w.u8(shape);
+            }
+            Action::PaintFace { pos, face, colour } => {
+                w.u8(83);
+                w.ivec3(pos);
+                w.u8(face);
+                w.u8(colour);
             }
         }
     }

@@ -55,6 +55,7 @@ use electronics::*;
 use first::*;
 use gas::{GAS_PLANT_RECIPE, GAS_TURBINE_RECIPE, GAS_WELL_RECIPE, STEAM_REFORMER_RECIPE, WELLHEAD_SEPARATOR_RECIPE};
 use gear::*;
+use glass::{GLASS_KILN_RECIPE, PAINT_SPRAYER_RECIPE};
 use gold::*;
 pub use group::{Group, GROUPS};
 use heavy::*;
@@ -286,6 +287,8 @@ pub const RECIPES: &[Recipe] = &[
     THUMPER_RECIPE,
     THUMPER_MK2_RECIPE,
     THUMPER_MK3_RECIPE,
+    GLASS_KILN_RECIPE,
+    PAINT_SPRAYER_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

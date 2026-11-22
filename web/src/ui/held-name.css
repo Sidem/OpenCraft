@@ -10,6 +10,9 @@
   background: var(--panel);
   font-size: 14px;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   opacity: 0;
   transition: opacity 0.35s;
 }
@@ -17,4 +20,13 @@
 .held-name.shown {
   opacity: 1;
   transition-duration: 0.08s;
+}
+
+.paint-swatch {
+  display: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  flex-shrink: 0;
 }

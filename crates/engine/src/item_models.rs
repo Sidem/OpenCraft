@@ -25,6 +25,7 @@ mod craft;
 mod fire;
 mod gas;
 mod icon_frame;
+mod kiln;
 mod machines;
 mod machines_plant;
 mod placed;
@@ -358,6 +359,7 @@ pub fn parts(item: ItemId) -> &'static [Part] {
                 power::parts,
                 street::parts,
                 thumper::parts,
+                kiln::parts,
                 belts::parts,
                 machines::parts,
                 placed::parts,

@@ -14,7 +14,7 @@ use super::automate::AUTOMATE;
 use super::decor::DECOR;
 use super::dye::DYE;
 use super::gas::GAS_MACHINES;
-use super::glass::STAINED_GLASS;
+use super::glass::{STAINED_GLASS, STAINED_GLASS_RAW};
 use super::machine_later::LATER;
 use super::orbit::ORBIT;
 use super::refit::{REFIT, REFIT_LATER, REFIT_SEISMIC};
@@ -69,6 +69,8 @@ pub enum Category {
     GasProcessing,
     /// Methane, empty barrels and water into hydrogen barrels (the steam reformer).
     Reforming,
+    /// Silica (glass, sand or quartz) and pigment melted into stained glass (the glass kiln).
+    Glassmaking,
 }
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `outputs` appear after
@@ -105,6 +107,7 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &join::<
             + STAINED_GLASS.len()
             + GAS_MACHINES.len()
             + REFIT_SEISMIC.len()
+            + STAINED_GLASS_RAW.len()
     },
 >(&[
     MAIN,
@@ -119,6 +122,7 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &join::<
     STAINED_GLASS,
     GAS_MACHINES,
     REFIT_SEISMIC,
+    STAINED_GLASS_RAW,
 ]);
 
 const MAIN: &[MachineRecipe] = &[

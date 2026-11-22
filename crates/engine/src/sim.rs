@@ -116,6 +116,8 @@ pub struct Sim {
     pub fire: Fire,
     /// World-wide discovered items bitset for the periodic table & achievements (`codex/`).
     pub codex: Codex,
+    /// Remaining Paint Sprayer surface charges per pigment colour (`colour/`).
+    pub paint: crate::colour::PaintCharges,
     /// Trees that came down since the last drain, for the host to draw falling; not state.
     pub fallen: Vec<Fallen>,
     /// How far the main tips and the lessons got in this world (hints.rs, lessons.rs); neither ever goes back.
@@ -157,6 +159,7 @@ impl Sim {
             felling: Felling::default(),
             fire: Fire::default(),
             codex: Codex::default(),
+            paint: crate::colour::PaintCharges::default(),
             fallen: Vec::new(),
             hints_reached: 0,
             taught: 0,
@@ -310,6 +313,9 @@ impl Sim {
         self.factory.write_manual_off(w);
         self.fire.write_state(w);
         self.codex.write_state(w);
+        self.world.write_shapes(w);
+        self.world.write_paint(w);
+        self.paint.write_state(w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed (`save.rs` lists the versions).
@@ -379,6 +385,13 @@ impl Sim {
             Codex::read_state(r)?
         } else {
             Codex::seed_from(&self.players, &self.away, &self.factory)
+        };
+        self.world.read_shapes(r)?;
+        self.world.read_paint(r)?;
+        self.paint = if r.version >= 85 {
+            crate::colour::PaintCharges::read_state(r)?
+        } else {
+            crate::colour::PaintCharges::default()
         };
         Some(())
     }

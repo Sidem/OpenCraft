@@ -138,6 +138,7 @@ async function main(): Promise<void> {
   const texSize = art ? art.size : game.texture_size();
   renderer.setTextures(texPixels, texSize, game.texture_layers(), art?.glow ?? null);
   renderer.setTurns(new Uint32Array(game.texture_turns()));
+  renderer.setColourPalette(new Float32Array(game.colour_palette()));
   renderer.setWaterLayer(game.water_layer());
   const hud = new Hud(game, texPixels, texSize);
   wireTierPalette(game, renderer, hud, texPixels, texSize, document.getElementById('tier-palette')!);

@@ -64,12 +64,24 @@ const SKY_PASSES: u8 = 2;
 /// Light loses 2 per block through it instead of 1 (water).
 const DIMS: u8 = 4;
 
-/// How far from a changed block the light can change when `old` becomes `new`, in blocks, and whether only
-/// the sky light can: 0 when light treats the two alike (stone to dirt); a full sky light's reach, sky only,
-/// when just the straight sky column differs (leaves to air); else the whole field margin (something lets
-/// light through or shines).
-pub fn reach(old: BlockId, new: BlockId) -> (i32, bool) {
-    let (a, b) = (CLASS[old as usize], CLASS[new as usize]);
+/// Light class of `b` with shape modifier `shape`: any non-full shape lets flooded light pass around it
+/// while keeping its sky-column rule (so pitched roofs still shade rooms below, and stairs are never pitch black).
+#[inline]
+fn class_of(b: BlockId, shape: u8) -> u8 {
+    let c = CLASS[b as usize];
+    if shape != 0 {
+        c | PASSES
+    } else {
+        c
+    }
+}
+
+/// How far from a changed block the light can change when `(old, old_shape)` becomes `(new, new_shape)`,
+/// in blocks, and whether only the sky light can: 0 when light treats the two alike (stone to dirt); a full
+/// sky light's reach, sky only, when just the straight sky column differs (leaves to air); else the whole
+/// field margin (something lets light through or shines).
+pub fn reach_shaped(old: BlockId, old_shape: u8, new: BlockId, new_shape: u8) -> (i32, bool) {
+    let (a, b) = (class_of(old, old_shape), class_of(new, new_shape));
     if a == b {
         (0, false)
     } else if (a ^ b) & !SKY_PASSES == 0 {
@@ -172,6 +184,32 @@ impl Lighting {
                             if c >= 16 {
                                 self.block_seeds.extend(start as u32..(start + len) as u32);
                             }
+                        }
+                    }
+                }
+            }
+        }
+        // Any cell carrying a non-full shape modifier lets flooded light pass around it (zero cost for unshaped chunks).
+        let base = 1isize + MARGIN as isize - 32;
+        for cz in 0..3isize {
+            for cy in 0..3isize {
+                for cx in 0..3isize {
+                    let chunk = n[neighbor_index(cx as i32 - 1, cy as i32 - 1, cz as i32 - 1)];
+                    if !chunk.has_shapes() {
+                        continue;
+                    }
+                    for &(idx, _) in chunk.shapes() {
+                        let lx = (idx & 31) as isize;
+                        let lz = ((idx >> 5) & 31) as isize;
+                        let ly = (idx >> 10) as isize;
+                        let wx = cx * 32 + lx + base;
+                        let wy = cy * 32 + ly + base;
+                        let wz = cz * 32 + lz + base;
+                        if (1..=R as isize).contains(&wx)
+                            && (1..=R as isize).contains(&wy)
+                            && (1..=R as isize).contains(&wz)
+                        {
+                            self.class[(wy as usize * W + wz as usize) * W + wx as usize] |= PASSES;
                         }
                     }
                 }

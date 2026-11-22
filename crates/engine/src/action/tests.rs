@@ -574,6 +574,7 @@ fn samples() -> Vec<Action> {
         Action::UpgradeDeposits,
         Action::Ignite { pos, heat: 3 },
         Action::Flame { origin: crate::math::Vec3::new(1.5, 65.0, -2.25), dir: crate::math::Vec3::new(0.0, 0.0, 1.0) },
+        Action::PlaceShaped { pos, slot: 2, shape: crate::shape::SLAB_B2 },
     ]
 }
 

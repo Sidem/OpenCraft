@@ -8,6 +8,7 @@ use super::forester::FORESTER_DEFS;
 use super::gas::GAS_DEFS;
 use super::glass::STAINED_GLASS_DEFS;
 use super::house::HOUSE_DEFS;
+use super::kiln::KILN_DEFS;
 use super::led::LED_DEFS;
 use super::make::{self, all, cube, frame, liquid, machine, ore, pillar};
 use super::merger::MERGER_DEFS;
@@ -38,6 +39,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = crate::join::join(&[
     &STAINED_GLASS_DEFS,
     &GAS_DEFS,
     &THUMPER_DEFS,
+    &KILN_DEFS,
 ]);
 
 const BASE_DEFS: [BlockDef; BASE_COUNT] = [

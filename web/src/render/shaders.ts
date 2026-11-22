@@ -76,7 +76,7 @@ precision highp float;
 precision highp int;
 
 layout(location = 0) in uint a_vert;
-layout(location = 1) in uint a_light; // sky light | block light << 4, each 0..15 (light.rs)
+layout(location = 1) in uvec2 a_light; // .x = sky light | block light << 4, .y = surface paint index 0..=16
 
 uniform mat4 u_viewProj;
 uniform vec3 u_offset; // chunk origin minus camera position
@@ -91,6 +91,7 @@ out vec3 v_rel;
 out vec2 v_ground;
 out vec2 v_open; // how much open sky this vertex has (0..1) and 1 on an upward face: where rain wets and snow lies
 #ifndef WATER
+flat out uint v_paintId;
 uniform uint u_turns[32]; // two bits per layer: how its blocks may turn (engine block/turn.rs)
 // The face's offset in world tile cells (xy), its plane and side (z), and how it may turn (w): 0 not, 1 mirror,
 // 2 mirror and flip upside down, 3 any of eight ways.
@@ -139,9 +140,11 @@ void main() {
   v_light = FACE_SHADE[face];
   v_sun = vec3(0.0);
 #else
+  uint light = a_light.x;
+  v_paintId = a_light.y;
   v_uvl = vec3(uv, layer);
   v_light = (face >= 6u ? 0.84 : FACE_SHADE[face]) * AMBIENT * AO_CURVE[ao];
-  v_sun = sunLight(FACE_NORMAL[face], a_light) * AO_CURVE[ao];
+  v_sun = sunLight(FACE_NORMAL[face], light) * AO_CURVE[ao];
   // How this layer may turn, and what the hash in turnUv reads; every vertex of a quad agrees.
   uint li = a_vert >> 23u;
   vec3 w = u_worldOrigin + p;
@@ -149,10 +152,10 @@ void main() {
   uint how = (u_turns[li >> 4u] >> ((li & 15u) * 2u)) & 3u;
   v_turn = vec4(faceUv(face, u_worldOrigin), plane * 8.0 + float(face), float(how));
 #endif
-  v_tint = lightTint(a_light, u_skyLight);
+  v_tint = lightTint(a_light.x, u_skyLight);
   v_rel = u_offset + p;
   v_ground = (u_worldOrigin + p).xz;
-  v_open = vec2(clamp(float(a_light & 15u) - 12.0, 0.0, 3.0) / 3.0, face == 2u ? 1.0 : 0.0);
+  v_open = vec2(clamp(float(a_light.x & 15u) - 12.0, 0.0, 3.0) / 3.0, face == 2u ? 1.0 : 0.0);
   gl_Position = u_viewProj * vec4(v_rel, 1.0);
 }
 `;
@@ -182,7 +185,9 @@ uniform vec2 u_xray; // the X-ray pass (drawXray): its radius in blocks (0: not 
 #ifdef TERRAIN
 in vec2 v_ground;
 in vec2 v_open;
+flat in uint v_paintId;
 uniform vec2 u_ground; // wet ground and snow cover, 0..1 (render/precip.ts)
+uniform vec3 u_colourPalette[17]; // 0 = unpainted, 1..=16 = surface paint hues (engine colour/mod.rs)
 float terrainHash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -321,6 +326,12 @@ void main() {
   if (c.a < 0.5) discard;
 #endif
 #ifdef TERRAIN
+  if (v_paintId > 0u && v_paintId < 17u) {
+    vec3 paint = u_colourPalette[v_paintId];
+    float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+    float k = clamp(lum / 0.58, 0.25, 1.45);
+    c.rgb = k <= 1.0 ? paint * k : mix(paint, vec3(1.0), clamp((k - 1.0) * 0.55, 0.0, 0.55));
+  }
   // Patches of about 16 and 64 blocks, a few percent brighter and warmer or darker and cooler.
   float field = terrainField(v_ground / 16.0, ${TERRAIN_TINT_PERIOD / 16}.0) * 0.65
               + terrainField(v_ground / 64.0, ${TERRAIN_TINT_PERIOD / 64}.0) * 0.35;

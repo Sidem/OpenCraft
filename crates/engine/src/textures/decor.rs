@@ -67,13 +67,12 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     }
 }
 
-/// Poured concrete: broad mottling, a seam every 8 texels like cast slabs and a few pits.
+/// Poured concrete: broad mottling and a clean seam every 8 texels like cast slabs.
 pub(super) fn concrete(x: i32, y: i32, colour: [f64; 3]) -> [u8; 4] {
     if x % 8 == 0 || y % 8 == 0 {
-        return rgb(colour, 0.78 + 0.06 * n(720, x, y));
+        return rgb(colour, 0.8 + 0.05 * n(720, x, y));
     }
-    let pit = n(721, x, y) > 0.96;
-    rgb(colour, 0.9 + 0.2 * mottle(722, x, y, 0.2) - if pit { 0.12 } else { 0.0 })
+    rgb(colour, 0.92 + 0.18 * mottle(722, x, y, 0.2))
 }
 
 /// Bricks in a running bond, each its own shade, recessed mortar between them.

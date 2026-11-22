@@ -30,87 +30,114 @@ def _soft(x, width):
 # ---------------------------------------------------------------------------------------------------- bark
 
 def pine_bark():
-    """Scots pine: furrowed plates, warm orange-brown where the outer bark has flaked."""
-    return shift(wood.bark(seed=11), L=0.03, a=0.022, b=0.02)
+    """Scots pine: broad scaly reddish-orange outer plates flaking over deep dark grey-brown fissures; tiles."""
+    X, Y = coords()
+    Xw = (X + (wood.streaks(X, Y, 2, 4, 2, 11) - 0.5) * 0.12) % 1.0
+    gap, pid = wood.cells(Xw, Y, 5, 3, 12)
+    fissure = _soft(0.11 - gap, 0.1)
+    scales = wood.streaks(X, Y, 20, 8, 3, 13)
+    flake = _soft(pid - 0.45, 0.25) * (1 - fissure)  # warmer orange-rust where outer bark has flaked
+    h = (1 - fissure) * (0.65 + 0.25 * pid) + scales * 0.25
+    field = relief_light(blur(h, 0.8) * 5, 1.0) * 0.25 + h * 0.65 - fissure * 0.25
+    dark = shift(rgba(colour("bark", field, 1.3, seed=11)), L=-0.05, a=0.012, b=0.015).astype(float)
+    warm = shift(rgba(colour("bark", field + 0.12, 1.1, seed=14)), L=0.06, a=0.042, b=0.048).astype(float)
+    out = dark * (1 - flake[..., None]) + warm * flake[..., None]
+    return out.clip(0, 255).astype(np.uint8)
 
 
 def acacia_bark():
-    """Acacia: dark grey, deeply and finely furrowed."""
-    return shift(wood.bark(seed=21), L=-0.07, chroma=0.55)
+    """Acacia: deep charcoal-umber bark, tightly and roughly fissured in narrow vertical ridges; tiles."""
+    X, Y = coords()
+    Xw = (X + (wood.streaks(X, Y, 3, 6, 3, 21) - 0.5) * 0.14) % 1.0
+    gap, pid = wood.cells(Xw, Y, 11, 3, 22)
+    fissure = _soft(0.1 - gap, 0.09)
+    grit = wood.streaks(X, Y, 36, 10, 3, 23)
+    h = (1 - fissure) * (0.65 + 0.2 * pid) + grit * 0.3
+    field = relief_light(blur(h, 0.7) * 5, 1.0) * 0.25 + (1 - fissure) * 0.55 + grit * 0.2
+    return shift(rgba(colour("bark", field, 1.3, seed=21)), L=-0.10, a=0.004, b=-0.008, chroma=0.45)
 
 
 def palm_bark():
-    """A palm's stem: pale grey-brown fibres up it, crossed by the ring scars of old fronds; tiles."""
+    """A palm's stem: pale ash-brown fibrous trunk crossed by prominent weathered horizontal frond-scar rings; tiles."""
     X, Y = coords()
-    fibre = wood.streaks(X, Y, 32, 4, 3, 31)
+    fibre = wood.streaks(X, Y, 36, 4, 3, 31)
     ring = np.zeros_like(X)
-    for k, y0 in enumerate((0.12, 0.45, 0.78)):  # leaf scars: a ridge with a dark groove under it, uneven
-        wob = (fbm(X, Y, 4, 2, 32 + k) - 0.5) * 0.06
+    for k, y0 in enumerate((0.1, 0.35, 0.6, 0.85)):  # close leaf-base scars: bright ridge over shadowed groove
+        wob = (fbm(X, Y, 4, 2, 32 + k) - 0.5) * 0.045
         d = (Y - y0 + wob + 0.5) % 1.0 - 0.5
-        ring += (_soft(0.01 - np.abs(d), 0.012) - 0.8 * _soft(0.008 - np.abs(d - 0.02), 0.01)) * (0.6 + 0.4 * fibre)
-    h = fibre * 0.5 + ring * 0.4 + wood.streaks(X, Y, 6, 3, 2, 34) * 0.3
-    field = relief_light(blur(h, 0.7) * 5, 1.0) * 0.3 + h * 0.6 + fbm(X, Y, 8, 3, 33) * 0.15
-    return shift(rgba(colour("dead_wood", field, 1.2, seed=31)), L=-0.04, a=0.006, b=0.025)
+        ring += (_soft(0.014 - np.abs(d), 0.012) - 0.9 * _soft(0.01 - np.abs(d - 0.022), 0.01)) * (0.65 + 0.35 * fibre)
+    h = fibre * 0.45 + ring * 0.45 + wood.streaks(X, Y, 8, 3, 2, 34) * 0.25
+    field = relief_light(blur(h, 0.7) * 5, 1.0) * 0.32 + h * 0.58 + fbm(X, Y, 8, 3, 33) * 0.14
+    return shift(rgba(colour("dead_wood", field, 1.2, seed=31)), L=-0.02, a=0.004, b=0.018, chroma=0.8)
 
 
 def cherry_bark():
-    """Cherry: smooth, glossy dark red-brown, banded across by pale lenticels; tiles."""
+    """Cherry: smooth, satiny dark mahogany-red bark banded horizontally by crisp pale ochre lenticels; tiles."""
     X, Y = coords()
     rng = np.random.default_rng(41)
-    sheen = wood.streaks(X, Y, 3, 24, 3, 42)  # fibres run round the trunk
+    sheen = wood.streaks(X, Y, 3, 28, 3, 42)
     lent = np.zeros((N, N))
-    for _ in range(70):
-        x, y, w = rng.uniform(0, 1), rng.uniform(0, 1), rng.uniform(0.04, 0.16)
-        d = np.hypot(((X - x + 0.5) % 1.0 - 0.5) / w, ((Y - y + 0.5) % 1.0 - 0.5) / rng.uniform(0.005, 0.01))
-        lent = np.maximum(lent, _soft(1 - d, 0.4) * rng.uniform(0.4, 1.0))
-    field = 0.45 + sheen * 0.3 + lent * 0.5 + fbm(X, Y, 6, 3, 43) * 0.15
-    return shift(rgba(colour("bark", field, 1.0, seed=41)), L=-0.06, a=0.03, b=-0.005)
+    for _ in range(85):
+        x, y, w = rng.uniform(0, 1), rng.uniform(0, 1), rng.uniform(0.04, 0.18)
+        d = np.hypot(((X - x + 0.5) % 1.0 - 0.5) / w, ((Y - y + 0.5) % 1.0 - 0.5) / rng.uniform(0.004, 0.009))
+        lent = np.maximum(lent, _soft(1 - d, 0.35) * rng.uniform(0.5, 1.0))
+    field = 0.42 + sheen * 0.28 + fbm(X, Y, 6, 3, 43) * 0.14
+    base = shift(rgba(colour("bark", field, 0.95, seed=41)), L=-0.07, a=0.042, b=0.004).astype(float)
+    mark = shift(rgba(colour("dead_wood", np.clip(field + 0.35, 0, 1), 0.8, seed=44)), L=0.06, a=0.025, b=0.035).astype(float)
+    w = (lent * 0.82)[..., None]
+    return (base * (1 - w) + mark * w).clip(0, 255).astype(np.uint8)
 
 
 def baobab_bark():
-    """Baobab: smooth grey with a pink-copper cast, folded in soft horizontal wrinkles; tiles."""
+    """Baobab: smooth silvery-grey elephantskin bark with a warm copper-rose sheen and soft horizontal creases; tiles."""
     X, Y = coords()
     fold = wood.streaks(X, Y, 3, 14, 3, 51)
-    h = fold + fbm(X, Y, 4, 3, 52) * 0.4
-    field = relief_light(blur(h, 1.5) * 4, 1.0) * 0.5 + h * 0.4
-    return shift(rgba(colour("dead_wood", field, 0.9, seed=51)), L=0.02, a=0.014, b=0.01)
+    h = fold * 0.85 + fbm(X, Y, 5, 3, 52) * 0.45
+    field = relief_light(blur(h, 1.5) * 4, 1.0) * 0.45 + h * 0.45
+    return shift(rgba(colour("dead_wood", field, 0.85, seed=51)), L=0.04, a=0.014, b=0.006, chroma=0.72)
 
 
 def redwood_bark():
-    """Redwood: thick, soft red-brown bark in long ropy fibres and deep vertical furrows; tiles."""
+    """Redwood: thick fibrous cinnamon-rust bark in long ropy strands and deep vertical furrows; tiles."""
     X, Y = coords()
-    Xw = (X + (wood.streaks(X, Y, 2, 4, 2, 61) - 0.5) * 0.08) % 1.0
-    rope = wood.streaks(Xw, Y, 20, 2, 3, 62)
-    furrow = _soft(0.3 - wood.streaks(Xw, Y, 7, 1, 2, 63), 0.15)
-    h = rope * 0.7 - furrow * 0.8
-    field = relief_light(blur(h, 0.7) * 5, 1.0) * 0.3 + h * 0.6
-    return shift(rgba(colour("bark", field, 1.2, seed=61)), L=0.04, a=0.05, b=0.03)
+    Xw = (X + (wood.streaks(X, Y, 2, 4, 2, 61) - 0.5) * 0.07) % 1.0
+    rope = wood.streaks(Xw, Y, 22, 2, 3, 62)
+    furrow = _soft(0.32 - wood.streaks(Xw, Y, 7, 1, 2, 63), 0.14)
+    h = rope * 0.72 - furrow * 0.85
+    field = relief_light(blur(h, 0.7) * 5, 1.0) * 0.32 + h * 0.62
+    return shift(rgba(colour("bark", field, 1.25, seed=61)), L=0.02, a=0.062, b=0.036)
 
 
 def eucalyptus_bark():
-    """Eucalyptus: smooth, shedding in patches: cream, grey-green and ochre, the edges of each peel a little darker."""
+    """Eucalyptus: smooth mottled ribbon bark shedding in tall cream, sage-grey, ochre and pale-tan patches; tiles."""
     X, Y = coords()
-    patch = wood.streaks(X, Y, 3, 5, 4, 71, 0.6)  # long patches, as the bark sheds in strips down the trunk
-    edge = sum(_soft(0.012 - np.abs(patch - t), 0.012) for t in (0.42, 0.58))
-    field = 0.6 + (fbm(X, Y, 16, 3, 72) - 0.5) * 0.25 - blur(edge, 1.0) * 0.1
-    pale = rgba(colour("birch", field, 0.8, seed=71)).astype(float)
+    patch = wood.streaks(X, Y, 3, 5, 4, 71, 0.6)
+    edge = sum(_soft(0.012 - np.abs(patch - t), 0.012) for t in (0.38, 0.56, 0.72))
+    field = 0.64 + (fbm(X, Y, 16, 3, 72) - 0.5) * 0.22 - blur(edge, 1.0) * 0.12
+    pale = rgba(colour("birch", field, 0.75, seed=71)).astype(float)
     out = pale * 0
-    for t0, (L, a, b) in ((0.0, (0.0, -0.005, 0.01)), (0.42, (-0.1, -0.02, 0.02)), (0.58, (-0.06, 0.012, 0.06))):
-        w = _soft(patch - t0, 0.04)[..., None]  # each later layer shows over the one before, softly
+    for t0, (L, a, b) in (
+        (0.0, (0.04, -0.004, 0.012)),   # creamy inner bark
+        (0.38, (-0.08, -0.022, 0.018)), # muted sage grey-green
+        (0.56, (-0.04, 0.018, 0.055)),  # warm ochre strip
+        (0.72, (-0.11, 0.028, 0.028)),  # weathered cinnamon-tan peel
+    ):
+        w = _soft(patch - t0, 0.04)[..., None]
         out = out * (1 - w) + shift(pale.astype(np.uint8), L=L, a=a, b=b).astype(float) * w
     return out.clip(0, 255).astype(np.uint8)
 
 
 def bamboo_culm():
-    """Bamboo: a smooth green culm, faintly streaked lengthwise, a pale node ring across it with a dark line above; tiles."""
+    """Bamboo: glossy fresh olive-emerald culm with fine vertical fibres and crisp pale nodal rings; tiles."""
     X, Y = coords()
-    streak = wood.streaks(X, Y, 24, 2, 2, 81)
+    streak = wood.streaks(X, Y, 28, 2, 2, 81)
     d = (Y - 0.5 + 0.5) % 1.0 - 0.5
-    node = _soft(0.02 - np.abs(d), 0.015)
-    line = _soft(0.006 - np.abs(d + 0.03), 0.006)
-    field = 0.62 + streak * 0.12 + node * 0.25 - line * 0.5 + fbm(X, Y, 4, 2, 82) * 0.1
+    node = _soft(0.022 - np.abs(d), 0.014)
+    line = _soft(0.007 - np.abs(d + 0.032), 0.006)
+    sheen = 0.08 * np.sin(X * 2 * np.pi)
+    field = 0.64 + streak * 0.12 + node * 0.28 - line * 0.55 + sheen + fbm(X, Y, 4, 2, 82) * 0.08
     green = rgba(colour("leaves", field, 0.7, seed=81))
-    return shift(green, L=0.12, a=-0.005, b=0.02, chroma=0.85)
+    return shift(green, L=0.09, a=-0.012, b=0.032, chroma=0.92)
 
 
 # ---------------------------------------------------------------------------------------------------- leaves

@@ -17,9 +17,9 @@
 use crate::block::{self, sound, BlockId};
 use crate::deposits::HAND_YIELD;
 use crate::item::{
-    ItemId, CORE_DRILL, FLAMETHROWER, HOVER_PACK, IRON_AXE, IRON_PICKAXE, IRON_SHOVEL, JETPACK, PERSONAL_DRONE,
-    PLANNER, SCANNER, SCANNER_MK2, SICKLE, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL, STONE_AXE, STONE_PICKAXE,
-    STONE_SHOVEL, TELESCOPE,
+    ItemId, CORE_DRILL, FLAMETHROWER, HOVER_PACK, IRON_AXE, IRON_PICKAXE, IRON_SHOVEL, JETPACK, PAINT_SPRAYER,
+    PERSONAL_DRONE, PLANNER, SCANNER, SCANNER_MK2, SICKLE, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL, STONE_AXE,
+    STONE_PICKAXE, STONE_SHOVEL, TELESCOPE,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -41,6 +41,8 @@ pub enum ToolKind {
     Sickle,
     /// Throws a jet of flame that clears plants and burns trees to charcoal (`flame_hands.rs`).
     Flamethrower,
+    /// Sprays surface paint onto concrete, plaster, masonry, metal and roof tiles (`colour_hands.rs`).
+    PaintSprayer,
 }
 
 pub struct Tier {
@@ -65,7 +67,7 @@ pub struct ToolDef {
     pub tier: &'static Tier,
 }
 
-pub const TOOLS: [ToolDef; 19] = [
+pub const TOOLS: [ToolDef; 20] = [
     ToolDef { item: STONE_PICKAXE, kind: ToolKind::Pickaxe, tier: &STONE_TIER },
     ToolDef { item: STONE_AXE, kind: ToolKind::Axe, tier: &STONE_TIER },
     ToolDef { item: STONE_SHOVEL, kind: ToolKind::Shovel, tier: &STONE_TIER },
@@ -85,6 +87,7 @@ pub const TOOLS: [ToolDef; 19] = [
     ToolDef { item: TELESCOPE, kind: ToolKind::Telescope, tier: &DEVICE_TIER },
     ToolDef { item: SICKLE, kind: ToolKind::Sickle, tier: &DEVICE_TIER },
     ToolDef { item: FLAMETHROWER, kind: ToolKind::Flamethrower, tier: &DEVICE_TIER },
+    ToolDef { item: PAINT_SPRAYER, kind: ToolKind::PaintSprayer, tier: &DEVICE_TIER },
 ];
 
 /// Which prospecting device `item` is, if any.

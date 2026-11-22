@@ -53,10 +53,11 @@ fn the_rows_are_where_saved_machines_expect_them() {
     let glass = crate::recipes::glass::STAINED_GLASS.len();
     let gas = crate::recipes::gas::GAS_MACHINES.len();
     let seis = crate::recipes::refit::REFIT_SEISMIC.len();
+    let glass_raw = crate::recipes::glass::STAINED_GLASS_RAW.len();
     assert_eq!(
         MACHINE_RECIPES.len(),
-        DYE_FIRST as usize + DYE.len() + glass + gas + seis,
-        "only stained glass, gas and seismic refit rows follow the dye rows"
+        DYE_FIRST as usize + DYE.len() + glass + gas + seis + glass_raw,
+        "only stained glass, gas, seismic refit and raw glass rows follow the dye rows"
     );
     assert_eq!(MACHINE_RECIPES[DYE_FIRST as usize - 1].category, Category::Refit, "REFIT_LATER ends right before them");
     assert_eq!(DYE_ROWS, 2 * DYE_PLANT_ROWS);
@@ -118,14 +119,17 @@ fn the_pigments_tech_unlocks_every_row_and_nothing_earlier_does() {
     let tech = TECHS.iter().position(|t| t.name == "Pigments").unwrap() as u8;
     assert_eq!(tech, 89, "saved index");
     let mut research = Research::default();
-    for row in DYE_FIRST..DYE_FIRST + DYE_ROWS {
+    for row in DYE_FIRST..DYE_FIRST + DYE_PLANT_ROWS {
         assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), Some(tech));
     }
     for t in TECHS[usize::from(tech)].needs.iter().copied().chain([tech]) {
         (0..TECHS[usize::from(t)].units).for_each(|_| research.add_unit(t));
     }
-    for row in DYE_FIRST..DYE_FIRST + DYE_ROWS {
+    for row in DYE_FIRST..DYE_FIRST + DYE_PLANT_ROWS {
         assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), None);
+    }
+    for row in DYE_FIRST + DYE_PLANT_ROWS..DYE_FIRST + DYE_ROWS {
+        assert!(!research.has(Unlock::MachineRecipe(row)), "retired dyed concrete rows stay hidden");
     }
 }
 

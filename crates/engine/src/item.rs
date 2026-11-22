@@ -234,19 +234,20 @@ pub fn stack_size(id: ItemId) -> u32 {
 
 /// Blocks with ids of 256 and up and the item each is. Item ids stay dense (the tables are `0..ITEM_COUNT`), so
 /// such an item is an ordinary `EXTRA` row whose `places` is the block; list the pair here, in block order.
-pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 6] = [
+pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 7] = [
     (block::GAS_WELL, GAS_WELL_ITEM),
     (block::WELLHEAD_SEPARATOR, WELLHEAD_SEPARATOR_ITEM),
     (block::GAS_PLANT, GAS_PLANT_ITEM),
     (block::GAS_TURBINE, GAS_TURBINE_ITEM),
     (block::STEAM_REFORMER, STEAM_REFORMER_ITEM),
     (block::THUMPER, THUMPER_ITEM),
+    (block::GLASS_KILN, GLASS_KILN_ITEM),
 ];
 
 /// How many item ids there are: the table is `0..ITEM_COUNT`, blocks then `EXTRA`.
 pub const ITEM_COUNT: usize = 256 + EXTRA.len();
 
-const EXTRA: [ItemDef; 189] = [
+const EXTRA: [ItemDef; 191] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -440,6 +441,8 @@ const EXTRA: [ItemDef; 189] = [
     wide_machine("Seismic Thumper", [tex::THUMPER_TOP, tex::THUMPER_SIDE, tex::FRAME], block::THUMPER),
     machine("Seismic Thumper Mk2", [tex::THUMPER_TOP, tex::THUMPER_SIDE, tex::FRAME]),
     machine("Seismic Thumper Mk3", [tex::THUMPER_TOP, tex::THUMPER_SIDE, tex::FRAME]),
+    wide_machine("Glass Kiln", [tex::KILN_TOP, tex::KILN_SIDE, tex::FRAME], block::GLASS_KILN),
+    device("Paint Sprayer", tex::PAINT_SPRAYER, [0.68, 0.44, 0.28]),
 ];
 
 /// A wood's log: bark round, the oak's rings at the ends; it places nothing.

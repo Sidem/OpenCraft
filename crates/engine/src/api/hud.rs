@@ -107,11 +107,17 @@ impl Game {
             if self.ghost_mode {
                 return self.ghost_label();
             }
-            let tools = [self.planner_label(), self.telescope_label(), self.sickle_label(), self.flamethrower_label()]
-                .into_iter()
-                .flatten()
-                .next();
-            if let Some(label) = tools.or_else(|| self.bend_label()) {
+            let tools = [
+                self.planner_label(),
+                self.telescope_label(),
+                self.sickle_label(),
+                self.flamethrower_label(),
+                self.paint_sprayer_label(),
+            ]
+            .into_iter()
+            .flatten()
+            .next();
+            if let Some(label) = tools.or_else(|| self.bend_label()).or_else(|| self.shape_label()) {
                 return label;
             }
             if !self.line.aim.label.is_empty() {
@@ -173,7 +179,21 @@ impl Game {
         }
         let Some(t) = self.target else { return String::new() };
         let f = &self.sim.factory;
-        f.tiered_at(t.block).and_then(|_| f.name_at(t.block)).unwrap_or_else(|| crate::block::def(t.id).name.into())
+        let base: String = f
+            .tiered_at(t.block)
+            .and_then(|_| f.name_at(t.block))
+            .unwrap_or_else(|| crate::block::def(t.id).name.into());
+        let s = self.sim.world.get_shape(t.block);
+        let paint =
+            crate::colour::face_of_normal(t.normal).map_or(0, |face| self.sim.world.get_face_paint(t.block, face));
+        match (s != crate::shape::FULL, paint != 0) {
+            (true, true) => {
+                format!("{base} · {} ({})", crate::shape::shape_label(s), crate::colour::NAMES[paint as usize])
+            }
+            (true, false) => format!("{base} · {}", crate::shape::shape_label(s)),
+            (false, true) => format!("{base} ({})", crate::colour::NAMES[paint as usize]),
+            (false, false) => base,
+        }
     }
 
     /// Where the target's model sits in its cell as 6 numbers (lowest corner, then size), for the outline of

@@ -225,6 +225,9 @@ pub use gas::{GAS_COUNT, GAS_PLANT, GAS_SHALE, GAS_TURBINE, GAS_WELL, STEAM_REFO
 /// Seismic prospecting machine, id 261 (`thumper.rs`).
 mod thumper;
 pub use thumper::{THUMPER, THUMPER_COUNT};
+/// Glass Kiln machine, id 262 (`kiln.rs`).
+mod kiln;
+pub use kiln::{GLASS_KILN, KILN_COUNT};
 const BASE_COUNT: usize = 129;
 pub const BLOCK_COUNT: usize = BASE_COUNT
     + DECOR_COUNT
@@ -241,7 +244,8 @@ pub const BLOCK_COUNT: usize = BASE_COUNT
     + TINT_COUNT
     + STAINED_GLASS_COUNT
     + GAS_COUNT
-    + THUMPER_COUNT;
+    + THUMPER_COUNT
+    + KILN_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;

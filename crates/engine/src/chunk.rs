@@ -25,13 +25,19 @@ enum Data {
 #[derive(Clone)]
 pub struct Chunk {
     data: Data,
+    /// Sparse per-cell shape modifiers (`shape/mod.rs`), sorted by `index(x, y, z) as u16`; `None` when
+    /// every cell in the chunk is a full cube (0 heap bytes for natural chunks).
+    shapes: Option<Vec<(u16, u8)>>,
+    /// Sparse per-cell per-face paint (`colour/mod.rs`, 6 faces × 5 bits packed in `u32`), sorted by
+    /// `index(x, y, z) as u16`; `None` when no surface in the chunk is painted (0 heap bytes).
+    paint: Option<Vec<(u16, u32)>>,
     /// Edited by the player since generation; kept when the chunk is streamed out.
     pub modified: bool,
 }
 
 impl Chunk {
     pub fn uniform(b: BlockId) -> Self {
-        Self { data: Data::Uniform(b), modified: false }
+        Self { data: Data::Uniform(b), shapes: None, paint: None, modified: false }
     }
 
     /// Takes ownership of a dense buffer, collapsing it to a uniform chunk when possible.
@@ -41,7 +47,7 @@ impl Chunk {
         if blocks.iter().all(|&b| b == first) {
             return Self::uniform(first);
         }
-        Self { data: Data::Dense(blocks.into_boxed_slice()), modified: false }
+        Self { data: Data::Dense(blocks.into_boxed_slice()), shapes: None, paint: None, modified: false }
     }
 
     #[inline]
@@ -53,6 +59,12 @@ impl Chunk {
     }
 
     pub fn set(&mut self, x: usize, y: usize, z: usize, b: BlockId) {
+        if self.shapes.is_some() {
+            self.set_shape(x, y, z, 0);
+        }
+        if self.paint.is_some() {
+            self.set_paint(x, y, z, 0);
+        }
         if let Data::Uniform(u) = self.data {
             if u == b {
                 return;
@@ -64,8 +76,176 @@ impl Chunk {
         }
     }
 
-    /// Whether both hold the same blocks, however each is stored.
+    /// Shape modifier at `(x, y, z)` (`0` = full cube). O(1) fast path when the chunk has no shapes.
+    #[inline]
+    pub fn get_shape(&self, x: usize, y: usize, z: usize) -> u8 {
+        let Some(list) = self.shapes.as_deref() else { return 0 };
+        let key = index(x, y, z) as u16;
+        list.binary_search_by_key(&key, |&(i, _)| i).map_or(0, |at| list[at].1)
+    }
+
+    /// Sets the shape modifier at `(x, y, z)` (`0` clears it), returning the previous shape.
+    /// Promotes a uniform chunk to dense when adding a non-full shape so `as_uniform` stays exact.
+    pub fn set_shape(&mut self, x: usize, y: usize, z: usize, shape: u8) -> u8 {
+        let key = index(x, y, z) as u16;
+        if shape != 0 {
+            if let Data::Uniform(u) = self.data {
+                self.data = Data::Dense(vec![u; CHUNK_VOLUME].into_boxed_slice());
+            }
+        }
+        let Some(list) = self.shapes.as_mut() else {
+            if shape == 0 {
+                return 0;
+            }
+            self.shapes = Some(vec![(key, shape)]);
+            return 0;
+        };
+        let old = match list.binary_search_by_key(&key, |&(i, _)| i) {
+            Ok(at) => {
+                let prev = list[at].1;
+                if shape == 0 {
+                    list.remove(at);
+                } else {
+                    list[at].1 = shape;
+                }
+                prev
+            }
+            Err(at) => {
+                if shape != 0 {
+                    list.insert(at, (key, shape));
+                }
+                0
+            }
+        };
+        if list.is_empty() {
+            self.shapes = None;
+        }
+        old
+    }
+
+    #[inline]
+    pub fn has_shapes(&self) -> bool {
+        self.shapes.is_some()
+    }
+
+    #[inline]
+    pub fn shapes(&self) -> &[(u16, u8)] {
+        self.shapes.as_deref().unwrap_or(&[])
+    }
+
+    /// Replaces the chunk's shape table from a validated, sorted save list.
+    pub fn set_shapes_sorted(&mut self, list: Vec<(u16, u8)>) {
+        if list.is_empty() {
+            self.shapes = None;
+            return;
+        }
+        if let Data::Uniform(u) = self.data {
+            self.data = Data::Dense(vec![u; CHUNK_VOLUME].into_boxed_slice());
+        }
+        self.shapes = Some(list);
+    }
+
+    /// Packed per-face paint at `(x, y, z)` (`0` = unpainted). O(1) fast path when the chunk has no paint.
+    #[inline]
+    pub fn get_paint(&self, x: usize, y: usize, z: usize) -> u32 {
+        let Some(list) = self.paint.as_deref() else { return 0 };
+        let key = index(x, y, z) as u16;
+        list.binary_search_by_key(&key, |&(i, _)| i).map_or(0, |at| list[at].1)
+    }
+
+    /// Sets the packed per-face paint at `(x, y, z)` (`0` clears it), returning the previous value.
+    pub fn set_paint(&mut self, x: usize, y: usize, z: usize, packed: u32) -> u32 {
+        let key = index(x, y, z) as u16;
+        if packed != 0 {
+            if let Data::Uniform(u) = self.data {
+                self.data = Data::Dense(vec![u; CHUNK_VOLUME].into_boxed_slice());
+            }
+        }
+        let Some(list) = self.paint.as_mut() else {
+            if packed == 0 {
+                return 0;
+            }
+            self.paint = Some(vec![(key, packed)]);
+            return 0;
+        };
+        let old = match list.binary_search_by_key(&key, |&(i, _)| i) {
+            Ok(at) => {
+                let prev = list[at].1;
+                if packed == 0 {
+                    list.remove(at);
+                } else {
+                    list[at].1 = packed;
+                }
+                prev
+            }
+            Err(at) => {
+                if packed != 0 {
+                    list.insert(at, (key, packed));
+                }
+                0
+            }
+        };
+        if list.is_empty() {
+            self.paint = None;
+        }
+        old
+    }
+
+    #[inline]
+    pub fn has_paint(&self) -> bool {
+        self.paint.is_some()
+    }
+
+    #[inline]
+    pub fn paints(&self) -> &[(u16, u32)] {
+        self.paint.as_deref().unwrap_or(&[])
+    }
+
+    /// Replaces the chunk's paint table from a validated, sorted save list.
+    pub fn set_paint_sorted(&mut self, list: Vec<(u16, u32)>) {
+        if list.is_empty() {
+            self.paint = None;
+            return;
+        }
+        if let Data::Uniform(u) = self.data {
+            self.data = Data::Dense(vec![u; CHUNK_VOLUME].into_boxed_slice());
+        }
+        self.paint = Some(list);
+    }
+
+    /// Rewrites every legacy dyed concrete block in this chunk to plain `CONCRETE` painted on all six faces
+    /// (called once when loading saves from before `SAVE_VERSION` 85).
+    pub fn migrate_legacy_concretes(&mut self) {
+        let legacy = match self.data {
+            Data::Uniform(b) => crate::colour::legacy_concrete_colour(b),
+            Data::Dense(_) => None,
+        };
+        if let Some(col) = legacy {
+            let packed = crate::colour::all_faces(col);
+            self.data = Data::Dense(vec![crate::block::CONCRETE; CHUNK_VOLUME].into_boxed_slice());
+            self.paint = Some((0..CHUNK_VOLUME as u16).map(|i| (i, packed)).collect());
+            return;
+        }
+        let mut updates = Vec::new();
+        if let Data::Dense(d) = &mut self.data {
+            for (i, b) in d.iter_mut().enumerate() {
+                if let Some(col) = crate::colour::legacy_concrete_colour(*b) {
+                    *b = crate::block::CONCRETE;
+                    updates.push((i as u16, crate::colour::all_faces(col)));
+                }
+            }
+        }
+        for (idx, packed) in updates {
+            let (x, z, y) = ((idx & 31) as usize, ((idx >> 5) & 31) as usize, (idx >> 10) as usize);
+            self.set_paint(x, y, z, packed);
+        }
+    }
+
+    /// Whether both hold the same blocks, shapes and paint, however each is stored.
     pub fn same_blocks(&self, other: &Chunk) -> bool {
+        if self.shapes() != other.shapes() || self.paints() != other.paints() {
+            return false;
+        }
         match (&self.data, &other.data) {
             (Data::Uniform(a), Data::Uniform(b)) => a == b,
             (Data::Dense(a), Data::Dense(b)) => a == b,

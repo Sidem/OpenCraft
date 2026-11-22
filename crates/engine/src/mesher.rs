@@ -38,6 +38,7 @@ use crate::block::{
 use crate::chunk::{index, Chunk};
 use shaped::{HIDES, SHAPED};
 
+mod blocks;
 mod cover;
 mod foliage;
 mod logs;
@@ -79,7 +80,13 @@ pub const fn neighbor_index(dx: i32, dy: i32, dz: i32) -> usize {
 
 pub struct Mesher {
     pad: Vec<BlockId>,
-    mask: Vec<u64>,
+    /// Shape modifiers for the padded 34³ volume; filled only when `has_shapes` is true (zero work for normal chunks).
+    pad_shapes: Vec<u8>,
+    has_shapes: bool,
+    /// Per-face paint for the centre 32³ chunk; filled only when `has_paint` is true (zero work for unpainted chunks).
+    centre_paint: Vec<u32>,
+    has_paint: bool,
+    mask: Vec<(u64, u8)>,
     opaque: Vec<u32>,
     cutout: Vec<u32>,
     liquid: Vec<u32>,
@@ -114,7 +121,11 @@ impl Mesher {
     pub fn new() -> Self {
         Self {
             pad: vec![AIR; P * P * P],
-            mask: vec![0; N * N],
+            pad_shapes: vec![0; P * P * P],
+            has_shapes: false,
+            centre_paint: vec![0; N * N * N],
+            has_paint: false,
+            mask: vec![(0, 0); N * N],
             opaque: Vec::new(),
             cutout: Vec::new(),
             liquid: Vec::new(),
@@ -155,6 +166,10 @@ impl Mesher {
             if let Some(cover) = cover {
                 self.mesh_cover(light, cover);
             }
+            if n[neighbor_index(0, 0, 0)].has_shapes() {
+                let paint = if self.has_paint { Some(self.centre_paint.as_slice()) } else { None };
+                blocks::mesh_shaped_blocks(&self.pad, &self.pad_shapes, paint, light, &mut self.shaped);
+            }
             let (logs, leaves) = (self.pad.iter().any(|&b| is_log(b)), self.pad.iter().any(|&b| is_leaves(b)));
             if logs || leaves {
                 self.trees.fill(n);
@@ -163,20 +178,22 @@ impl Mesher {
             }
         }
         let count = self.opaque.len() + self.cutout.len() + self.liquid.len() + self.translucent.len();
-        let mut verts = Vec::with_capacity(count + count.div_ceil(4));
+        let mut verts = Vec::with_capacity(count + count.div_ceil(2));
         for v in [&self.opaque, &self.cutout, &self.liquid, &self.translucent] {
             verts.extend_from_slice(v);
         }
-        let mut bytes = Vec::with_capacity(count);
+        let mut bytes = Vec::with_capacity(count * 2);
         for l in [&self.opaque_light, &self.cutout_light, &self.liquid_light, &self.translucent_light] {
             bytes.extend_from_slice(l);
         }
         verts.extend(bytes.chunks(4).map(|c| c.iter().rev().fold(0u32, |w, &b| (w << 8) | u32::from(b))));
         let quads = |v: &Vec<u32>| (v.len() / 4) as u32;
         let shaped_quads = |v: &Vec<u32>| (v.len() / 12) as u32;
-        let mut shaped = Vec::with_capacity(self.shaped.opaque.len() + self.shaped.cutout.len());
+        let mut shaped =
+            Vec::with_capacity(self.shaped.opaque.len() + self.shaped.cutout.len() + self.shaped.translucent.len());
         shaped.extend_from_slice(&self.shaped.opaque);
         shaped.extend_from_slice(&self.shaped.cutout);
+        shaped.extend_from_slice(&self.shaped.translucent);
         MeshOutput {
             verts,
             opaque_quads: quads(&self.opaque),
@@ -186,6 +203,7 @@ impl Mesher {
             shaped,
             shaped_opaque: shaped_quads(&self.shaped.opaque),
             shaped_cutout: shaped_quads(&self.shaped.cutout),
+            shaped_translucent: shaped_quads(&self.shaped.translucent),
         }
     }
 
@@ -224,6 +242,15 @@ impl Mesher {
                 }
             }
         }
+        self.has_shapes = blocks::fill_pad_shapes(n, &mut self.pad_shapes);
+        let centre = n[neighbor_index(0, 0, 0)];
+        self.has_paint = centre.has_paint();
+        if self.has_paint {
+            self.centre_paint.fill(0);
+            for &(idx, packed) in centre.paints() {
+                self.centre_paint[idx as usize] = packed;
+            }
+        }
     }
 
     fn mesh_face(&mut self, face: usize, light: &[u8]) {
@@ -232,6 +259,11 @@ impl Mesher {
         let (su, sv) = (STRIDE[u], STRIDE[v]);
         let plane_offset = usize::from(sign > 0);
         let pad = &self.pad;
+        let pad_shapes = &self.pad_shapes;
+        let has_shapes = self.has_shapes;
+        let centre_paint = &self.centre_paint;
+        let has_paint = self.has_paint;
+        let opp_bit = 1u8 << (face ^ 1);
         let mask = &mut self.mask;
 
         for slice in 0..N {
@@ -245,12 +277,16 @@ impl Mesher {
                     let p = pidx(c[0], c[1], c[2]);
                     let b = pad[p];
                     let mut key = 0u64;
-                    if MESHED[b as usize] && !SHAPED[b as usize] {
+                    let mut paint = 0u8;
+                    if MESHED[b as usize] && !SHAPED[b as usize] && !(has_shapes && pad_shapes[p] != 0) {
                         let q = (p as isize + sn) as usize;
                         let liquid = LIQUID[b as usize];
                         let translucent = TRANSLUCENT[b as usize];
-                        if !(HIDES[pad[q] as usize] || liquid && LIQUID[pad[q] as usize] || translucent && pad[q] == b)
-                        {
+                        let qs = if has_shapes { pad_shapes[q] } else { 0 };
+                        let q_hides = HIDES[pad[q] as usize]
+                            && (qs == 0
+                                || crate::shape::full_face_mask(qs, crate::shape::Corner::OuterLeft) & opp_bit != 0);
+                        if !(q_hides || liquid && LIQUID[pad[q] as usize] || translucent && pad[q] == b && qs == 0) {
                             // A liquid under an open cell: its top face and the top edges of its sides sit lower.
                             let above = pad[p + P2] as usize;
                             let surface = liquid && !LIQUID[above] && !OPAQUE[above];
@@ -281,10 +317,14 @@ impl Mesher {
                                 | (u64::from(translucent) << KEY_TRANSLUCENT)
                                 | (layer << KEY_LAYER)
                                 | corners;
+                            if has_paint {
+                                paint =
+                                    crate::colour::get_face(centre_paint[index(c[0] - 1, c[1] - 1, c[2] - 1)], face);
+                            }
                             any = true;
                         }
                     }
-                    mask[bu + bv * N] = key;
+                    mask[bu + bv * N] = (key, paint);
                 }
             }
             if !any {
@@ -295,7 +335,8 @@ impl Mesher {
             for bv in 0..N {
                 let mut bu = 0;
                 while bu < N {
-                    let key = mask[bu + bv * N];
+                    let entry = mask[bu + bv * N];
+                    let key = entry.0;
                     if key == 0 {
                         bu += 1;
                         continue;
@@ -306,7 +347,7 @@ impl Mesher {
 
                     let mut w = 1;
                     if can_u {
-                        while bu + w < N && mask[bu + w + bv * N] == key {
+                        while bu + w < N && mask[bu + w + bv * N] == entry {
                             w += 1;
                         }
                     }
@@ -314,7 +355,7 @@ impl Mesher {
                     if can_v {
                         'grow: while bv + h < N {
                             for k in 0..w {
-                                if mask[bu + k + (bv + h) * N] != key {
+                                if mask[bu + k + (bv + h) * N] != entry {
                                     break 'grow;
                                 }
                             }
@@ -322,7 +363,7 @@ impl Mesher {
                         }
                     }
                     for dv in 0..h {
-                        mask[bu + (bv + dv) * N..bu + w + (bv + dv) * N].fill(0);
+                        mask[bu + (bv + dv) * N..bu + w + (bv + dv) * N].fill((0, 0));
                     }
 
                     let out = if key & (1 << KEY_TRANSLUCENT) != 0 {
@@ -334,7 +375,7 @@ impl Mesher {
                     } else {
                         (&mut self.opaque, &mut self.opaque_light)
                     };
-                    emit_quad(out, face, (d, u, v), plane, (bu as u32, bv as u32), (w as u32, h as u32), key);
+                    emit_quad(out, face, (d, u, v), plane, (bu as u32, bv as u32), (w as u32, h as u32), entry);
                     bu += w;
                 }
             }
@@ -381,7 +422,10 @@ impl Mesher {
 
     /// The crossed quads of a plant in chunk cell (x, y, z) drawn with texture `layer`, lit by `light`.
     fn push_plant(&mut self, x: u32, y: u32, z: u32, layer: u32, light: u8) {
-        self.cutout_light.extend_from_slice(&[light; 16]);
+        for _ in 0..16 {
+            self.cutout_light.push(light);
+            self.cutout_light.push(0);
+        }
         let v = |dx: u32, dy: u32, dz: u32, face: u32| {
             (x + dx) | ((y + dy) << 6) | ((z + dz) << 12) | (face << 18) | (3 << 21) | (layer << 23)
         };

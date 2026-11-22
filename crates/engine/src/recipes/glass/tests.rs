@@ -1,15 +1,18 @@
 use std::collections::HashSet;
 
-use super::STAINED_GLASS;
+use super::{STAINED_GLASS, STAINED_GLASS_RAW};
 use crate::block::{
-    self, is_glass, is_stained_glass, tex, BlockId, Render, AIR, GLASS, LAMP, STAINED_GLASS_COUNT, STAINED_GLASS_FIRST,
+    self, is_glass, is_stained_glass, tex, BlockId, Render, AIR, GLASS, GLASS_KILN, LAMP, QUARTZ_ORE, SAND,
+    STAINED_GLASS_COUNT, STAINED_GLASS_FIRST,
 };
 use crate::chunk::Chunk;
 use crate::factory::process_spec;
-use crate::item;
 use crate::light::{self, Lighting};
 use crate::mesher::Mesher;
-use crate::recipes::{b, Category, GLASS_FIRST, GLASS_ROWS, MACHINE_RECIPES, RECIPES};
+use crate::recipes::{
+    b, Category, GLASS_FIRST, GLASS_PRIMARY_COUNT, GLASS_RAW_FIRST, GLASS_RAW_ROWS, GLASS_ROWS, MACHINE_RECIPES,
+    RECIPES,
+};
 use crate::research::{Research, Unlock, TECHS};
 
 fn stained_ids() -> impl Iterator<Item = BlockId> {
@@ -17,12 +20,17 @@ fn stained_ids() -> impl Iterator<Item = BlockId> {
 }
 
 #[test]
-fn stained_glass_blocks_and_recipes_match_and_use_no_pigments() {
+fn stained_glass_blocks_and_recipes_match_glass_kiln_with_pigments() {
     assert_eq!(STAINED_GLASS.len(), GLASS_ROWS as usize);
     assert_eq!(STAINED_GLASS.len(), STAINED_GLASS_COUNT);
+    assert_eq!(STAINED_GLASS_RAW.len(), GLASS_RAW_ROWS as usize);
     let gas = crate::recipes::gas::GAS_MACHINES.len();
     let seis = crate::recipes::refit::REFIT_SEISMIC.len();
-    assert_eq!(MACHINE_RECIPES.len(), GLASS_FIRST as usize + STAINED_GLASS.len() + gas + seis);
+    assert_eq!(
+        MACHINE_RECIPES.len(),
+        GLASS_FIRST as usize + STAINED_GLASS.len() + gas + seis + STAINED_GLASS_RAW.len()
+    );
+    let kiln_spec = process_spec(GLASS_KILN).expect("Glass Kiln spec");
     let mut seen_inputs = HashSet::new();
     for (i, id) in stained_ids().enumerate() {
         let def = block::def(id);
@@ -30,34 +38,45 @@ fn stained_glass_blocks_and_recipes_match_and_use_no_pigments() {
         assert_eq!((def.render, def.solid, def.drop, def.placeable), (Render::Translucent, true, id, true));
         assert_eq!(def.faces, [tex::stained_glass_layer(i as u16); 6]);
         assert!(def.faces[0] < 512, "cube layer must fit in 9 bits");
-        let row = &STAINED_GLASS[i];
-        assert_eq!(row.category, Category::Assembly);
-        assert_eq!(row.inputs[0], (b(GLASS), 4));
-        assert_eq!(row.outputs, &[(b(id), 4)][..]);
-        assert!(row.inputs.len() <= 3 && process_spec(block::ASSEMBLER).unwrap().categories.contains(&row.category));
-        // Separate from dyes: never takes a pigment item.
-        for &(it, n) in row.inputs {
-            assert!(!item::name(it).contains("Pigment"), "{} must not take {}", def.name, item::name(it));
-            assert!(n <= item::stack_size(it));
+        let pigment = crate::colour::pigment_of(i as u8 + 1).expect("matching pigment");
+        for (row, expected_silica) in [
+            (&STAINED_GLASS[i], (b(GLASS), 4)),
+            (&STAINED_GLASS_RAW[i], (b(SAND), 4)),
+            (&STAINED_GLASS_RAW[STAINED_GLASS_COUNT + i], (b(QUARTZ_ORE), 2)),
+        ] {
+            assert_eq!(row.category, Category::Glassmaking);
+            assert_eq!(row.inputs, &[expected_silica, (pigment, 1)][..]);
+            assert_eq!(row.outputs, &[(b(id), 4)][..]);
+            assert!(kiln_spec.categories.contains(&row.category));
+            assert!(seen_inputs.insert(row.inputs), "duplicate glass kiln recipe inputs at {i}");
         }
-        assert!(seen_inputs.insert(row.inputs), "duplicate stained glass recipe inputs at {i}");
         assert!(!RECIPES.iter().any(|r| r.output == b(id)), "{} is machine-made only", def.name);
     }
     assert!(!is_stained_glass(GLASS) && is_glass(GLASS));
 }
 
 #[test]
-fn architecture_unlocks_all_stained_glass_without_needing_pigments() {
+fn architecture_unlocks_primary_stained_glass_and_pigments_unlocks_mixed_hues() {
     let arch = TECHS.iter().position(|t| t.name == "Architecture").unwrap() as u8;
+    let pig = TECHS.iter().position(|t| t.name == "Pigments").unwrap() as u8;
     let mut research = Research::default();
-    for row in GLASS_FIRST..GLASS_FIRST + GLASS_ROWS {
-        assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), Some(arch));
+    for i in 0..GLASS_PRIMARY_COUNT {
+        for row in [GLASS_FIRST + i, GLASS_RAW_FIRST + i, GLASS_RAW_FIRST + GLASS_ROWS + i] {
+            assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), Some(arch));
+        }
+    }
+    for i in GLASS_PRIMARY_COUNT..GLASS_ROWS {
+        for row in [GLASS_FIRST + i, GLASS_RAW_FIRST + i, GLASS_RAW_FIRST + GLASS_ROWS + i] {
+            assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), Some(pig));
+        }
     }
     for t in TECHS[usize::from(arch)].needs.iter().copied().chain([arch]) {
         (0..TECHS[usize::from(t)].units).for_each(|_| research.add_unit(t));
     }
-    for row in GLASS_FIRST..GLASS_FIRST + GLASS_ROWS {
-        assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), None);
+    for i in 0..GLASS_PRIMARY_COUNT {
+        for row in [GLASS_FIRST + i, GLASS_RAW_FIRST + i, GLASS_RAW_FIRST + GLASS_ROWS + i] {
+            assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), None);
+        }
     }
 }
 

@@ -4,40 +4,64 @@
 //! Violet Science 18, Mk4 Logistics 19, Advanced Scanning 22, Bauxite Processing 36, Oil Processing 42, Acids and Lubricants 45, Rocketry 78, Orbital Comms 79.
 
 use crate::block::{
-    FORESTER, GAS_PLANT, GAS_TURBINE, GAS_WELL, LANDING_PAD, LED, LONG_POLE, POD_LAUNCHER, STEAM_REFORMER, STREET,
-    THUMPER, TOWN_DEPOT, WELLHEAD_SEPARATOR,
+    FORESTER, GAS_PLANT, GAS_TURBINE, GAS_WELL, GLASS_KILN, LANDING_PAD, LED, LONG_POLE, POD_LAUNCHER, STEAM_REFORMER,
+    STREET, THUMPER, TOWN_DEPOT, WELLHEAD_SEPARATOR,
 };
-use crate::item::{BLUE_PACK, FLAMETHROWER, GOLD_PACK, GREEN_PACK, RED_PACK, SCANNER, VIOLET_PACK, XRAY_GOGGLES};
+use crate::item::{
+    BLUE_PACK, FLAMETHROWER, GOLD_PACK, GREEN_PACK, PAINT_SPRAYER, RED_PACK, SCANNER, VIOLET_PACK, XRAY_GOGGLES,
+};
 use crate::recipes::{
-    DECOR_FIRST, DECOR_ROWS, DROP_POD_RECIPE, DYE_FIRST, DYE_ROWS, ETHANE_CRACK_RECIPE, GAS_PROCESS_RECIPE,
-    GLASS_FIRST, GLASS_ROWS, LONG_POLE_ROW, LPG_CRACK_RECIPE, POLYETHYLENE_RECIPE, REFORM_RECIPE,
+    DECOR_FIRST, DECOR_ROWS, DROP_POD_RECIPE, DYE_FIRST, DYE_PLANT_ROWS, ETHANE_CRACK_RECIPE, GAS_PROCESS_RECIPE,
+    GLASS_FIRST, GLASS_PRIMARY_COUNT, GLASS_RAW_FIRST, GLASS_ROWS, LONG_POLE_ROW, LPG_CRACK_RECIPE,
+    POLYETHYLENE_RECIPE, REFORM_RECIPE,
 };
 
 use super::{r, Tech, Unlock};
 
-/// Every machine row of the decor set plus the sixteen stained glass panes.
-const DECOR_UNLOCKS: [Unlock; (DECOR_ROWS + GLASS_ROWS) as usize] = {
-    let mut out = [Unlock::MachineRecipe(DECOR_FIRST); (DECOR_ROWS + GLASS_ROWS) as usize];
-    let mut i = 0;
+/// Architecture unlocks: Glass Kiln, Paint Sprayer, non-concrete decor rows (9) and the 5 primary-pigment
+/// stained glass batches (Glass, Sand, Quartz = 15 rows).
+const DECOR_UNLOCKS: [Unlock; 2 + (DECOR_ROWS - 5) as usize + 3 * GLASS_PRIMARY_COUNT as usize] = {
+    let mut out =
+        [Unlock::MachineRecipe(DECOR_FIRST + 5); 2 + (DECOR_ROWS - 5) as usize + 3 * GLASS_PRIMARY_COUNT as usize];
+    out[0] = r(GLASS_KILN);
+    out[1] = Unlock::Recipe(PAINT_SPRAYER);
+    let mut k = 2;
+    let mut i = 5;
     while i < DECOR_ROWS as usize {
-        out[i] = Unlock::MachineRecipe(DECOR_FIRST + i as u16);
+        out[k] = Unlock::MachineRecipe(DECOR_FIRST + i as u16);
+        k += 1;
         i += 1;
     }
     let mut j = 0;
-    while j < GLASS_ROWS as usize {
-        out[DECOR_ROWS as usize + j] = Unlock::MachineRecipe(GLASS_FIRST + j as u16);
+    while j < GLASS_PRIMARY_COUNT as usize {
+        out[k] = Unlock::MachineRecipe(GLASS_FIRST + j as u16);
+        out[k + 1] = Unlock::MachineRecipe(GLASS_RAW_FIRST + j as u16);
+        out[k + 2] = Unlock::MachineRecipe(GLASS_RAW_FIRST + GLASS_ROWS + j as u16);
+        k += 3;
         j += 1;
     }
     out
 };
 
-/// Every machine row of the Pigments tech: the plant's blue and mixes, then the assembler's tints.
-const DYE_UNLOCKS: [Unlock; DYE_ROWS as usize] = {
-    let mut out = [Unlock::MachineRecipe(DYE_FIRST); DYE_ROWS as usize];
+/// Pigments unlocks: the chemical plant's 11 mixed pigments plus the 11 mixed-pigment stained glass batches
+/// (Glass, Sand, Quartz = 33 rows) in the Glass Kiln.
+const DYE_UNLOCKS: [Unlock; DYE_PLANT_ROWS as usize + 3 * (GLASS_ROWS - GLASS_PRIMARY_COUNT) as usize] = {
+    let mut out =
+        [Unlock::MachineRecipe(DYE_FIRST); DYE_PLANT_ROWS as usize + 3 * (GLASS_ROWS - GLASS_PRIMARY_COUNT) as usize];
+    let mut k = 0;
     let mut i = 0;
-    while i < out.len() {
-        out[i] = Unlock::MachineRecipe(DYE_FIRST + i as u16);
+    while i < DYE_PLANT_ROWS as usize {
+        out[k] = Unlock::MachineRecipe(DYE_FIRST + i as u16);
+        k += 1;
         i += 1;
+    }
+    let mut j = GLASS_PRIMARY_COUNT as usize;
+    while j < GLASS_ROWS as usize {
+        out[k] = Unlock::MachineRecipe(GLASS_FIRST + j as u16);
+        out[k + 1] = Unlock::MachineRecipe(GLASS_RAW_FIRST + j as u16);
+        out[k + 2] = Unlock::MachineRecipe(GLASS_RAW_FIRST + GLASS_ROWS + j as u16);
+        k += 3;
+        j += 1;
     }
     out
 };
@@ -82,9 +106,10 @@ pub const LATER: [Tech; 13] = [
     Tech {
         name: "Architecture",
         blurb:
-            "Build for looks. Assemblers tint concrete red, green, black, white or yellow with a pinch of the ground \
-                pigment (grind an iron or copper ingot, coal, quicklime or sulfur by hand); smelters fire basalt, granite, sandstone and slag into tiles \
-                and bricks; assemblers make framed glass, sixteen hues of stained glass (tinted with minerals and metals), metal panels, catwalks, railings and panel lights.",
+            "Build for looks. The Paint Sprayer coats concrete, plaster, masonry, metal and roof surfaces in any \
+                pigment (grind iron, copper, coal, quicklime or sulfur for the first five); the Glass Kiln melts glass, \
+                sand or quartz with pigment into stained glass; smelters fire rock and slag into tiles and bricks; \
+                assemblers make framed glass, metal panels, catwalks, railings and panel lights.",
         needs: &[7, 8],
         packs: &[RED_PACK, GREEN_PACK],
         units: 40,
@@ -125,9 +150,9 @@ pub const LATER: [Tech; 13] = [
     Tech {
         name: "Pigments",
         blurb: "The chemical plant makes blue pigment from a copper ingot, a barrel of acid and a unit of water, and \
-                mixes two pigments into a new hue (orange, purple, cyan, lime, pink, sky, grey, brown, maroon and \
-                navy). Assemblers tint concrete in all eleven.",
-        needs: &[45, 85], // Acids and Lubricants (the acid), Architecture (the concrete tints)
+                mixes two pigments into ten more hues (orange, purple, cyan, lime, pink, sky, grey, brown, maroon and \
+                navy) for the Paint Sprayer and the Glass Kiln.",
+        needs: &[45, 85], // Acids and Lubricants (the acid), Architecture (the Paint Sprayer and Glass Kiln)
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 120,
         seconds: 40.0,

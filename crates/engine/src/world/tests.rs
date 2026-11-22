@@ -111,8 +111,9 @@ fn untouched_chunks_mesh_as_they_always_did() {
         bytes.extend(m.shaped.iter().flat_map(|v| v.to_le_bytes()));
     }
     let cutout: u32 = meshes.iter().map(|m| m.cutout_quads).sum();
-    // 39 chunks and 0 cube-cutout quads (ground cover and leaves now live in `shaped_cutout`, hashed into `bytes`).
-    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 0, 0xc1bc_9b04_622d_2e4a));
+    // 39 chunks and 0 cube-cutout quads (ground cover and leaves live in `shaped_cutout`; cube vertices now carry
+    // `[light, paint]` byte pairs for L-COLOUR per-face surface paint).
+    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 0, 0x3021_e846_defe_b0a8));
 }
 
 fn drain_meshes(w: &mut World) {

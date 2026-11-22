@@ -41,6 +41,13 @@ impl Game {
     /// Draws the held machine's ghost and its port marks, or the marks of built machines while a belt is held.
     pub(crate) fn write_port_view(&mut self, eye: Vec3, time: f64) {
         let ghost = self.footprint_ghost();
+        let shape_ghost = if ghost.is_none() {
+            self.shape_placement().map(|(b, pos, s, blk)| {
+                (b, pos, s, blk, crate::shape::corner_of(s, pos, |q| self.sim.world.get_shape(q)))
+            })
+        } else {
+            None
+        };
         let belt = self.holds_belt();
         let world = &self.sim.world;
         let free = |c: IVec3| world.get_block(c).is_some_and(block::replaceable);
@@ -56,6 +63,15 @@ impl Game {
         if let Some((block, anchor, dir, cells)) = ghost {
             *blocked = cells.iter().any(|c| c.1);
             port_marks::draw_ghost(block, anchor, dir, eye, time, free, marks, boxes);
+        } else if let Some((block, pos, s, is_blocked, corner)) = shape_ghost {
+            *blocked = is_blocked;
+            let f = block::def(block).faces;
+            let tex = [f[2], f[0], f[3]];
+            for b in crate::shape::boxes_for(pos, s, corner).slice() {
+                let c = b.center() - eye;
+                let sz = [(b.max.x - b.min.x) as f32, (b.max.y - b.min.y) as f32, (b.max.z - b.min.z) as f32];
+                factory::push_box(boxes, c, 0.0, sz, 0.0, tex, false);
+            }
         }
         models.write(&self.sim.ghosts, stamp, eye, time, boxes);
         factory::split_round(boxes, round);

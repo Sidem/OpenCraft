@@ -93,7 +93,7 @@ impl Game {
         let (world, factory) = (&self.sim.world, &self.sim.factory);
         let players = &self.sim.players;
         let core = |slot: usize| players.get(slot).and_then(Option::as_ref);
-        let mut solid = |x, y, z| world.is_solid(x, y, z);
+        let mut boxes = |x, y, z| world.cell_boxes(x, y, z);
         let mut block = |x, y, z| world.get_block(IVec3::new(x, y, z)).unwrap_or(AIR);
         let respawn = self.spawn + Vec3::new(0.0, 2.0, 0.0);
         let may_fly = self.sim.may_fly();
@@ -112,12 +112,13 @@ impl Game {
                 body.hover = core(slot).is_some_and(|p| p.helpers.hover);
                 body.boost = core(slot).map(|p| p.inventory.boost()).unwrap_or_default();
                 for _ in 0..PHYSICS_SUBSTEPS {
-                    body.step(TICK / PHYSICS_SUBSTEPS as f64, &mut solid, &mut block);
+                    body.step_boxes(TICK / PHYSICS_SUBSTEPS as f64, &mut boxes, &mut block);
                 }
             }
             if body.pos.y < FALL_LIMIT {
                 body.pos = respawn;
                 body.vel = Vec3::ZERO;
+                body.step_delta = 0.0;
                 local_fell |= slot == self.local.0 as usize;
             }
         }
@@ -125,6 +126,7 @@ impl Game {
             // Cut the camera to spawn instead of gliding there.
             self.prev_eye = self.body().eye();
             self.render_eye = self.prev_eye;
+            self.step_glide.reset();
         }
     }
 
@@ -141,12 +143,12 @@ impl Game {
             collectors.push(Collector { center, room: core.inventory.clone() });
         }
         let world = &self.sim.world;
-        let mut solid = |x, y, z| world.is_solid(x, y, z);
+        let mut boxes = |x, y, z| world.cell_boxes(x, y, z);
         let water = |p: Vec3| world.is_water(p.floor().x, p.floor().y, p.floor().z);
         let loaded = |p: Vec3| world.is_loaded(p);
         let mut picked = Vec::new();
         let collected = |c: usize, item, count| picked.push((ids[c], item, count));
-        self.items.update(TICK, &mut collectors, &mut solid, &water, &loaded, collected);
+        self.items.update_boxes(TICK, &mut collectors, &mut boxes, &water, &loaded, collected);
         for (id, item, count) in picked {
             self.act_as(id, Action::PickUp { item, count });
         }

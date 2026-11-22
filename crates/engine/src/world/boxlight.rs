@@ -108,13 +108,10 @@ impl World {
         self.light_gen_seq
     }
 
-    /// Block `p` changed from `old` to `new`: the chunks its light can reach are meshed again and their
-    /// cached light goes stale. The reach is `light::reach` (nowhere for most changes, 15 blocks for
-    /// leaves, and then only down to the sky column's end and a reach below it). A stale entry keeps
-    /// showing until `relight_one` lights it again, so a burst of changes (leaves decaying) costs the
-    /// frame nothing; lighting a chunk takes about 2 ms.
-    pub(super) fn light_changed(&mut self, p: IVec3, old: BlockId, new: BlockId) {
-        let (m, sky_only) = light::reach(old, new);
+    /// Block `p` changed from `(old, old_shape)` to `(new, new_shape)`: marks chunks in `light::reach_shaped`
+    /// dirty and their cached box light stale.
+    pub(super) fn light_changed_shaped(&mut self, p: IVec3, old: BlockId, old_shape: u8, new: BlockId, new_shape: u8) {
+        let (m, sky_only) = light::reach_shaped(old, old_shape, new, new_shape);
         if m == 0 {
             return;
         }

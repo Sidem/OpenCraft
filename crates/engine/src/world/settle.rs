@@ -72,6 +72,19 @@ impl World {
     /// those its faces and corners touch if `remesh_now`; the rest of a canopy's reach (`mesher/foliage.rs`) with
     /// the queue) and the box light it can reach (`light_changed`).
     pub(super) fn invalidate(&mut self, p: IVec3, old: BlockId, b: BlockId, remesh_now: bool) {
+        self.invalidate_shaped(p, old, 0, b, 0, remesh_now);
+    }
+
+    /// Like [`Self::invalidate`], accounting for shape modifier changes on the edited cell.
+    pub(super) fn invalidate_shaped(
+        &mut self,
+        p: IVec3,
+        old: BlockId,
+        old_shape: u8,
+        b: BlockId,
+        new_shape: u8,
+        remesh_now: bool,
+    ) {
         let near = streaming::chunks_around(p, 1);
         for c in streaming::chunks_around(p, streaming::mesh_reach(old, b)) {
             if self.chunks.contains_key(&c) {
@@ -81,7 +94,7 @@ impl World {
                 }
             }
         }
-        self.light_changed(p, old, b);
+        self.light_changed_shaped(p, old, old_shape, b, new_shape);
         self.mesh_queue_stale = true;
     }
 

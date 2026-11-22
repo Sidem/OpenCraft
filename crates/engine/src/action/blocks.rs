@@ -191,15 +191,95 @@ impl Sim {
         if placed == block::RAIL && !factory::rail_node_stands(|p| self.world.block_anywhere_or_generate(p), pos) {
             return false;
         }
+        let legacy_col = crate::colour::legacy_concrete_colour(placed);
+        let placed = if legacy_col.is_some() { block::CONCRETE } else { placed };
         let old = self.world.block_anywhere_or_generate(pos);
         if !crate::block::replaceable(old) || !self.world.set_block_anywhere(pos, placed) {
             return false;
+        }
+        if let Some(col) = legacy_col {
+            self.world.set_paint_anywhere(pos, crate::colour::all_faces(col));
         }
         let tier = factory::tiers::placed_by(item).map_or(0, |(_, t)| t);
         self.factory.place(&mut self.world, placed, pos, facing, against, tier);
         self.events.push(SimEvent::BlockPlaced { player, pos, block: placed });
         self.block_changed(pos, old);
         true
+    }
+
+    /// Places a shapeable building block from `slot` at `pos` with `shape` (`shape/mod.rs`), or grows an
+    /// existing same-material horizontal slab at `pos` in place (zero extra item: 1 block per cell).
+    pub(super) fn place_shaped(&mut self, player: PlayerId, pos: IVec3, slot: u8, s: u8) {
+        if !crate::shape::is_valid(s) {
+            return;
+        }
+        let Some(stack) = self.player(player).and_then(|c| c.inventory.slots.get(slot as usize)).copied() else {
+            return;
+        };
+        let Some(raw_placed) = stack.item.places().filter(|&b| !stack.is_empty() && crate::shape::is_shapeable(b))
+        else {
+            return;
+        };
+        let legacy_col = crate::colour::legacy_concrete_colour(raw_placed);
+        let placed = if legacy_col.is_some() { block::CONCRETE } else { raw_placed };
+        let old = self.world.block_anywhere_or_generate(pos);
+        let old_shape = self.world.shape_anywhere(pos);
+        if block::replaceable(old) {
+            if !self.world.set_shaped_anywhere(pos, placed, s) {
+                return;
+            }
+            if let Some(col) = legacy_col {
+                self.world.set_paint_anywhere(pos, crate::colour::all_faces(col));
+            }
+            if let Some(Some(core)) = self.players.get_mut(player.0 as usize) {
+                core.inventory.consume_slot(slot as usize, 1);
+            }
+            self.events.push(SimEvent::BlockPlaced { player, pos, block: placed });
+            self.block_changed(pos, old);
+            self.ghosts.built(pos, placed);
+            return;
+        }
+        // In-place slab growth: same material, strictly thicker slab on the same face (or Full cube).
+        if old == placed && old_shape != s {
+            let grows = match (crate::shape::kind(old_shape), crate::shape::kind(s)) {
+                (
+                    crate::shape::Kind::Slab { quarters: a, top: ta },
+                    crate::shape::Kind::Slab { quarters: b, top: tb },
+                ) => ta == tb && b > a,
+                (crate::shape::Kind::Slab { .. }, crate::shape::Kind::Full) => true,
+                _ => false,
+            };
+            let prev_paint = self.world.paint_anywhere(pos);
+            if grows && self.world.set_shaped_anywhere(pos, placed, s) {
+                if prev_paint != 0 {
+                    self.world.set_paint_anywhere(pos, prev_paint);
+                }
+                self.events.push(SimEvent::BlockPlaced { player, pos, block: placed });
+            }
+        }
+    }
+
+    /// Sprays `colour` (`0` = strip, `1..=16` = pigment hue) onto a single `face` (`0..6`) of `pos`.
+    /// Consumes 1 surface charge (24 surfaces per pigment) in normal mode; free in creative and when stripping.
+    pub(super) fn paint_face(&mut self, player: PlayerId, pos: IVec3, face: u8, colour: u8) {
+        let face = usize::from(face);
+        if face >= 6 || colour as usize > crate::colour::COUNT {
+            return;
+        }
+        let block = self.world.block_anywhere_or_generate(pos);
+        if !crate::colour::is_paintable(block) {
+            return;
+        }
+        let current = crate::colour::get_face(self.world.paint_anywhere(pos), face);
+        if current == colour {
+            return;
+        }
+        let creative = self.mode == crate::mode::Mode::Creative;
+        let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
+        if !self.paint.spend(colour, &mut core.inventory, creative) {
+            return;
+        }
+        self.world.set_face_paint_anywhere(pos, face, colour);
     }
 
     /// `Action::Connect`: a wire, or a track between two rail nodes when every point of it lies on the ground

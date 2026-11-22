@@ -65,6 +65,7 @@ export class Renderer {
   private readonly translucent;
   private readonly shapedOpaque;
   private readonly shapedCutout;
+  private readonly shapedTranslucent;
 
   private readonly boxes: BoxPipeline;
   private readonly halos: HaloPipeline;
@@ -96,7 +97,7 @@ export class Renderer {
     if (!gl) throw new Error('WebGL2 is not available in this browser.');
     this.gl = gl;
 
-    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground', 'u_turns', 'u_held', 'u_pivot', 'u_turn'] as const;
+    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground', 'u_turns', 'u_colourPalette', 'u_held', 'u_pivot', 'u_turn'] as const;
     const pass = (vert: string, defines: string[]) => {
       const prog = createProgram(gl, vert, S.litFrag, ['TERRAIN', ...defines]);
       return { prog, u: uniforms(gl, prog, lit) };
@@ -106,6 +107,7 @@ export class Renderer {
     this.translucent = pass(S.chunkVert, ['TRANSLUCENT']);
     this.shapedOpaque = pass(shapedVert, ['SHAPED']);
     this.shapedCutout = pass(shapedVert, ['SHAPED', 'CUTOUT']);
+    this.shapedTranslucent = pass(shapedVert, ['SHAPED', 'TRANSLUCENT']);
 
     this.quadIndex = gl.createBuffer()!;
     this.ensureQuadCapacity(1 << 15);
@@ -170,6 +172,14 @@ export class Renderer {
     }
   }
 
+  /** Uploads the 17-entry RGB surface paint palette (`game.colour_palette()`, 51 floats) to every terrain pass. */
+  setColourPalette(palette: Float32Array): void {
+    for (const pass of [this.opaque, this.cutout, this.translucent, this.shapedOpaque, this.shapedCutout, this.shapedTranslucent]) {
+      this.gl.useProgram(pass.prog);
+      this.gl.uniform3fv(pass.u.u_colourPalette, palette);
+    }
+  }
+
   /**
    * Creates or replaces a chunk mesh. `verts` may be a view into wasm memory; it is consumed
    * immediately and never retained. It holds the packed vertices, then one light byte per vertex
@@ -177,16 +187,17 @@ export class Renderer {
    * round trunks and canopies, `shapedOpaque` quads then `shapedCutout` (shaped.ts).
    */
   upsertChunk(x: number, y: number, z: number, verts: Uint32Array, opaque: number, cutout: number, liquid: number,
-    translucent = 0, shaped: Uint32Array = new Uint32Array(0), shapedOpaque = 0, shapedCutout = 0): void {
+    translucent = 0, shaped: Uint32Array = new Uint32Array(0), shapedOpaque = 0, shapedCutout = 0, shapedTranslucent = 0): void {
     const key = chunkKey(x, y, z);
     let mesh = this.meshes.get(key);
     const total = opaque + cutout + liquid + translucent;
-    if (total + shapedOpaque + shapedCutout === 0) {
+    const shapedTotal = shapedOpaque + shapedCutout + shapedTranslucent;
+    if (total + shapedTotal === 0) {
       if (mesh) this.deleteMesh(key, mesh);
       return;
     }
     const gl = this.gl;
-    this.ensureQuadCapacity(Math.max(total, shapedOpaque + shapedCutout));
+    this.ensureQuadCapacity(Math.max(total, shapedTotal));
     if (!mesh) {
       const vao = gl.createVertexArray()!;
       const vbo = gl.createBuffer()!;
@@ -202,7 +213,7 @@ export class Renderer {
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vbo);
     gl.bindVertexArray(mesh.vao);
-    gl.vertexAttribIPointer(1, 1, gl.UNSIGNED_BYTE, 1, total * 16); // the light bytes follow the vertices
+    gl.vertexAttribIPointer(1, 2, gl.UNSIGNED_BYTE, 2, total * 16); // [light, paint] bytes follow the vertices
     gl.bindVertexArray(null);
     if (verts.byteLength > mesh.capacity) {
       gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
@@ -211,7 +222,7 @@ export class Renderer {
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, verts);
     }
     mesh.opaque = opaque; mesh.cutout = cutout; mesh.liquid = liquid; mesh.translucent = translucent;
-    mesh.shaped = uploadShaped(gl, mesh.shaped, this.quadIndex, shaped, shapedOpaque, shapedCutout);
+    mesh.shaped = uploadShaped(gl, mesh.shaped, this.quadIndex, shaped, shapedOpaque, shapedCutout, shapedTranslucent);
   }
 
   removeChunk(x: number, y: number, z: number): void {
@@ -362,11 +373,12 @@ export class Renderer {
     const [waterCalls, waterQuads] = this.water.draw(vis, this.viewProj, [ex, ey, ez], sky, fog);
     drawCalls += waterCalls;
     quads += waterQuads;
-    if (vis.some((m) => m.translucent > 0)) {
+    if (vis.some((m) => m.translucent > 0 || (m.shaped?.translucent ?? 0) > 0)) {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(false);
       drawPass(this.translucent, (m) => [m.translucent, m.opaque + m.cutout + m.liquid, m.vao], true);
+      drawPass(this.shapedTranslucent, (m) => [m.shaped?.translucent ?? 0, (m.shaped?.opaque ?? 0) + (m.shaped?.cutout ?? 0), m.shaped?.vao ?? null], true);
       gl.depthMask(true);
       gl.disable(gl.BLEND);
     }

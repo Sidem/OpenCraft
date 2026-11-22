@@ -417,6 +417,20 @@ pub enum Action {
         origin: Vec3,
         dir: Vec3,
     },
+    /// Places a shapeable building block from `slot` at `pos` with shape modifier `shape` (`shape/mod.rs`),
+    /// or grows an existing same-material slab in place (¼ -> ½ -> ¾ -> Full).
+    PlaceShaped {
+        pos: IVec3,
+        slot: u8,
+        shape: u8,
+    },
+    /// Sprays surface paint `colour` (`0` = strip, `1..=16` = pigment hue) onto face `face` (`0..6`) of `pos`
+    /// (`colour/mod.rs`, `colour_hands.rs`).
+    PaintFace {
+        pos: IVec3,
+        face: u8,
+        colour: u8,
+    },
 }
 
 mod apply;
