@@ -22,6 +22,15 @@ impl Game {
         u32::from(crate::item::ItemId::block(crate::block::TOWN_DEPOT).0)
     }
 
+    /// Every item any town's order or upkeep asks for, in id order (`scripts/recipe-graph.mjs --pull`).
+    pub fn town_goods(&self) -> Vec<u16> {
+        let orders = crate::settlements::ORDERS.iter().flat_map(|o| o.iter().map(|l| l.0 .0));
+        let kinds = 0..KINDS.len() as u8;
+        let upkeeps = kinds.flat_map(|k| (1..=STAGES as u8).flat_map(move |built| upkeep(k, built))).map(|l| l.0 .0);
+        let all: Vec<u16> = orders.chain(upkeeps).collect();
+        (1..ITEM_COUNT as u16).filter(|i| all.contains(i)).collect()
+    }
+
     /// The panel role of a town depot's store (`machine_panel`): its town's goods.
     pub fn panel_role_store(&self) -> u32 {
         crate::factory::ROLE_STORE as u32
