@@ -5,6 +5,19 @@ is detailed for building now (era 3 is built); later eras are sketches to detail
 are `inputs → outputs (machine, seconds)`; techs append to `TECHS` in the order listed ("r g b v y" are
 the red, green, blue, violet and gold packs). All numbers are first guesses.
 
+## 0. Where the new families' techs go (TREE, 2026-11-23)
+
+Rings and wedges: `docs/TECH_TREE.md` section 10. A find (⬡) stays hidden until the discovery named, then is
+researched with packs. Placement only: recipes come with each family's step (`docs/ROADMAP_WORLD.md`).
+
+| Ring | Wedge: tech (roadmap id; ⬡ find) |
+|---|---|
+| Green | Building: Clay & Kilns (MAT-CLAY) · Ores & Metals: River Panning (MAT-SULF; ⬡ a placer river) · Sea: Salt Pans (MAT-SEA), Boat (SHIP-BOAT) |
+| Blue | Ores & Metals: Sulfide Flotation (MAT-SULF; ⬡ a sulfide vein scanned) · Chemistry: Chlor-alkali (MAT-SEA) · Building: Porcelain & Glazes (MAT-CLAY) · Towns & Life: Fields & Crops (FARM-CROPS) · Sea: Fishing Grounds (SHIP-FISH; ⬡ sailing over one) |
+| Violet | Ores & Metals: Stainless & Nickel (MAT-MAFIC; ⬡ an ultramafic intrusion), Mineral Sands (MAT-SANDS; ⬡ a black-sand coast) · Chemistry: Brines & Lithium (MAT-SALAR; ⬡ a salt flat), Air Separation (CHEM-AIR) · Sea: Harbours & Ships (SHIP-LANES) · Towns & Life: Fertiliser (FARM-CROPS), Pastures & Barns (FARM-STOCK) |
+| Gold | Ores & Metals: Rare Earths (MAT-SANDS; ⬡ a carbonatite), Tungsten & Molybdenum (MAT-ROCK; ⬡ a skarn), Platinum Metals (MAT-MAFIC; ⬡ a layered intrusion) · Chemistry: Noble Gases (MAT-AIR; ⬡ a helium-rich gas field) · Sea: Sea-floor Nodules (WG-SEA; ⬡ a nodule field) · Survey: Far Wonders (WG-SITES; ⬡ reaching one), Deep Survey (TREE-FIND) |
+| Sky | Survey: Orbital Survey (TREE-FIND, was Orbital Science) · the top: Space Elevator (M14) |
+
 ## 1. What a tier changes, per family
 
 Each family's numbers are one array indexed by tier, atop its module.

@@ -15,7 +15,7 @@ first guesses to tune in play. Once an era is built the code is the truth; shrin
 - **Bootstrapping.** Each era's machines are built from the era before, and its first products improve
   the previous era's machines. The player climbs by using what they just automated.
 - **A new kind of problem per era** (DEV_PLAN pillar 5): throughput → heat and flux → precision and depth
-  → terrain → distance → fluids → heat and bandwidth → orbit → scale.
+  → terrain → distance → fluids → heat and bandwidth → orbit → scale. The player's rings: section 10.
 - **Everything stays physical** (DEV_PLAN pillar 1): items ride belts, trains, drones or drop pods, never
   teleport. Only energy and data travel as flows (wires, fibre, laser beams, satellites).
 - **Automation gates.** From blue science on, packs and kits are machine-made only.
@@ -25,7 +25,7 @@ first guesses to tune in play. Once an era is built the code is the truth; shrin
 ## 2. The lines
 
 Eleven lines run through every era. Arrows are the order techs arrive; **feeds** names the lines that
-depend on it.
+depend on it. In the player's tree they become the twelve wedges of section 10.
 
 | Line | Arc | Feeds |
 |---|---|---|
@@ -63,8 +63,8 @@ depend on it.
 - **Satellites pay every line back:** survey satellites put every deposit on the map (extraction), comms
   satellites let drone ports and data reach anywhere in coverage (construction, control), power
   satellites beam energy down to rectennas (power), science satellites downlink space data (research).
-- **Compute pays back too:** AI research makes packs go further, the optimizer speeds machines on the
-  data network, swarms fly more drones per port, auto-routing plans belt lines for the player.
+- **Compute pays back in discovery:** Deep Survey reveals far sites (section 10); the optimizer speeds
+  machines on the data network, swarms fly more drones per port, auto-routing plans belt lines for the player.
 
 ## 4. Eras, research and colours
 
@@ -82,8 +82,8 @@ depend on it.
 
 **Research inputs change form:** items (packs) through era 7, then **compute** (a flow from datacenters
 over the data network), then **space data** downlinked from science satellites. Late techs cost packs
-plus compute; endless bonus techs (mining productivity, belt speed, drone speed …) cost only compute and
-grow each level, so datacenters always have work.
+plus compute; the endless tech, Deep Survey, costs only compute and reveals a far site each level, so
+datacenters always have work (section 10).
 
 ## 5. The far end: what it does and how the browser does it
 
@@ -158,7 +158,8 @@ That pattern must not spread. These rules hold for every step from Milestone 6 o
    kind's bytes; ids append only; every format change bumps the save version with a cheap migration.
 8. **Models are data too:** a spec's box parts plus an automatic tier band and port hatches.
 9. **Content lint tests** keep the tables honest: every item has a source and a use (or is an end
-   product), every category has a machine, every tech is reachable with no cycles, every unlock exists,
+   product), every category has a machine, every tech is reachable with no cycles, every declared need is used by
+   the tech's recipes, machines or packs (section 10), every unlock exists,
    every family's tiers are contiguous. They are cheap and catch what an agent misses.
 10. **Queries and presentation stay out of the core.** Auto-routing, AI survey readings and sky
     satellites are queries or drawing; anything that changes the world is an action.
@@ -176,4 +177,46 @@ That pattern must not spread. These rules hold for every step from Milestone 6 o
 - A deposit gives 3.2× as much metal at Mk5 as at Mk1. Each miner tier roughly fills the belt tier below
   it (Mk3 3.4 ore/s against a Mk1 belt's 2.9), so upgrading miners pushes belt upgrades.
 - **Power per coal:** 270 → 340 → 540 kJ; then solar, diesel (3,000 kJ a barrel), nuclear, orbital.
-- **Research:** Mk3 labs make every fifth unit free, Mk4 every third; AI research and bonus techs later.
+- **Research:** Mk3 labs make every fifth unit free, Mk4 every third; then compute, which reveals (section 10).
+
+## 10. The frontier map: the tree's structure (TREE, user, 2026-11-23)
+
+What the player's tree becomes; costs wait for the play test (13.6b). Built in steps TREE-CORE, TREE-MAP and
+TREE-FIND (`docs/ROADMAP_ORDER.md` wave 3b). Concept page with the full map: claude.ai/artifact/RLpMu22xTWSV5jRWCdtgt8.
+
+- **A map, not a ladder.** Camp in the centre; eras are rings (red, green, blue, violet, gold, sky); twelve
+  disciplines are wedges through every ring, clockwise from the top: Logistics, Workshop, Ores & Metals, Chemistry,
+  Power, Computing, Robots & Drones, Your Gear, Survey, Sea, Towns & Life, Building. A tech's place is (wedge, ring),
+  so new content always has a home. The UI draws the rings for the overview and unrolls one wedge as a lane to read.
+- **Rings open by threshold, not gate techs.** Green, Blue, Violet and Gold Science go. A ring's pack recipe unlocks
+  once half the ring before it is researched (any half) and the pack's parts are known; crafting the first pack is
+  the milestone. The sky ring opens with the first rocket launch. Inside a ring the wedges are independent.
+- **Every need is real:** a tech needs another only when its recipes, machines or packs use that tech's items (a
+  content lint, section 8 rule 9). On 2026-11-23, 41 of 144 declared needs (in 38 techs) failed this.
+- **Three ways in:** lab research; **deeds**, done by doing (the red ring: Belt Routing, lay 40 belts; Belt Lifts,
+  run a belt up 3 steps; and every ring milestone); **finds**, hidden until a discovery (a site reached, an ore
+  scanned, a fishing ground sailed over), then researched with packs. Where finds go: `docs/TECH_ERAS.md` section 0.
+- **Planned ghosts:** roadmap techs that have a wave show in place as dashed, unresearchable nodes; a UI data table.
+- **Gear and discovery, not perks.** Handcrafting I–III become Work Gloves, worn and raised by kits like the hauler
+  pack. Deep Survey (endless, compute only; each level reveals one more far site) replaces Mining Productivity,
+  Machine Speed and Drone Speed (levels in saves stay). Orbital Science becomes Orbital Survey (satellites map sites
+  and wonders). Optimizer and Drone Swarms stay; no new multipliers.
+- **Merges (95 techs → 75):** Mechanics + Belt Mk2; Mk3 Logistics + Mk3 Machines → Mk3 Kits, likewise Mk4 (each kit
+  tech also raises the hauler pack and gloves, so Hauler Mk3–Mk5 go); Rails + Trains + Freight → Railways; Drone
+  Power + Navigation into Construction Drones; Oil Processing + Refining; Gas Wells + Gas Processing; Wafers +
+  Accelerators → Chip Fab; Datacenters + Cooling; AI Research (unlocks nothing) into AI Labs.
+- **Split:** Architecture → Stone Styles, Glass, Metalwork, Paint. **Moved:** Forestry violet → green (Mechanics
+  already offers the Forester Mk2); Logic violet → blue (the sensor is green parts). **Fix:** yellow stained glass
+  (green) needs a violet pigment; it goes to Pigments.
+
+| Ring | Opens with | The problem it poses |
+|---|---|---|
+| Camp | the start | hands only: dig, smelt, craft what you carry |
+| Red | the start (deeds) | carrying is slow: belts move things |
+| Green | the first green pack | hand work does not scale: parts that make machines |
+| Blue | the first blue pack | power and bulk: one fire is not enough, the near ore thins |
+| Violet | the first violet pack | far and fluid: the good stuff lies far away or locked in liquids |
+| Gold | the first gold pack | discovery: rare elements, far wonders, the sea floor |
+| Sky | the first rocket launch | orbit: see the whole world, then reach past it (the elevator last) |
+
+Section 4's eras are the build order by milestone; the rings follow the packs the techs cost.
