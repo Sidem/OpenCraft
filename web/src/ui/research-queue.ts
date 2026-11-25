@@ -1,6 +1,6 @@
 // The research queue strip on the research screen: the techs waiting behind the current one, next first, each
 // with a × that takes it out (and any queued tech that needs it). Read from the engine (`research_queue_*`);
-// the strip is hidden while the queue is empty. Choosing and queueing techs is done on the tree (research.ts).
+// the strip is hidden while the queue is empty. Choosing and queueing techs is done on the grid and the detail pane.
 
 import './research-queue.css';
 import type { Game } from '../wasm/engine.js';
@@ -26,7 +26,7 @@ export class ResearchQueue {
     if (key === this.drawn) return;
     this.drawn = key;
     this.el.classList.toggle('hidden', queue.length === 0);
-    const label = h('span', 'rq-label', `Up next (${queue.length} of ${g.research_queue_max()})`);
+    const label = h('span', 'rq-label', `Up next ${queue.length}/${g.research_queue_max()}`);
     const chips = queue.map((t, i) => {
       const chip = h('span', 'rq-chip');
       const remove = h('button', 'rq-x', '×');

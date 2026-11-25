@@ -76,7 +76,7 @@ precision highp float;
 precision highp int;
 
 layout(location = 0) in uint a_vert;
-layout(location = 1) in uvec2 a_light; // .x = sky light | block light << 4, .y = surface paint index 0..=16
+layout(location = 1) in uvec2 a_light; // .x = sky light | block light << 4, .y = paint (0..5) | (layer >> 9) << 5
 
 uniform mat4 u_viewProj;
 uniform vec3 u_offset; // chunk origin minus camera position
@@ -92,7 +92,7 @@ out vec2 v_ground;
 out vec2 v_open; // how much open sky this vertex has (0..1) and 1 on an upward face: where rain wets and snow lies
 #ifndef WATER
 flat out uint v_paintId;
-uniform uint u_turns[32]; // two bits per layer: how its blocks may turn (engine block/turn.rs)
+uniform uvec4 u_turns[32]; // two bits per layer (2048 layers): how its blocks may turn (engine block/turn.rs)
 // The face's offset in world tile cells (xy), its plane and side (z), and how it may turn (w): 0 not, 1 mirror,
 // 2 mirror and flip upside down, 3 any of eight ways.
 flat out vec4 v_turn;
@@ -123,11 +123,9 @@ void main() {
   vec3 p = vec3(float(a_vert & 63u), float((a_vert >> 6u) & 63u), float((a_vert >> 12u) & 63u));
   uint face = (a_vert >> 18u) & 7u;
   uint ao = (a_vert >> 21u) & 3u;
-  float layer = float(a_vert >> 23u);
 #ifdef WATER
   float drop = float(ao | (((a_vert >> 28u) & 3u) << 2u)) / 16.0;
   p.y -= drop;
-  layer = u_waterLayer;
   uint info = (a_vert >> 23u) & 31u;
   v_water = uvec3(info & 3u, info >> 2u, face);
   v_depth = face == 2u ? 1.0 - drop : 1.0;
@@ -136,20 +134,21 @@ void main() {
   vec2 uv = faceUv(face, p);
 
 #ifdef WATER
-  v_uvl = vec3(uv, layer);
+  v_uvl = vec3(uv, u_waterLayer);
   v_light = FACE_SHADE[face];
   v_sun = vec3(0.0);
 #else
   uint light = a_light.x;
-  v_paintId = a_light.y;
-  v_uvl = vec3(uv, layer);
+  uint li = (a_vert >> 23u) | ((a_light.y >> 5u) << 9u);
+  v_paintId = a_light.y & 31u;
+  v_uvl = vec3(uv, float(li));
   v_light = (face >= 6u ? 0.84 : FACE_SHADE[face]) * AMBIENT * AO_CURVE[ao];
   v_sun = sunLight(FACE_NORMAL[face], light) * AO_CURVE[ao];
   // How this layer may turn, and what the hash in turnUv reads; every vertex of a quad agrees.
-  uint li = a_vert >> 23u;
   vec3 w = u_worldOrigin + p;
   float plane = face < 2u ? w.x : (face < 4u ? w.y : w.z);
-  uint how = (u_turns[li >> 4u] >> ((li & 15u) * 2u)) & 3u;
+  uint tw = li >> 4u;
+  uint how = li < 2048u ? ((u_turns[tw >> 2u][tw & 3u] >> ((li & 15u) * 2u)) & 3u) : 0u;
   v_turn = vec4(faceUv(face, u_worldOrigin), plane * 8.0 + float(face), float(how));
 #endif
   v_tint = lightTint(a_light.x, u_skyLight);

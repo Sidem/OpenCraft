@@ -1,0 +1,157 @@
+/* A tech chip and its folded dot on the research grid (research-chip.ts). One colour, one meaning: blue = you can
+   research it, orange = researching, green tick = done (quiet), dashed and faint = the next step, not yet open.
+   `--kind` is the kind's colour as "r, g, b" (only the medal uses it). */
+
+.rc {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(30, 33, 42, 0.92);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.12s, background 0.12s, opacity 0.12s;
+}
+
+.rc:hover,
+.rc:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.rc-medal {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: rgb(var(--kind));
+  background: rgba(var(--kind), 0.16);
+}
+
+.rc-medal svg { width: 18px; height: 18px; }
+
+.rc-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rc-name {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rc-sub {
+  display: flex;
+  align-items: center;
+  min-height: 16px;
+  overflow: hidden;
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rc-icons { display: flex; align-items: center; gap: 3px; }
+.rc-icon { width: 16px; height: 16px; image-rendering: pixelated; }
+.rc-more { font-size: 10.5px; color: var(--muted); }
+
+.rc-side {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.rc-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+}
+
+.rc-fill {
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+/* States. */
+.rc.available {
+  border-color: rgba(125, 211, 252, 0.75);
+  background: linear-gradient(90deg, rgba(125, 211, 252, 0.14), rgba(30, 33, 42, 0.92) 70%);
+  box-shadow: 0 0 10px rgba(125, 211, 252, 0.18);
+}
+
+.rc.available .rc-side { color: var(--rs-horizon); }
+.rc.available .rc-fill { background: var(--rs-horizon); }
+
+.rc.chosen {
+  border-color: var(--accent);
+  background: linear-gradient(90deg, rgba(250, 149, 73, 0.2), rgba(30, 33, 42, 0.92) 70%);
+}
+
+.rc.chosen .rc-side { color: var(--accent); }
+.rc.queued { border-color: rgba(253, 230, 138, 0.6); }
+.rc.queued .rc-side { color: #fde68a; }
+
+.rc.done { background: rgba(26, 30, 36, 0.8); }
+.rc.done .rc-name { color: #c9ced8; font-weight: 600; }
+.rc.done .rc-medal { filter: saturate(0.4); opacity: 0.75; }
+.rc.done .rc-side { color: var(--rs-done); }
+.rc.done .rc-icons { opacity: 0.65; }
+
+.rc.next {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(22, 25, 32, 0.6);
+  opacity: 0.62;
+}
+
+.rc.next .rc-medal { filter: grayscale(1); }
+.rc.next:hover, .rc.next:focus-visible { opacity: 1; }
+.rc.deed.available .rc-sub { color: var(--rs-horizon); }
+
+/* Selection, the hovered chain and search. */
+.rc.sel { border-color: #fff; box-shadow: 0 0 0 1px #fff, 0 6px 18px rgba(0, 0, 0, 0.45); opacity: 1; }
+.rg.tracing .rc:not(.chain) { opacity: 0.55; }
+.rg.tracing .rc.chain { opacity: 1; }
+.rg.searching .rc:not(.hit) { opacity: 0.3; }
+.rc.hit { border-color: #fde68a; box-shadow: 0 0 0 1px #fde68a; }
+
+/* A folded ring column shows each discovered tech as a dot. */
+.rc-dot {
+  position: relative;
+  z-index: 1;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.rc-dot.done { background: rgba(143, 220, 156, 0.75); }
+.rc-dot.available { background: var(--rs-horizon); box-shadow: 0 0 6px var(--rs-horizon); }
+.rc-dot.chosen { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.rc-dot.queued { background: #fde68a; }
+.rc-dot.next { background: none; border: 1px dashed rgba(255, 255, 255, 0.4); }
+.rc-dot.sel { outline: 2px solid #fff; outline-offset: 1px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rc { transition: none; }
+}

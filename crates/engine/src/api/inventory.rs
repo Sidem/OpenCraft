@@ -61,6 +61,19 @@ impl Game {
         self.act(Action::UpgradePack);
     }
 
+    /// The upgrade of the worn work gloves: `[next gloves, kit, kits needed, kits held, unlocked (0 or 1)]`, or empty.
+    pub fn gloves_upgrade(&self) -> Vec<u32> {
+        let inv = self.inventory();
+        let Some((next, kit, kits)) = equipment::next_gloves(inv.worn[5]) else { return Vec::new() };
+        let unlocked = self.sim.factory.research.has(Unlock::Recipe(next));
+        vec![u32::from(next.0), u32::from(kit.0), kits, inv.count(kit), u32::from(unlocked)]
+    }
+
+    /// Raises the worn work gloves one tier with kits from the inventory (next tick).
+    pub fn upgrade_gloves(&mut self) {
+        self.act(Action::UpgradeGloves);
+    }
+
     /// Equipment-panel click (next tick): swaps the cursor stack with the gear in `slot`; `shift` takes it off.
     pub fn click_gear(&mut self, slot: u32, shift: bool) {
         self.act(Action::ClickGear { slot: slot.min(u8::MAX as u32) as u8, shift });

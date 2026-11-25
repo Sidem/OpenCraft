@@ -8,7 +8,8 @@
 //! bits 12..18  z
 //! bits 18..21  face  (+X, -X, +Y, -Y, +Z, -Z; 6 and 7 are a plant's two diagonal quads)
 //! bits 21..23  ambient occlusion (0 = darkest, 3 = unoccluded)
-//! bits 23..32  texture array layer
+//! bits 23..32  texture array layer low 9 bits (high 3 bits sit in `a_light.y` bits 5..8, so layers reach 4095;
+//!              `block::turn::MASK` and shaped vertices cap terrain layers at 2048)
 //! (a liquid vertex holds its surface drop, kind of water and flow direction there instead: `water.rs`)
 //! ```
 //!
@@ -422,12 +423,13 @@ impl Mesher {
 
     /// The crossed quads of a plant in chunk cell (x, y, z) drawn with texture `layer`, lit by `light`.
     fn push_plant(&mut self, x: u32, y: u32, z: u32, layer: u32, light: u8) {
+        let (lo, hi) = (layer & 0x1FF, ((layer >> 9) as u8) << 5);
         for _ in 0..16 {
             self.cutout_light.push(light);
-            self.cutout_light.push(0);
+            self.cutout_light.push(hi);
         }
         let v = |dx: u32, dy: u32, dz: u32, face: u32| {
-            (x + dx) | ((y + dy) << 6) | ((z + dz) << 12) | (face << 18) | (3 << 21) | (layer << 23)
+            (x + dx) | ((y + dy) << 6) | ((z + dz) << 12) | (face << 18) | (3 << 21) | (lo << 23)
         };
         let a = [v(0, 0, 0, 6), v(1, 0, 1, 6), v(1, 1, 1, 6), v(0, 1, 0, 6)];
         let b = [v(1, 0, 0, 7), v(0, 0, 1, 7), v(0, 1, 1, 7), v(1, 1, 0, 7)];

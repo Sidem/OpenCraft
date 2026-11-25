@@ -66,9 +66,12 @@ export class CraftInfo {
     const parts = g.recipe_part_crafts(t.id);
     const time = h('p', 'craft-time', `Takes ${g.recipe_tenths(t.id) / 10} s by hand`);
     if (parts > 0) time.append(` (${parts} part crafts first, queued for you)`);
+    const lock = g.recipe_locked_by(t.id);
     const status =
       t.state === 'locked'
-        ? `Research ${g.tech_name(g.recipe_locked_by(t.id))} to unlock it (T). Click for how to get it.`
+        ? lock >= 0
+          ? `Research ${g.tech_name(lock)} to unlock it (T). Click for how to get it.`
+          : 'Finish half of the previous ring and its parts to unlock this pack (T).'
         : t.state === 'ready'
           ? `Click to queue it · Shift-click for up to ${BULK_CRAFT}`
           : 'Click for where the missing materials come from.';

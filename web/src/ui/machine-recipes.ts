@@ -98,12 +98,16 @@ export class RecipePicker {
     for (const c of this.cards) {
       this.showSpeed(c, this.game.machine_recipe_seconds_at(...pos, c.id));
       const tech = this.game.machine_recipe_locked_by(c.id);
-      c.locked = tech >= 0;
+      c.locked = tech !== -1;
       c.el.classList.toggle('active', c.id === active);
       c.el.classList.toggle('locked', c.locked);
       c.el.disabled = !choosable || c.locked;
       c.el.setAttribute('aria-pressed', String(c.id === active));
-      const note = c.locked ? `Research ${this.game.tech_name(tech)} first` : '';
+      const note = !c.locked
+        ? ''
+        : tech >= 0
+          ? `Research ${this.game.tech_name(tech)} first`
+          : 'Finish half of the previous ring and its parts first';
       if (c.lock.textContent !== note) c.lock.textContent = note;
     }
     // Recipes you can use first, the locked ones after them; each group keeps the engine's order.

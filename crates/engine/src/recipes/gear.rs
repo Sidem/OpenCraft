@@ -72,12 +72,44 @@ pub const EXO_FRAME_RECIPE: Recipe = Recipe {
     blurb: "A steel frame worn over the chest: you sprint 10% faster.",
 };
 
+pub const WORK_GLOVES_RECIPE: Recipe = Recipe {
+    output: WORK_GLOVES,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(IRON_PLATE, 4), (SCREW, 6), (COPPER_WIRE, 4)],
+    blurb: "Work gloves worn in the Gloves slot: craft by hand 25% faster. Raise with kits like the hauler pack.",
+};
+
+pub const WORK_GLOVES_MK2_RECIPE: Recipe = Recipe {
+    output: WORK_GLOVES_MK2,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(WORK_GLOVES, 1), (GREEN_KIT, 4)],
+    blurb: "Work gloves with geared linkages: craft by hand 50% faster.",
+};
+
+pub const WORK_GLOVES_MK3_RECIPE: Recipe = Recipe {
+    output: WORK_GLOVES_MK3,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(WORK_GLOVES_MK2, 1), (BLUE_KIT, 4)],
+    blurb: "Powered work gloves: craft by hand 75% faster.",
+};
+
+pub const WORK_GLOVES_MK4_RECIPE: Recipe = Recipe {
+    output: WORK_GLOVES_MK4,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(WORK_GLOVES_MK3, 1), (VIOLET_KIT, 4)],
+    blurb: "Precision work gloves: craft by hand 100% faster.",
+};
+
 pub const CRAFT_GLOVES_RECIPE: Recipe = Recipe {
     output: CRAFT_GLOVES,
     group: Group::Tools,
     count: 1,
-    inputs: &[(ACTUATOR, 4), (SERVO, 4), (GOLD_KIT, 4)],
-    blurb: "Gloves with servo fingers, worn in the Gloves slot: you craft by hand 50% faster, on top of Handcrafting.",
+    inputs: &[(WORK_GLOVES_MK4, 1), (GOLD_KIT, 4)],
+    blurb: "Gloves with servo fingers, worn in the Gloves slot: craft by hand 125% faster.",
 };
 
 pub const XRAY_GOGGLES_RECIPE: Recipe = Recipe {

@@ -103,6 +103,6 @@ fn a_port_takes_the_best_hub_in_range_and_the_range_is_twelve_blocks() {
 fn the_tech_needs_ai_research_and_swarm_logistics() {
     let by_name = |name: &str| TECHS.iter().position(|t| t.name == name).unwrap() as u8;
     let tech = &TECHS[by_name("Drone Swarms") as usize];
-    assert!(tech.needs.contains(&by_name("AI Research")));
-    assert!(tech.needs.contains(&by_name("Swarm Logistics")));
+    assert!(tech.needs.contains(&by_name("Datacenters")));
+    assert!(tech.needs.contains(&by_name("Construction Drones")));
 }

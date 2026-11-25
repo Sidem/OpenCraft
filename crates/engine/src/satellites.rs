@@ -126,6 +126,11 @@ impl Satellites {
         &self.list
     }
 
+    /// Total satellites launched in this world.
+    pub fn launched(&self) -> u32 {
+        self.launched
+    }
+
     /// How many satellites of `kind` are up.
     pub fn count(&self, kind: u8) -> usize {
         self.list.iter().filter(|s| s.kind == kind).count()

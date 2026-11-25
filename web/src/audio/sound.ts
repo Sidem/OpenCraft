@@ -27,6 +27,7 @@ import { FlameLoop } from './flame-loop';
 import { Music, type MusicGame } from './music';
 import { ACTION_BASE, EVENT_ACTIONS, PREVIEW_DISTANCE, PREVIEW_VOLUME } from './sound-actions';
 import { blip, breakSound, denied, hitSound, mulberry32, ping, powerDown, powerUp, splash, tick, whoosh, type HitMods } from './synth';
+import { achieve, discover } from './synth-chime';
 import { flame } from './synth-fire';
 import { launch, podDown, podUp } from './synth-orbit';
 import { thump } from './synth-seismic';
@@ -254,14 +255,9 @@ export class SoundSystem {
     if (this.audible()) this.play('click', 0, 1, 0);
   }
 
-  /** A scanner or core-drill reading arrived. */
-  scan(): void {
-    if (this.audible()) this.play('scan', 0, 1, 0);
-  }
-
-  /** A Seismic Thumper sent a pulse into the ground. */
-  thump(): void {
-    if (this.audible()) this.play('thump', 0, 1, 0);
+  /** A centred one-off cue: a scanner reading (`scan`), a Seismic Thumper pulse (`thump`), a Codex chime. */
+  cue(action: 'scan' | 'thump' | 'discover' | 'achieve'): void {
+    if (this.audible()) this.play(action, 0, 1, 0);
   }
 
   private audible(): boolean {
@@ -399,6 +395,7 @@ export class SoundSystem {
       : action === 'powerup' ? powerUp(sr, rand, mods) : action === 'launch' ? launch(sr, rand, mods)
       : action === 'podup' ? podUp(sr, rand, mods) : action === 'poddown' ? podDown(sr, rand, mods)
       : action === 'denied' ? denied(sr, mods) : action === 'flame' ? flame(sr, rand, mods)
+      : action === 'discover' ? discover(sr, mods) : action === 'achieve' ? achieve(sr, mods)
       : hitSound(sr, rand, m, mods);
     const buffer = ctx.createBuffer(1, data.length, sr);
     buffer.getChannelData(0).set(data);

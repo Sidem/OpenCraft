@@ -301,6 +301,8 @@ pub enum Action {
     },
     /// Raises the worn hauler pack one tier with kits from the inventory (`equipment.rs`).
     UpgradePack,
+    /// Raises the worn work gloves one tier with kits from the inventory (`equipment.rs`).
+    UpgradeGloves,
     /// The left hand (`offhand.rs`): `swap` trades the selected hotbar stack with it; otherwise the cursor clicks it.
     Offhand {
         swap: bool,

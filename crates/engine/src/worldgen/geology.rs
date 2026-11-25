@@ -10,8 +10,8 @@
 //! the same helpers as version 1 (`ore.rs`). To tune: `ORES_BY_BIOME` (weights, not rates).
 
 use crate::block::{
-    BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, DARK_SAND, DARK_SOIL, GAS_SHALE, GRASS, GREEN_SAND, GREEN_SOIL,
-    IRON_ORE, LIMESTONE, OIL_SAND, PALE_SAND, PALE_SOIL, QUARTZ_ORE, RUSTY_SAND, RUSTY_SOIL, SAND, URANIUM_ORE,
+    BlockId, BAUXITE_ORE, CLAY, COAL_ORE, COPPER_ORE, DARK_SAND, DARK_SOIL, GAS_SHALE, GRASS, GREEN_SAND, GREEN_SOIL,
+    IRON_ORE, KAOLIN, LIMESTONE, OIL_SAND, PALE_SAND, PALE_SOIL, QUARTZ_ORE, RUSTY_SAND, RUSTY_SOIL, SAND, URANIUM_ORE,
 };
 use crate::chunk::CHUNK_SIZE;
 use crate::deposits::{Deposit, DepositKey, Tier};
@@ -178,6 +178,9 @@ impl WorldGen {
         if ore == GAS_SHALE {
             return self.layers.deposits >= super::gas::GAS_SINCE && super::gas::holds_gas(biome, at);
         }
+        if let Some(holds) = super::clay::holds(self, ore, biome, at) {
+            return holds;
+        }
         match EXTRAS.iter().find(|e| e.ore == ore) {
             Some(e) => self.extra_weight(e, biome, at) > 0,
             None => ores_in(biome).iter().any(|o| o.0 == ore),
@@ -189,6 +192,9 @@ impl WorldGen {
         if ore == GAS_SHALE {
             return self.layers.deposits >= super::gas::GAS_SINCE;
         }
+        if matches!(ore, CLAY | KAOLIN) {
+            return self.layers.deposits >= super::clay::CLAY_SINCE;
+        }
         EXTRAS.iter().find(|e| e.ore == ore).is_none_or(|e| self.layers.deposits >= e.since)
     }
 
@@ -196,6 +202,9 @@ impl WorldGen {
     pub fn ore_from(&self, ore: BlockId) -> i32 {
         if ore == GAS_SHALE {
             return super::gas::GAS_FROM;
+        }
+        if ore == KAOLIN {
+            return super::clay::KAOLIN_FROM;
         }
         EXTRAS.iter().find(|e| e.ore == ore).map_or(0, |e| e.distance(self.layers.deposits))
     }
@@ -227,7 +236,7 @@ pub fn hint_for(ore: BlockId, top: BlockId) -> Option<BlockId> {
     let (grass, sand) = match ore {
         // Bauxite shows itself (exposed on bare rock) and leaves no stain; neither do oil sand, uranium and gas shale,
         // which lie too deep and are found by scanning.
-        BAUXITE_ORE | OIL_SAND | URANIUM_ORE | GAS_SHALE => return None,
+        BAUXITE_ORE | OIL_SAND | URANIUM_ORE | GAS_SHALE | CLAY | KAOLIN => return None,
         IRON_ORE => (RUSTY_SOIL, RUSTY_SAND),
         COAL_ORE => (DARK_SOIL, DARK_SAND),
         COPPER_ORE => (GREEN_SOIL, GREEN_SAND),

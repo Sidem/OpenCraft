@@ -4,8 +4,8 @@
 use rustc_hash::FxHashMap;
 
 use crate::block::{
-    BlockId, AIR, BASALT, BAUXITE_ORE, BEDROCK, COAL_ORE, COPPER_ORE, DIRT, GAS_SHALE, GRANITE, GRASS, IRON_ORE,
-    LIMESTONE, LIQUID, OIL_SAND, QUARTZ_ORE, SAND, SANDSTONE, SOLID, SPENT_ROCK, STONE, URANIUM_ORE,
+    BlockId, AIR, BASALT, BAUXITE_ORE, BEDROCK, CLAY, COAL_ORE, COPPER_ORE, DIRT, GAS_SHALE, GRANITE, GRASS, IRON_ORE,
+    KAOLIN, LIMESTONE, LIQUID, OIL_SAND, QUARTZ_ORE, SAND, SANDSTONE, SOLID, SPENT_ROCK, STONE, URANIUM_ORE,
 };
 use crate::chunk::{Chunk, CHUNK_MASK};
 use crate::math::{sort_small_by_key, IVec3};
@@ -56,6 +56,8 @@ pub(super) fn classify_block(
             IRON_ORE => (0.86, CLASS_ORE_METAL),
             GAS_SHALE => (0.90, CLASS_ORE_CARBON),
             URANIUM_ORE => (0.96, CLASS_ORE_METAL),
+            CLAY => (0.36, CLASS_ORE_MINERAL),
+            KAOLIN => (0.42, CLASS_ORE_MINERAL),
             _ => (0.80, CLASS_ORE_UNKNOWN),
         };
         return (imp, cls, det);

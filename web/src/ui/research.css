@@ -1,178 +1,68 @@
-/* Research screen (research.ts): the dialog, the pan and zoom viewport with its overlays, and the tree's edges.
-   Nodes are research-node.css, eras research-eras.css, the minimap research-map.css, the hover card and HUD
-   tracker research-card.css. */
+/* Research screen (research.ts): the dialog, its rail beside the grid, and the HUD tracker. The grid is
+   research-grid.css, chips research-chip.css, the rail's cards research-now.css and research-detail.css. */
 
 .rs {
-  width: min(1800px, 100%);
+  width: min(1700px, 100%);
   height: 100%;
   --rs-done: #8fdc9c;
   --rs-horizon: #7dd3fc;
 }
 
 .rs .mp-head {
-  gap: 8px 16px;
   align-items: center;
+  gap: 8px 16px;
   padding-right: 60px;
 }
 
+.rs .mp-head .rs-search {
+  margin-left: auto;
+}
+
 .rs .mp-body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding-bottom: 14px;
-}
-
-.rs .mp-status {
-  flex: none;
-}
-
-.rs .rq {
-  flex: none;
-}
-
-/* The camera's window onto the tree (research-view.ts). */
-
-.rs-view {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  border-radius: 10px;
-  background: rgba(10, 12, 17, 0.7);
-  border: 1px solid var(--panel-border);
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  outline: none;
-}
-
-.rs-view.panning {
-  cursor: grabbing;
-}
-
-.rs-stage {
-  position: absolute;
-  left: 0;
-  top: 0;
-  transform-origin: 0 0;
-  will-change: transform;
-}
-
-.rs-stage.glide {
-  transition: transform 0.42s cubic-bezier(0.3, 0.7, 0.2, 1);
-}
-
-/* Overlays in the corners of the viewport. */
-
-.rs-hud {
-  position: absolute;
-  bottom: 10px;
-  z-index: 2;
-  cursor: default;
-}
-
-.rs-hud-left {
-  left: 10px;
-  max-width: calc(100% - min(360px, 40vw) - 40px);
   display: grid;
-  gap: 6px;
-  justify-items: start;
+  grid-template-columns: minmax(270px, 330px) minmax(0, 1fr);
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 14px 16px 16px;
 }
 
-.rs-hud-right {
-  right: 10px;
+.rs-rail {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: start;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
 }
 
-.rs-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: rgba(14, 16, 22, 0.85);
-  font-size: 12px;
-  color: var(--muted);
+@media (max-width: 900px) {
+  .rs .mp-body { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); overflow-y: auto; }
+  .rs-rail { overflow: visible; }
 }
 
-.rs-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
+/* The HUD tracker: the tech being researched, or a short notice when something finishes. */
 
-.rs-hint {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.rs-key::before {
-  content: '';
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  margin-right: 6px;
-  vertical-align: -2px;
-  border-radius: 4px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-}
-
-.rs-key.done::before {
-  background: rgba(143, 220, 156, 0.35);
-  border-color: var(--rs-done);
-}
-
-.rs-key.chosen::before {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-}
-
-.rs-key.available::before {
-  border-color: var(--rs-horizon);
-  box-shadow: 0 0 6px var(--rs-horizon);
-}
-
-/* Edges: their width stays the same on screen at any zoom. */
-
-.rs-edges {
+.rs-tracker {
   position: absolute;
-  inset: 0;
-  overflow: visible;
-  pointer-events: none;
+  top: calc(44px + var(--map-space, 0px));
+  right: 12px;
+  display: grid;
+  gap: 5px;
+  width: 260px;
+  padding: 8px 12px 10px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
-.rs-edges path {
-  fill: none;
-  stroke-width: 1.6;
-  vector-effect: non-scaling-stroke;
-  stroke: rgba(255, 255, 255, 0.16);
-  stroke-dasharray: 5 5;
-  transition: stroke 0.15s, opacity 0.15s;
+.rs-tracker.rs-notice {
+  border-color: rgba(143, 220, 156, 0.6);
 }
 
-.rs-edges path.built {
-  stroke: var(--rs-done);
-  stroke-dasharray: none;
-  opacity: 0.8;
+.rs-tracker.rs-notice .mp-bar-fill {
+  background: #8fdc9c;
 }
-
-.rs-edges path.open {
-  stroke: var(--rs-horizon);
-  stroke-dasharray: none;
-}
-
-.rs-edges path.hot {
-  stroke-width: 3.5;
-  opacity: 1;
-}
-
-.rs-edges path.closed.hot {
-  stroke: rgba(255, 255, 255, 0.6);
-}
-
-.rs-focus .rs-edges path:not(.hot) {
-  opacity: 0.1;
-}
-

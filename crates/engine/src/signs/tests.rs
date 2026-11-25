@@ -61,7 +61,8 @@ fn the_sign_is_followed_only_by_the_forester_and_the_trees() {
     );
     assert_eq!(usize::from(crate::block::GAS_SHALE) + crate::block::GAS_COUNT, usize::from(crate::block::THUMPER));
     assert_eq!(usize::from(crate::block::THUMPER) + crate::block::THUMPER_COUNT, usize::from(crate::block::GLASS_KILN));
-    assert_eq!(usize::from(crate::block::GLASS_KILN) + crate::block::KILN_COUNT, BLOCK_COUNT);
+    assert_eq!(usize::from(crate::block::GLASS_KILN) + crate::block::KILN_COUNT, usize::from(crate::block::CLAY));
+    assert_eq!(usize::from(crate::block::CLAY) + crate::block::CLAY_COUNT, BLOCK_COUNT);
 }
 
 #[test]

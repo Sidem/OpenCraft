@@ -61,11 +61,18 @@ impl Game {
         max_times(self.inventory(), &self.sim.factory.research, self.sim.settlements.gear_works(), r as u16)
     }
 
-    /// The tech (`tech_*`) that must be researched before recipe `r` can be crafted, or -1.
+    /// The tech (`tech_*`) that must be researched before recipe `r` can be crafted, `-1` if unlocked, or `-2` if
+    /// locked by a ring threshold (craft/research half the previous ring and its parts).
     pub fn recipe_locked_by(&self, r: u32) -> i32 {
-        let locked =
-            RECIPES.get(r as usize).and_then(|x| self.sim.factory.research.locked_by(Unlock::Recipe(x.output)));
-        locked.map_or(-1, i32::from)
+        let Some(x) = RECIPES.get(r as usize) else { return -1 };
+        let unlock = Unlock::Recipe(x.output);
+        if let Some(t) = self.sim.factory.research.locked_by(unlock) {
+            i32::from(t)
+        } else if !self.sim.factory.research.has(unlock) {
+            -2
+        } else {
+            -1
+        }
     }
 
     pub fn can_craft(&self, r: u32) -> bool {

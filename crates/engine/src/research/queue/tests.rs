@@ -1,3 +1,4 @@
+use super::super::{ids, Ring};
 use super::*;
 use crate::bytes::{ByteReader, ByteWriter};
 
@@ -6,6 +7,7 @@ fn by_name(name: &str) -> u8 {
 }
 
 fn finish(r: &mut Research, tech: u8) {
+    r.open_ring(TECHS[tech as usize].ring);
     (0..TECHS[tech as usize].units).for_each(|_| r.add_unit(tech));
 }
 
@@ -17,6 +19,7 @@ fn order(r: &Research) -> Vec<u8> {
 #[test]
 fn queueing_a_deep_tech_adds_its_missing_prerequisites_in_order() {
     let mut r = Research::default();
+    r.open_ring(Ring::Violet);
     let deep = by_name("Construction Drones");
     r.enqueue(deep);
     let chain = order(&r);
@@ -36,20 +39,23 @@ fn queueing_a_deep_tech_adds_its_missing_prerequisites_in_order() {
 #[test]
 fn queueing_ignores_what_is_done_chosen_or_unknown() {
     let mut r = Research::default();
-    r.enqueue(0);
-    r.enqueue(0);
+    r.open_ring(Ring::Green);
+    r.enqueue(ids::BELT_ROUTING); // deeds cannot be queued
+    assert!(order(&r).is_empty());
+    r.enqueue(ids::MECHANICS);
+    r.enqueue(ids::MECHANICS);
     r.enqueue(200);
-    assert_eq!(order(&r), vec![0]);
-    finish(&mut r, 0);
-    r.enqueue(0);
+    assert_eq!(order(&r), vec![ids::MECHANICS]);
+    finish(&mut r, ids::MECHANICS);
+    r.enqueue(ids::MECHANICS);
     assert_eq!(order(&r), Vec::<u8>::new(), "a done tech isn't queued");
 }
 
 #[test]
 fn choosing_a_tech_now_puts_the_old_one_at_the_front() {
     let mut r = Research::default();
-    finish(&mut r, 0);
-    let (a, b, c) = (1, 2, by_name("Construction Drones"));
+    r.open_ring(Ring::Violet);
+    let (a, b, c) = (ids::UNDERPASSES, ids::MECHANICS, by_name("Construction Drones"));
     r.set_current(Some(a));
     r.enqueue(b);
     r.enqueue(c);
@@ -64,10 +70,10 @@ fn choosing_a_tech_now_puts_the_old_one_at_the_front() {
 #[test]
 fn giving_up_the_current_tech_moves_on_and_drops_what_needed_it() {
     let mut r = Research::default();
-    finish(&mut r, by_name("Belt Routing"));
+    r.open_ring(Ring::Violet);
     r.enqueue(by_name("Construction Drones"));
     // A tech that needs nothing more takes over when the first one's whole chain falls away.
-    r.enqueue(by_name("Belt Lifts"));
+    r.enqueue(ids::UNDERPASSES);
     let chain = order(&r);
     r.set_current(None);
     assert!(r.current.is_some() && !r.is_chosen(chain[0]), "the next one takes over");
@@ -85,8 +91,8 @@ fn giving_up_the_current_tech_moves_on_and_drops_what_needed_it() {
 #[test]
 fn unqueueing_takes_the_techs_that_need_it_too() {
     let mut r = Research::default();
-    finish(&mut r, 0);
-    r.set_current(Some(1));
+    r.open_ring(Ring::Violet);
+    r.set_current(Some(ids::UNDERPASSES));
     let deep = by_name("Construction Drones");
     r.enqueue(deep);
     let chain = order(&r);
@@ -101,6 +107,7 @@ fn nothing_is_queued_behind_an_endless_tech() {
     let mut r = Research::default();
     let bonus = (0..TECHS.len() as u8).find(|&t| is_bonus(t)).unwrap();
     (0..bonus).for_each(|t| finish(&mut r, t));
+    r.open_ring(Ring::Gold);
     r.enqueue(bonus);
     assert_eq!(r.current, Some(bonus));
     r.enqueue(bonus + 1);
@@ -112,10 +119,13 @@ fn nothing_is_queued_behind_an_endless_tech() {
 #[test]
 fn the_queue_is_saved_and_the_labs_move_on_by_themselves() {
     let mut r = Research::default();
+    r.open_ring(Ring::Violet);
     r.enqueue(by_name("Construction Drones"));
     let mut w = ByteWriter::default();
     r.write_state(&mut w);
-    let back = Research::read_state(&mut ByteReader::new(&w.bytes)).unwrap();
+    let mut reader = ByteReader::new(&w.bytes);
+    reader.version = crate::save::SAVE_VERSION;
+    let back = Research::read_state(&mut reader).unwrap();
     assert_eq!(back, r);
     assert!(!back.queue().is_empty());
 }
@@ -123,22 +133,24 @@ fn the_queue_is_saved_and_the_labs_move_on_by_themselves() {
 #[test]
 fn the_queue_never_passes_its_length() {
     let mut r = Research::default();
+    r.open_ring(Ring::Sky);
     (0..TECHS.len() as u8).for_each(|t| r.enqueue(t));
     assert!(r.queue().len() <= MAX_QUEUE);
 }
 
 #[test]
-fn queueing_seismic_prospecting_orders_ore_scanning_ahead_of_advanced_scanning() {
+fn queueing_ai_survey_orders_ore_scanning_ahead_of_advanced_scanning() {
     let mut r = Research::default();
+    r.open_ring(Ring::Violet);
     let scan = by_name("Ore Scanning");
     let adv = by_name("Advanced Scanning");
-    let seis = by_name("Seismic Prospecting");
-    r.enqueue(seis);
+    let survey = by_name("AI Survey");
+    r.enqueue(survey);
     let chain = order(&r);
     let pos = |t: u8| chain.iter().position(|&x| x == t).expect("in chain");
-    assert!(pos(scan) < pos(adv) && pos(adv) < pos(seis), "chain: {chain:?}");
+    assert!(pos(scan) < pos(adv) && pos(adv) < pos(survey), "chain: {chain:?}");
     while let Some(c) = r.current {
         finish(&mut r, c);
     }
-    assert_eq!(r.state(seis), TechState::Done);
+    assert_eq!(r.state(survey), TechState::Done);
 }

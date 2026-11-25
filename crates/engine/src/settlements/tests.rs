@@ -1,3 +1,4 @@
+use super::orders::{LATE, LATE_PER_MINUTE};
 use super::plans::{Role, BUILDINGS};
 use super::*;
 use crate::action::Action;
@@ -208,7 +209,7 @@ fn a_depot_fed_by_belt_builds_two_stages_then_stalls_without_upkeep_and_recovers
     // 800 concrete for the hamlet at about 2.9 a second on a Mk1 belt.
     assert!(sim.tick > 270 * crate::TICK_RATE as u64, "took {} s", sim.tick / 60);
     let town = &sim.settlements.towns[0];
-    assert_eq!(town.upkeep(), vec![(planks, 24), (glass, 24), (lamp, 12)]);
+    assert_eq!(town.upkeep(&sim.settlements.made), vec![(planks, 24), (glass, 24), (lamp, 12)]);
     assert!(!town.stalled);
     let store = sim.factory.depot_store(at).unwrap();
     assert_eq!(store.count(bricks), 0, "stone bricks are no longer wanted");
@@ -252,7 +253,7 @@ fn found_camp() -> (Sim, IVec3, IVec3) {
 fn keep_town(sim: &mut Sim, at: IVec3, ticks: u32, done: impl Fn(&Town) -> bool) -> bool {
     for tick in 0..ticks {
         if tick % 600 == 0 {
-            for (item, n) in sim.settlements.towns[0].upkeep() {
+            for (item, n) in sim.settlements.towns[0].upkeep(&sim.settlements.made) {
                 sim.factory.depot_store(at).unwrap().add(item, n);
             }
         }
@@ -415,7 +416,7 @@ fn a_town_counts_any_wood_toward_its_planks_and_uses_the_oaks_first() {
     store.add(pine, 100);
     store.add(oak, 50);
     let mut events = Vec::new();
-    town.step(&mut store, 0, &mut events);
+    town.step(&mut store, &Made::default(), 0, &mut events);
     assert_eq!(town.delivered[0], 150, "both count toward the planks line");
     assert_eq!((store.count(oak), store.count(pine)), (0, 0));
     let used: Vec<(ItemId, u32)> = events
@@ -426,4 +427,61 @@ fn a_town_counts_any_wood_toward_its_planks_and_uses_the_oaks_first() {
         })
         .collect();
     assert_eq!(used, [(oak, 50), (pine, 100)]);
+}
+
+#[test]
+fn a_village_asks_for_its_late_good_only_once_the_players_machines_have_made_one() {
+    use crate::factory::Buffer;
+    use crate::item::AI_ACCELERATOR;
+    let mut made = Made::default();
+    let mut town = Town::new(IVec3::new(0, 70, 0), WORKSHOP);
+    town.built = 3;
+    town.delivered = vec![0; ORDERS[3].len()];
+    let asks = |t: &Town, made: &Made| t.upkeep(made).iter().any(|l| l.0 == AI_ACCELERATOR);
+    assert!(!asks(&town, &made), "nothing made yet: no village stalls on a good it can't get");
+    made.insert(AI_ACCELERATOR);
+    assert_eq!(town.upkeep(&made).last(), Some(&(AI_ACCELERATOR, LATE_PER_MINUTE[2])));
+    assert!(town.wants(&made).iter().any(|w| w.0 == AI_ACCELERATOR), "the depot takes it in");
+    town.built = 2;
+    assert!(!asks(&town, &made), "a hamlet never asks");
+    town.built = 3;
+
+    // Without it the village stalls; with it, it runs and uses it up.
+    let mut store = Buffer::new(16);
+    for (item, n) in upkeep(WORKSHOP, 3, |_| false) {
+        store.add(item, n * 2);
+    }
+    let mut events = Vec::new();
+    town.step(&mut store, &made, 0, &mut events);
+    assert!(town.stalled, "short of its late good");
+    store.add(AI_ACCELERATOR, LATE_PER_MINUTE[2]);
+    town.step(&mut store, &made, 1, &mut events);
+    assert!(!town.stalled);
+    assert_eq!(store.count(AI_ACCELERATOR), 0);
+}
+
+#[test]
+fn every_late_good_is_made_by_a_machine_so_it_can_turn_on() {
+    let made_by_machine =
+        |item: ItemId| crate::recipes::MACHINE_RECIPES.iter().any(|r| r.outputs.iter().any(|o| o.0 == item));
+    for (kind, &item) in LATE.iter().enumerate() {
+        assert!(made_by_machine(item), "{}'s late good {item:?} is made by no machine", KINDS[kind].name);
+    }
+}
+
+#[test]
+fn a_river_town_asks_for_brick_and_terracotta_from_the_hamlet_once_made() {
+    use super::orders::{WARES, WARES_PER_MINUTE};
+    use crate::block::{CLAY_BRICKS, TERRACOTTA};
+    let (brick, tiles) = (ItemId::block(CLAY_BRICKS), ItemId::block(TERRACOTTA));
+    let asks = |built, made: &dyn Fn(ItemId) -> bool| {
+        upkeep(RIVER_TOWN, built, made).into_iter().filter(|l| l.0 == brick || l.0 == tiles).collect::<Vec<_>>()
+    };
+    assert!(asks(2, &|_| false).is_empty(), "nothing made yet: no town stalls on clay it can't get");
+    assert!(asks(1, &|_| true).is_empty(), "a camp never asks");
+    assert_eq!(asks(2, &|_| true), vec![(brick, WARES_PER_MINUTE[1] * 2 / 3), (tiles, WARES_PER_MINUTE[1] / 3)]);
+    assert_eq!(asks(5, &|i| i == brick), vec![(brick, WARES_PER_MINUTE[4])], "only what has been made, all of it");
+    for kind in [HARBOUR, WORKSHOP, FORGE] {
+        assert!(WARES[kind as usize].is_empty(), "the other kinds' wares come with their materials");
+    }
 }

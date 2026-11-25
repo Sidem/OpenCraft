@@ -20,7 +20,7 @@ use super::*;
 fn plant(block: crate::block::BlockId, water: bool) -> Factory {
     let mut world = World::new(1, 2);
     let mut f = Factory::default();
-    for name in ["Refining", "Plastics", "Acids and Lubricants", "Electrolysis"] {
+    for name in ["Oil Refining", "Plastics", "Acids and Lubricants", "Electrolysis"] {
         let tech = TECHS.iter().position(|t| t.name == name).unwrap() as u8;
         (0..TECHS[tech as usize].units).for_each(|_| f.research.add_unit(tech));
     }

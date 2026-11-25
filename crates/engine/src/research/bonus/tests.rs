@@ -8,12 +8,12 @@ fn levels(r: &mut Research, bonus: Bonus, n: u32) {
 }
 
 #[test]
-fn the_bonus_techs_follow_ai_research_cost_no_packs_and_need_an_ai_lab() {
+fn the_bonus_techs_follow_ai_labs_cost_no_packs_and_need_an_ai_lab() {
     for (i, b) in KINDS.into_iter().enumerate() {
         let t = &TECHS[FIRST as usize + i];
         assert_eq!(t.unlocks, &[Unlock::Bonus(b)], "{} is {b:?}", t.name);
         assert!(t.packs.is_empty() && is_bonus(FIRST + i as u8) && needs_ai_lab(FIRST + i as u8));
-        assert_eq!(TECHS[t.needs[0] as usize].name, "AI Research");
+        assert_eq!(TECHS[t.needs[0] as usize].name, "AI Labs");
     }
     assert!(!is_bonus(FIRST - 1) && !is_bonus(FIRST + 3), "the neighbours are not bonus techs");
 }
@@ -57,7 +57,9 @@ fn the_level_is_saved_with_the_research() {
     levels(&mut r, Bonus::Drones, 7);
     let mut w = crate::bytes::ByteWriter::default();
     r.write_state(&mut w);
-    let back = Research::read_state(&mut crate::bytes::ByteReader::new(&w.bytes)).unwrap();
+    let mut reader = crate::bytes::ByteReader::new(&w.bytes);
+    reader.version = crate::save::SAVE_VERSION;
+    let back = Research::read_state(&mut reader).unwrap();
     assert_eq!(back.rate_permille(Bonus::Drones), 1210);
 }
 

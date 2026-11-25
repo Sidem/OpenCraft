@@ -26,7 +26,8 @@ use crate::factory::upgrades;
 use crate::inventory::{Inventory, Stack, INVENTORY_SLOTS};
 use crate::item::{
     ItemId, CRAFT_GLOVES, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5,
-    HOVER_PACK, JETPACK, MINING_RIG, SERVO_BOOTS, SPRING_BOOTS, XRAY_GOGGLES,
+    HOVER_PACK, JETPACK, MINING_RIG, SERVO_BOOTS, SPRING_BOOTS, WORK_GLOVES, WORK_GLOVES_MK2, WORK_GLOVES_MK3,
+    WORK_GLOVES_MK4, XRAY_GOGGLES,
 };
 use crate::player::Boost;
 
@@ -75,10 +76,12 @@ const SPRING_JUMP: f64 = 1.23;
 
 /// The hauler packs, Mk1 first: Mk1 opens 27 backpack slots and each tier above 18 more (the last fills `MAX_SLOTS`).
 pub const PACKS: [ItemId; 5] = [HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5];
-/// Kits one pack upgrade takes (of the kind of the tier it reaches, `upgrades::kit`).
+/// The work gloves, Mk1 first: +25% hand-crafting speed per tier, up to +125% at Mk5 (`CRAFT_GLOVES`).
+pub const GLOVES_TIERS: [ItemId; 5] = [WORK_GLOVES, WORK_GLOVES_MK2, WORK_GLOVES_MK3, WORK_GLOVES_MK4, CRAFT_GLOVES];
+/// Kits one pack or glove upgrade takes (of the kind of the tier it reaches, `upgrades::kit`).
 pub const PACK_KITS: u32 = 4;
 
-pub const GEAR: [Gear; 13] = [
+pub const GEAR: [Gear; 17] = [
     Gear { item: HAULER_PACK, slot: BACK, effect: Effect { pack: 27, ..NONE }, blurb: "+27 backpack slots" },
     Gear { item: HAULER_PACK_MK2, slot: BACK, effect: Effect { pack: 45, ..NONE }, blurb: "+45 backpack slots" },
     Gear { item: HAULER_PACK_MK3, slot: BACK, effect: Effect { pack: 63, ..NONE }, blurb: "+63 backpack slots" },
@@ -103,10 +106,34 @@ pub const GEAR: [Gear; 13] = [
         blurb: "Hold jump in the air to hover; charge it near a power pole",
     },
     Gear {
-        item: CRAFT_GLOVES,
+        item: WORK_GLOVES,
+        slot: GLOVES,
+        effect: Effect { crafting: 250, ..NONE },
+        blurb: "Craft by hand 25% faster",
+    },
+    Gear {
+        item: WORK_GLOVES_MK2,
         slot: GLOVES,
         effect: Effect { crafting: 500, ..NONE },
-        blurb: "Craft by hand 50% faster (adds to Handcrafting)",
+        blurb: "Craft by hand 50% faster",
+    },
+    Gear {
+        item: WORK_GLOVES_MK3,
+        slot: GLOVES,
+        effect: Effect { crafting: 750, ..NONE },
+        blurb: "Craft by hand 75% faster",
+    },
+    Gear {
+        item: WORK_GLOVES_MK4,
+        slot: GLOVES,
+        effect: Effect { crafting: 1000, ..NONE },
+        blurb: "Craft by hand 100% faster",
+    },
+    Gear {
+        item: CRAFT_GLOVES,
+        slot: GLOVES,
+        effect: Effect { crafting: 1250, ..NONE },
+        blurb: "Craft by hand 125% faster",
     },
     // What it shows is presentation (`web/src/render/xray.ts`, which asks `Game::xray_on`); the core only holds it.
     Gear { item: XRAY_GOGGLES, slot: HEAD, effect: NONE, blurb: "See belts, pipes and machines through the ground" },
@@ -123,6 +150,12 @@ pub fn next_pack(item: ItemId) -> Option<(ItemId, ItemId, u32)> {
     Some((*PACKS.get(i + 1)?, upgrades::kit(i as u8 + 1)?, PACK_KITS))
 }
 
+/// The gloves above `item` with the kit and number of kits that make them, or `None` for anything but gloves below Mk5.
+pub fn next_gloves(item: ItemId) -> Option<(ItemId, ItemId, u32)> {
+    let i = GLOVES_TIERS.iter().position(|&g| g == item)?;
+    Some((*GLOVES_TIERS.get(i + 1)?, upgrades::kit(i as u8 + 1)?, PACK_KITS))
+}
+
 /// Test helper: `stream` (core bytes, with every player's inventory as the current format writes it) with each
 /// inventory cut back to the format before version 78, the head slot gone. The older-format helpers
 /// (`helpers::before_drone_orders` and so `offhand::before_offhand`) end with it.
@@ -134,6 +167,12 @@ pub(crate) fn before_head_slot(sim: &crate::sim::Sim, stream: &[u8]) -> Vec<u8> 
         p.inventory.write_state(&mut now);
         let at = out.windows(now.bytes.len()).position(|s| s == now.bytes).expect("the inventory's bytes");
         out.splice(at..at + now.bytes.len(), p.inventory.state_before_head_slot());
+    }
+    // Save 86 appended `open_rings` (1 byte) and `belts_laid` (4 bytes) to `Research::write_state`; strip them for pre-86 readers.
+    let mut res = crate::bytes::ByteWriter::default();
+    sim.factory.research.write_state(&mut res);
+    if let Some(at) = out.windows(res.bytes.len()).position(|s| s == res.bytes) {
+        out.drain(at + res.bytes.len() - 5..at + res.bytes.len());
     }
     out
 }
@@ -252,6 +291,18 @@ impl Inventory {
         }
         self.remove(kit, kits);
         self.worn[BACK] = next;
+        self.version += 1;
+        true
+    }
+
+    /// `Action::UpgradeGloves`: raises the worn work gloves a tier for kits from the inventory.
+    pub fn upgrade_gloves(&mut self, unlocked: impl Fn(ItemId) -> bool) -> bool {
+        let Some((next, kit, kits)) = next_gloves(self.worn[GLOVES]) else { return false };
+        if !unlocked(next) || self.count(kit) < kits {
+            return false;
+        }
+        self.remove(kit, kits);
+        self.worn[GLOVES] = next;
         self.version += 1;
         true
     }

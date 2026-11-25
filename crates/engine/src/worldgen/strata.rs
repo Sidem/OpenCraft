@@ -175,6 +175,9 @@ impl WorldGen {
         if ore == GAS_SHALE {
             return super::gas::GAS_BAND;
         }
+        if matches!(ore, crate::block::CLAY | crate::block::KAOLIN) {
+            return super::clay::CLAY_BAND;
+        }
         let table = match self.layers.deposits {
             ..=2 => return (20, 60),
             3 => &ORE_DEPTH[..],

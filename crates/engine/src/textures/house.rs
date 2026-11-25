@@ -77,7 +77,7 @@ fn iron_door(x: i32, y: i32) -> [u8; 4] {
 }
 
 /// Tiles in overlapping rows, each row shifted half a tile, the lower edge of every tile in shadow.
-fn roof(x: i32, y: i32, colour: [f64; 3], seed: u32) -> [u8; 4] {
+pub(super) fn roof(x: i32, y: i32, colour: [f64; 3], seed: u32) -> [u8; 4] {
     let (row, shift) = (y / 4, if (y / 4) % 2 == 0 { 0 } else { 4 });
     let col = (x + shift).rem_euclid(16) / 8;
     let own = 0.9 + 0.16 * n(seed, col + row * 2, row);

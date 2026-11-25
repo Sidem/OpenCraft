@@ -164,11 +164,11 @@ export class Renderer {
     this.gl.generateMipmap(this.gl.TEXTURE_2D_ARRAY);
   }
 
-  /** How each layer turns per block (`game.texture_turns()`: two bits a layer, 32 words); all zeros turns none. */
+  /** How each layer turns per block (`game.texture_turns()`: two bits a layer, 128 words = 32 uvec4s); all zeros turns none. */
   setTurns(mask: Uint32Array): void {
     for (const pass of [this.opaque, this.cutout, this.translucent]) {
       this.gl.useProgram(pass.prog);
-      this.gl.uniform1uiv(pass.u.u_turns, mask);
+      this.gl.uniform4uiv(pass.u.u_turns, mask);
     }
   }
 

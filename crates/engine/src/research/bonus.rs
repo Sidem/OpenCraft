@@ -11,6 +11,8 @@
 //! To add one: a `Bonus` variant, a row in `BONUS` (needs AI Research, no packs, `Unlock::Bonus`) in the same order,
 //! then read `rate_permille` where the work is done.
 
+use super::ids::{AI_LABS, MINING_PRODUCTIVITY};
+use super::rings::{Ring, Wedge};
 use super::{Research, Tech, Unlock};
 
 /// Levels a bonus tech can reach (never reached in play: see above).
@@ -19,8 +21,8 @@ pub const LEVELS: u32 = 100;
 pub const PERCENT_PER_LEVEL: u32 = 3;
 /// Extra cost per level done, in percent.
 const COST_PERCENT: f64 = 25.0;
-/// The tech index of the first bonus tech (`BONUS[0]`), right after AI Research (62).
-const FIRST: u8 = 63;
+/// The tech index of the first bonus tech (`BONUS[0]`), right after AI Labs.
+const FIRST: u8 = MINING_PRODUCTIVITY;
 
 /// A kind of work a bonus tech speeds up; the order is `BONUS`'s.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -33,24 +35,38 @@ pub enum Bonus {
     Drones,
 }
 
-const fn row(name: &'static str, blurb: &'static str, unlocks: &'static [Unlock]) -> Tech {
-    Tech { name, blurb, needs: &[FIRST - 1], packs: &[], units: LEVELS, seconds: 60.0, unlocks }
+const fn row(name: &'static str, blurb: &'static str, wedge: Wedge, unlocks: &'static [Unlock]) -> Tech {
+    Tech {
+        name,
+        blurb,
+        ring: Ring::Gold,
+        wedge,
+        deed: None,
+        needs: &[AI_LABS],
+        packs: &[],
+        units: LEVELS,
+        seconds: 60.0,
+        unlocks,
+    }
 }
 
 pub const BONUS: [Tech; 3] = [
     row(
         "Mining Productivity",
         "Endless: miners draw 3% faster per level. Costs compute only, a quarter more each level; an AI lab researches it.",
+        Wedge::Survey,
         &[Unlock::Bonus(Bonus::Mining)],
     ),
     row(
         "Machine Speed",
         "Endless: smelters, assemblers and every other processing machine work 3% faster per level. Costs compute only.",
+        Wedge::Workshop,
         &[Unlock::Bonus(Bonus::Machines)],
     ),
     row(
         "Drone Speed",
         "Endless: construction and cargo drones fly 3% faster per level. Costs compute only.",
+        Wedge::RobotsDrones,
         &[Unlock::Bonus(Bonus::Drones)],
     ),
 ];

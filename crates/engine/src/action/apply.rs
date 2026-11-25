@@ -166,6 +166,10 @@ impl Sim {
                 let research = &self.factory.research;
                 inv.upgrade_pack(|pack| research.has(Unlock::Recipe(pack)));
             }
+            Action::UpgradeGloves => {
+                let research = &self.factory.research;
+                inv.upgrade_gloves(|gloves| research.has(Unlock::Recipe(gloves)));
+            }
             Action::SetResearch { tech } => self.factory.research.set_current((tech != u8::MAX).then_some(tech)),
             Action::QueueResearch { tech } => self.factory.research.enqueue(tech),
             Action::UnqueueResearch { tech } => self.factory.research.dequeue(tech),

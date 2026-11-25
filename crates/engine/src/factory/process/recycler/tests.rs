@@ -161,8 +161,7 @@ fn a_worn_tool_on_a_belt_is_one_piece_and_pays_once() {
 }
 
 #[test]
-fn it_is_unlocked_after_blue_science() {
+fn it_is_in_the_blue_ring() {
     let tech = TECHS.iter().find(|t| t.name == "Recycling").unwrap();
-    let blue = TECHS.iter().position(|t| t.name == "Blue Science").unwrap() as u8;
-    assert_eq!(tech.needs, [blue]);
+    assert_eq!(tech.ring, crate::research::Ring::Blue);
 }

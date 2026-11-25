@@ -161,11 +161,90 @@ fn water_inside_water_is_trivially_empty() {
     assert!(!Mesher::is_trivially_empty(&refs));
 }
 
-/// The cube vertex holds its layer in 9 bits (`quad.rs`, read by `shaders.ts`), so a block's faces stay below 512;
-/// item and model layers may go past it (the shaped list has 16 bits).
+/// Cube vertices carry 12-bit layers (`quad.rs`, read by `shaders.ts`), while `block::turn::MASK` and shaped vertices
+/// cap terrain block layers at 2048 (11 bits).
 #[test]
 fn cube_faces_use_layers_the_vertex_can_hold() {
+    let cap = (crate::block::turn::MASK_WORDS * 16) as u16;
+    assert_eq!(cap, 2048);
     for (id, def) in crate::block::BLOCK_DEFS.iter().enumerate() {
-        assert!(def.faces.iter().all(|&l| l < 512), "block {id} ({}) has a face layer past 511", def.name);
+        assert!(def.faces.iter().all(|&l| l < cap), "block {id} ({}) has a face layer past {}", def.name, cap - 1);
+    }
+}
+
+/// ROOM2: cube quads, plants and shaped vertices encode layers above 600 (up to 2047) alongside full 5-bit surface
+/// paint and light, and greedy merge distinguishes layers that share the same low 9 bits.
+#[test]
+fn cube_and_shaped_vertices_encode_layers_above_600_with_paint() {
+    let corners: u64 = (0..4).fold(0u64, |acc, i| acc | ((3u64 | (0xA5u64 << 2)) << (i * CORNER_BITS)));
+    let make_key = |layer: u16| KEY_FLAG | (u64::from(layer) << KEY_LAYER) | corners;
+
+    // Layers sharing the same low 9 bits (89 vs 601 = 89 + 512) produce distinct merge keys.
+    assert_ne!(make_key(89), make_key(601));
+
+    for (layer, paint) in [(601u16, 0u8), (601, 5), (1024, 16), (2047, 11), (4095, 16)] {
+        let mut verts = Vec::new();
+        let mut lights = Vec::new();
+        emit_quad((&mut verts, &mut lights), 2, (1, 2, 0), 5, (3, 4), (1, 1), (make_key(layer), paint));
+        for pair in lights.chunks_exact(4) {
+            verts.push(u32::from_le_bytes([pair[0], pair[1], pair[2], pair[3]]));
+        }
+        let m = MeshOutput {
+            verts,
+            opaque_quads: 1,
+            cutout_quads: 0,
+            liquid_quads: 0,
+            translucent_quads: 0,
+            shaped: Vec::new(),
+            shaped_opaque: 0,
+            shaped_cutout: 0,
+            shaped_translucent: 0,
+        };
+        for i in 0..4 {
+            assert_eq!(m.layer(i), layer, "layer round-trip failed for ({layer}, paint={paint})");
+            assert_eq!(m.paint(i), paint, "paint round-trip failed for ({layer}, paint={paint})");
+            assert_eq!(m.light(i), 0xA5, "light corrupted for ({layer}, paint={paint})");
+        }
+    }
+
+    // Plant crossed quads carry layers above 600 through the same split encoding.
+    let mut mesher = Mesher::new();
+    mesher.push_plant(4, 5, 6, 650, 0x0F);
+    let mut verts = mesher.cutout.clone();
+    for pair in mesher.cutout_light.chunks_exact(4) {
+        verts.push(u32::from_le_bytes([pair[0], pair[1], pair[2], pair[3]]));
+    }
+    let pm = MeshOutput {
+        verts,
+        opaque_quads: 0,
+        cutout_quads: 4,
+        liquid_quads: 0,
+        translucent_quads: 0,
+        shaped: Vec::new(),
+        shaped_opaque: 0,
+        shaped_cutout: 0,
+        shaped_translucent: 0,
+    };
+    for i in 0..pm.vertex_count() {
+        assert_eq!(pm.layer(i), 650);
+        assert_eq!(pm.paint(i), 0);
+        assert_eq!(pm.light(i), 0x0F);
+    }
+
+    // Shaped vertex word 2 holds 11-bit layer (bits 16..27) and 5-bit paint (bits 27..32).
+    for (layer, paint) in [(601u16, 5u8), (2047, 16)] {
+        let packed = (layer & 0x7FF) | (u16::from(paint) << 11);
+        let w = shaped::pack(&shaped::Vert {
+            cell: [1, 2, 3],
+            off: [0.0; 3],
+            normal: [0.0, 1.0, 0.0],
+            u: 0.0,
+            kind: shaped::KIND_PLANT,
+            occlusion: 7,
+            light: 0x0F,
+            layer: packed,
+        });
+        assert_eq!((w[2] >> 16) & 2047, u32::from(layer));
+        assert_eq!(w[2] >> 27, u32::from(paint));
     }
 }

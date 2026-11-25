@@ -1,65 +1,33 @@
 use super::*;
+use crate::equipment::GLOVES_TIERS;
 use crate::inventory::Stack;
-use crate::item::CRAFT_GLOVES;
-
-fn finish(r: &mut Research, tech: usize) {
-    (0..TECHS[tech].units).for_each(|_| r.add_unit(tech as u8));
-}
-
-/// The techs that list a tier of `stat`, in tier order.
-fn tiers(stat: Stat) -> Vec<(usize, u8)> {
-    let mut found = Vec::new();
-    for (i, t) in TECHS.iter().enumerate() {
-        for u in t.unlocks {
-            if let Unlock::Perk(s, tier) = *u {
-                if s == stat {
-                    found.push((i, tier));
-                }
-            }
-        }
-    }
-    found
-}
+use crate::item::{CRAFT_GLOVES, WORK_GLOVES};
 
 #[test]
-fn crafting_has_three_tiers_in_order_each_needing_the_last() {
-    let found = tiers(Stat::Crafting);
-    assert_eq!(found.iter().map(|f| f.1).collect::<Vec<_>>(), [1, 2, 3]);
-    for pair in found.windows(2) {
-        assert!(TECHS[pair[1].0].needs.contains(&(pair[0].0 as u8)), "{} needs the tier before", TECHS[pair[1].0].name);
+fn work_gloves_have_five_tiers_adding_a_quarter_each() {
+    let r = Research::default();
+    assert_eq!(GLOVES_TIERS.len(), 5);
+    for (i, &gloves) in GLOVES_TIERS.iter().enumerate() {
+        let mut inv = Inventory::default();
+        inv.add(gloves, 1);
+        assert_eq!(player_bonus(&r, &inv, Stat::Crafting), 1000, "in the pack they do nothing");
+        assert!(inv.wear_from(0));
+        assert_eq!(player_bonus(&r, &inv, Stat::Crafting), 1000 + 250 * (i as u32 + 1));
     }
 }
 
 #[test]
-fn each_finished_tier_adds_a_quarter_linearly() {
-    let none = Inventory::default();
-    let mut r = Research::default();
-    assert_eq!(player_bonus(&r, &none, Stat::Crafting), 1000);
-    let found = tiers(Stat::Crafting);
-    finish(&mut r, found[0].0);
-    assert_eq!(player_bonus(&r, &none, Stat::Crafting), 1250);
-    r.add_unit(found[1].0 as u8);
-    assert_eq!(player_bonus(&r, &none, Stat::Crafting), 1250, "a tier counts only when done");
-    finish(&mut r, found[1].0);
-    finish(&mut r, found[2].0);
-    assert_eq!(player_bonus(&r, &none, Stat::Crafting), 1750);
-    let mut all = Research::default();
-    all.complete_all();
-    assert_eq!(player_bonus(&all, &none, Stat::Crafting), 1750, "creative worlds craft at the top speed");
-}
-
-#[test]
-fn worn_gloves_add_their_half_to_the_techs_and_taking_them_off_takes_it_back() {
+fn taking_off_worn_gloves_restores_base_speed() {
     let mut inv = Inventory::default();
-    let mut r = Research::default();
+    let r = Research::default();
+    inv.add(WORK_GLOVES, 1);
+    assert!(inv.wear_from(0));
+    assert_eq!(player_bonus(&r, &inv, Stat::Crafting), 1250);
+    inv.click_gear(5, true);
+    assert_eq!((inv.cursor, inv.count(WORK_GLOVES)), (Stack::default(), 1));
     assert_eq!(player_bonus(&r, &inv, Stat::Crafting), 1000);
     inv.add(CRAFT_GLOVES, 1);
-    assert_eq!(player_bonus(&r, &inv, Stat::Crafting), 1000, "in the pack they do nothing");
-    assert!(inv.wear_from(0));
-    assert_eq!(player_bonus(&r, &inv, Stat::Crafting), 1500);
-    finish(&mut r, tiers(Stat::Crafting)[0].0);
-    assert_eq!(player_bonus(&r, &inv, Stat::Crafting), 1750, "gear and techs add up");
-    inv.click_gear(5, true);
-    assert_eq!((inv.cursor, inv.count(CRAFT_GLOVES)), (Stack::default(), 1));
-    assert_eq!(player_bonus(&r, &inv, Stat::Crafting), 1250);
+    let slot = (0..inv.slots.len()).find(|&s| inv.slots[s].item == CRAFT_GLOVES).unwrap();
+    assert!(inv.wear_from(slot));
+    assert_eq!(player_bonus(&r, &inv, Stat::Crafting), 2250);
 }

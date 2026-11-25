@@ -128,6 +128,17 @@ impl Factory {
         if r.version >= 46 {
             f.pods = Pods::read_state(r)?;
         }
+        if r.version < 86 {
+            use crate::research::{ids::BELT_ROUTING, Ring, BELT_DEED_TARGET};
+            if f.orbit.launched() > 0 {
+                f.research.open_ring(Ring::Sky);
+            }
+            let laid = (f.belts.len() as u32).min(BELT_DEED_TARGET);
+            f.research.belts_laid = laid;
+            if laid >= BELT_DEED_TARGET {
+                f.research.complete_deed(BELT_ROUTING);
+            }
+        }
         if r.version < 61 {
             f.raise_old_towers(world);
         }

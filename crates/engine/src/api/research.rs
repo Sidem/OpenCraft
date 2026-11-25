@@ -5,7 +5,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
 use crate::item::ItemId;
-use crate::research::{is_bonus, TechState, MAX_QUEUE, TECHS};
+use crate::item::RED_PACK;
+use crate::research::{is_bonus, is_deed, pack_part_techs, Deed, Ring, TechState, MAX_QUEUE, RING_COUNT, TECHS};
 use crate::Game;
 
 #[wasm_bindgen]
@@ -49,6 +50,94 @@ impl Game {
     /// Whether it is an endless bonus tech: progress is a level, and there are no packs.
     pub fn tech_endless(&self, t: u32) -> bool {
         is_bonus(t.min(u8::MAX as u32) as u8)
+    }
+
+    /// Era ring index (0 Red .. 5 Sky) of tech `t`.
+    pub fn tech_ring(&self, t: u32) -> u8 {
+        TECHS.get(t as usize).map_or(0, |x| x.ring as u8)
+    }
+
+    /// Discipline wedge index (0 Logistics .. 11 Building) of tech `t`.
+    pub fn tech_wedge(&self, t: u32) -> u8 {
+        TECHS.get(t as usize).map_or(0, |x| x.wedge as u8)
+    }
+
+    /// Whether tech `t` is a deed (done by doing, not lab-researched).
+    pub fn tech_deed(&self, t: u32) -> bool {
+        is_deed(t.min(u8::MAX as u32) as u8)
+    }
+
+    /// Progress toward a deed tech (e.g. belts laid so far).
+    pub fn tech_deed_progress(&self, t: u32) -> u32 {
+        self.sim.factory.research.deed_progress(t.min(u8::MAX as u32) as u8)
+    }
+
+    /// Target count for a deed tech (0 if not a deed).
+    pub fn tech_deed_target(&self, t: u32) -> u32 {
+        match TECHS.get(t as usize).and_then(|x| x.deed) {
+            Some(Deed::LayBelts(n)) => n,
+            Some(Deed::ClimbBelt(_)) => 1,
+            None => 0,
+        }
+    }
+
+    /// Whether ring `r` (0 Red .. 5 Sky) is open.
+    pub fn ring_open(&self, r: u8) -> bool {
+        Ring::from_u8(r).is_some_and(|ring| self.sim.factory.research.ring_open(ring))
+    }
+
+    /// Whether ring `r`'s science pack recipe is unlocked.
+    pub fn ring_pack_unlocked(&self, r: u8) -> bool {
+        Ring::from_u8(r).is_some_and(|ring| self.sim.factory.research.ring_pack_unlocked(ring))
+    }
+
+    /// How many rings there are (the research screen's bands).
+    pub fn ring_count(&self) -> u32 {
+        RING_COUNT as u32
+    }
+
+    /// Ring `r`'s name ("Green"), or empty.
+    pub fn ring_name(&self, r: u8) -> String {
+        Ring::from_u8(r).map_or_else(String::new, |ring| ring.name().to_string())
+    }
+
+    /// The science pack of ring `r`, which colours its band: the red pack for Red, the pack whose first craft opens
+    /// Green to Gold; -1 for Sky (it opens with the first rocket launch) or none.
+    pub fn ring_pack(&self, r: u8) -> i32 {
+        match Ring::from_u8(r) {
+            Some(Ring::Red) => i32::from(RED_PACK.0),
+            Some(ring) => ring.milestone_pack().map_or(-1, |p| i32::from(p.0)),
+            None => -1,
+        }
+    }
+
+    /// Techs of the ring before `r` still to finish before `r`'s pack recipe unlocks (half that ring, rounded up).
+    pub fn ring_threshold_left(&self, r: u8) -> u32 {
+        let Some(prev) = Ring::from_u8(r).and_then(Ring::prev) else { return 0 };
+        let (done, total) = self.sim.factory.research.ring_progress(prev);
+        total.div_ceil(2).saturating_sub(done)
+    }
+
+    /// The techs that make ring `r`'s pack parts and are not done yet (its pack recipe waits for them too).
+    pub fn ring_parts_left(&self, r: u8) -> Vec<u32> {
+        let Some(ring) = Ring::from_u8(r) else { return Vec::new() };
+        let research = &self.sim.factory.research;
+        pack_part_techs(ring).iter().filter(|&&t| research.state(t) != TechState::Done).map(|&t| u32::from(t)).collect()
+    }
+
+    /// What deed tech `t` asks of the player ("Lay 40 belts"), or empty for a lab tech.
+    pub fn tech_deed_goal(&self, t: u32) -> String {
+        TECHS.get(t as usize).and_then(|x| x.deed).map_or_else(String::new, Deed::goal)
+    }
+
+    /// Completed non-endless techs in ring `r`.
+    pub fn ring_done(&self, r: u8) -> u32 {
+        Ring::from_u8(r).map_or(0, |ring| self.sim.factory.research.ring_progress(ring).0)
+    }
+
+    /// Total non-endless techs in ring `r`.
+    pub fn ring_total(&self, r: u8) -> u32 {
+        Ring::from_u8(r).map_or(0, |ring| self.sim.factory.research.ring_progress(ring).1)
     }
 
     /// The items of what it unlocks (hand recipes' and machine recipes' products).

@@ -111,6 +111,7 @@ impl Action {
             81 => Action::Flame { origin: r.vec3()?, dir: r.vec3()? },
             82 => Action::PlaceShaped { pos: r.ivec3()?, slot: r.u8()?, shape: r.u8()? },
             83 => Action::PaintFace { pos: r.ivec3()?, face: r.u8()?, colour: r.u8()? },
+            84 => Action::UpgradeGloves,
             35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })

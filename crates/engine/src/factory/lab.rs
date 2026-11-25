@@ -292,7 +292,13 @@ impl Machine for Lab {
         l.packs.slots.resize(LAB_PACK_SLOTS, Stack::default());
         let slots_ok = l.packs.slots.iter().zip(PACKS).all(|(s, p)| s.is_empty() || s.item == p);
         let unit = r.u8()?;
-        l.unit = (unit != u8::MAX).then_some(unit);
+        l.unit = if unit == u8::MAX {
+            None
+        } else if r.version < 86 {
+            crate::research::migrate::map_tech_id(unit)
+        } else {
+            Some(unit)
+        };
         l.progress = r.u32()?;
         if r.version >= 21 {
             (l.tier, l.since_free, l.free) = (r.u8()?, r.u8()?, r.bool()?);

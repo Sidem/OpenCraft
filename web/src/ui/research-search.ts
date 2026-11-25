@@ -1,33 +1,33 @@
-// The research screen's search box: finds techs by name or by what they unlock ("steel", "pole"). While there is
-// a query, `matches` is the set of hits (the screen lights them and dims the rest); Enter jumps to the next hit.
-// "/" focuses the box (research.ts), Esc empties it.
+// The research screen's search box: finds discovered techs by name or by what they unlock (undiscovered ones never
+// match, so search spoils nothing). While there is a query, `matches` holds the hits; Enter steps through them.
 
 import './research-search.css';
 import { h } from './dom';
-import type { TechView } from './research-node';
 
 export class TechSearch {
   readonly el = h('div', 'rs-search');
-  /** The techs matching the query, or null when there is none. */
+  /** Tech indices matching the query, or null when empty. */
   matches: Set<number> | null = null;
-  /** Called after the query changed. */
   onChange: () => void = () => {};
-  /** Called with the tech to show when Enter picks a hit. */
   onGo: (t: number) => void = () => {};
   private readonly input = h('input', '') as HTMLInputElement;
   private readonly note = h('span', 'rs-search-note');
+  private hits: number[] = [];
   private next = 0;
 
-  constructor(private readonly views: TechView[]) {
+  /** `words[t]`: lower-case text tech `t` matches; `known(t)`: whether the player has discovered it. */
+  constructor(
+    private readonly words: string[],
+    private readonly known: (t: number) => boolean,
+  ) {
     this.input.type = 'search';
-    this.input.placeholder = 'Search techs and what they unlock';
+    this.input.placeholder = 'Search (/)';
     this.input.setAttribute('aria-label', 'Search research');
     this.input.addEventListener('input', () => this.search());
     this.input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && this.matches && this.matches.size > 0) {
-        const hits = [...this.matches];
-        this.onGo(hits[this.next++ % hits.length]);
-      } else if (e.key === 'Escape') {
+      if (e.key === 'Enter' && this.hits.length > 0) this.onGo(this.hits[this.next++ % this.hits.length]);
+      else if (e.key === 'Escape') {
+        e.stopPropagation();
         this.clear();
         this.input.blur();
       }
@@ -45,13 +45,13 @@ export class TechSearch {
     this.search();
   }
 
-  private search(): void {
+  /** Re-runs the query, e.g. after discovery changed. */
+  search(): void {
     const words = this.input.value.toLowerCase().split(/\s+/).filter(Boolean);
     this.next = 0;
-    this.matches = words.length === 0
-      ? null
-      : new Set(this.views.flatMap((v, t) => (words.every((w) => v.words.includes(w)) ? [t] : [])));
-    this.note.textContent = this.matches ? (this.matches.size === 0 ? 'none' : `${this.matches.size}`) : '';
+    this.hits = words.length === 0 ? [] : this.words.flatMap((w, t) => (this.known(t) && words.every((q) => w.includes(q)) ? [t] : []));
+    this.matches = words.length === 0 ? null : new Set(this.hits);
+    this.note.textContent = words.length === 0 ? '' : this.hits.length === 0 ? 'none yet' : String(this.hits.length);
     this.onChange();
   }
 }

@@ -1,0 +1,134 @@
+/* The research rail's "now" card and milestone checklist (research-now.ts). */
+
+.rn,
+.rn-goal {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.rn-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rn-doing { display: grid; gap: 6px; }
+
+.rn-doing.idle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fcd34d;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rn-idle-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fcd34d;
+}
+
+.rn-doing-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rn-doing-text { display: grid; flex: 1; min-width: 0; }
+.rn-name { font-size: 14px; font-weight: 700; }
+.rn-count { font-size: 12px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+.rn-medal,
+.rn-pill-medal {
+  display: grid;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  color: rgb(var(--kind));
+  background: rgba(var(--kind), 0.16);
+}
+
+.rn-medal { width: 34px; height: 34px; }
+.rn-medal svg { width: 20px; height: 20px; }
+.rn-pill-medal { width: 18px; height: 18px; }
+.rn-pill-medal svg { width: 12px; height: 12px; }
+
+.rn .rq { padding: 0; }
+.rn-ready { display: grid; gap: 6px; }
+.rn-ready:empty { display: none; }
+.rn-ready-list { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.rn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(125, 211, 252, 0.5);
+  background: rgba(125, 211, 252, 0.08);
+  color: var(--text);
+  font: 600 12px var(--font);
+  cursor: pointer;
+}
+
+.rn-pill:hover { background: rgba(125, 211, 252, 0.18); }
+.rn-pill-count { color: var(--rs-horizon); font-variant-numeric: tabular-nums; }
+.rn-more { align-self: center; font-size: 12px; color: var(--muted); }
+
+.rn-goal-head { display: flex; align-items: center; gap: 8px; }
+.rn-goal-pack { width: 22px; height: 22px; image-rendering: pixelated; }
+.rn-goal-title { font-size: 14px; font-weight: 700; }
+
+.rn-steps {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+}
+
+.rn-step { display: flex; align-items: center; gap: 4px; }
+.rn-check { margin-right: 4px; }
+.rn-step.done { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, 0.3); }
+.rn-step.waiting { color: var(--muted); }
+
+.rn-check {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.rn-step.done .rn-check { border-color: var(--rs-done); background: rgba(143, 220, 156, 0.25); color: var(--rs-done); }
+.rn-step-pack { width: 16px; height: 16px; image-rendering: pixelated; }
+
+.rn-step-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--rs-horizon);
+  font: inherit;
+  text-decoration: underline dotted;
+  cursor: pointer;
+}

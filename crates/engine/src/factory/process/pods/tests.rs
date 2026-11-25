@@ -319,12 +319,9 @@ fn a_capsule_rises_out_of_its_launcher_for_the_first_three_seconds() {
 
 #[test]
 fn the_drop_pods_tech_unlocks_both_machines_and_the_pod_recipe_for_the_assembler() {
-    let tech = TECHS.iter().position(|t| t.name == "Drop Pods").unwrap();
-    assert_eq!(tech, 83, "saved by index");
-    for need in ["Rocketry", "Orbital Comms"] {
-        let n = TECHS.iter().position(|t| t.name == need).unwrap() as u8;
-        assert!(TECHS[tech].needs.contains(&n), "needs {need}");
-    }
+    let tech = crate::research::ids::DROP_PODS as usize;
+    assert_eq!(TECHS[tech].ring, crate::research::Ring::Sky);
+    assert!(TECHS[tech].needs.contains(&crate::research::ids::ORBITAL_COMMS));
     let unlocks = |b| TECHS[tech].unlocks.iter().any(|u| matches!(u, Unlock::Recipe(i) if *i == ItemId::block(b)));
     assert!(unlocks(crate::block::POD_LAUNCHER) && unlocks(crate::block::LANDING_PAD));
     assert!(TECHS[tech].unlocks.iter().any(|u| matches!(u, Unlock::MachineRecipe(i) if *i == DROP_POD_RECIPE)));

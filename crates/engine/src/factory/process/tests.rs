@@ -108,7 +108,7 @@ fn machine_speed_research_makes_a_constructor_press_faster() {
         place(&mut f, CONSTRUCTOR, IVec3::ZERO, 0);
         assert!(f.set_recipe(IVec3::ZERO, Some(recipe_for(IRON_PLATE))).is_some());
         f.insert(IVec3::ZERO, IRON_INGOT, 20);
-        (0..level).for_each(|_| f.research.add_unit(64)); // Machine Speed
+        (0..level).for_each(|_| f.research.add_unit(crate::research::ids::MACHINE_SPEED)); // Machine Speed
         run(&mut f, 4.05, |_| {});
         f.constructor_at(IVec3::ZERO).out.count(IRON_PLATE)
     };
@@ -119,7 +119,7 @@ fn machine_speed_research_makes_a_constructor_press_faster() {
 fn mining_research_raises_a_miners_draw() {
     let mut f = Factory::default();
     place(&mut f, MINER, IVec3::ZERO, 0);
-    (0..10).for_each(|_| f.research.add_unit(63)); // Mining Productivity
+    (0..10).for_each(|_| f.research.add_unit(crate::research::ids::MINING_PRODUCTIVITY)); // Mining Productivity
     f.update(&mut World::new(1, 2), 1, &mut Vec::new());
     assert_eq!((f.miner_at(IVec3::ZERO).boost, f.miner_at(IVec3::ZERO).rate()), (1300, 1.3));
 }

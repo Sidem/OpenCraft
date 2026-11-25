@@ -185,7 +185,7 @@ fn every_item_sorts_into_the_kind_a_player_expects() {
     for it in every_item() {
         let kind = kind_of(it);
         assert!((kind as usize) < KINDS.len(), "{} has no kind", item::name(it));
-        if it.0 >= 256 {
+        if it.0 >= 256 && !it.as_block().is_some_and(block::is_ore) {
             assert!(kind != RAW && kind != NATURAL, "{} is made, not found", item::name(it));
         }
     }

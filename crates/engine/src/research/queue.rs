@@ -13,7 +13,7 @@
 
 use crate::bytes::{ByteReader, ByteWriter};
 
-use super::{is_bonus, Research, TechState, TECHS};
+use super::{is_bonus, is_deed, Research, TechState, TECHS};
 
 /// The most techs that wait behind the current one (room for the longest chain of prerequisites, with some to spare).
 pub const MAX_QUEUE: usize = 32;
@@ -29,17 +29,21 @@ impl Research {
     /// or would come after an endless tech.
     pub fn enqueue(&mut self, tech: u8) {
         let after_endless = self.queue.last().copied().or(self.current).is_some_and(is_bonus);
+        let Some(t) = TECHS.get(tech as usize) else { return };
         if after_endless
-            || (tech as usize) >= TECHS.len()
+            || is_deed(tech)
+            || !self.ring_open(t.ring)
             || self.state(tech) == TechState::Done
             || self.is_chosen(tech)
         {
             return;
         }
-        // Collect missing prerequisites in topological post-order so every prerequisite sits ahead of its dependents
-        // even when a newer tech appended to `later.rs` is required by an earlier-indexed tech.
+        // Collect missing prerequisites in topological post-order so every prerequisite sits ahead of its dependents.
         let mut missing = Vec::new();
         self.collect_missing(tech, &mut missing);
+        if missing.iter().any(|&m| is_deed(m) || !self.ring_open(TECHS[m as usize].ring)) {
+            return;
+        }
         // The first one becomes current when nothing is, so it doesn't count against the queue.
         if self.queue.len() + missing.len() > MAX_QUEUE + usize::from(self.current.is_none()) {
             return;
@@ -86,9 +90,11 @@ impl Research {
         let mut kept: Vec<u8> = Vec::with_capacity(self.queue.len());
         for &q in &self.queue {
             let ready = TECHS.get(q as usize).is_some_and(|t| {
-                t.needs
-                    .iter()
-                    .all(|&n| self.state(n) == TechState::Done || self.current == Some(n) || kept.contains(&n))
+                !is_deed(q)
+                    && self.ring_open(t.ring)
+                    && t.needs
+                        .iter()
+                        .all(|&n| self.state(n) == TechState::Done || self.current == Some(n) || kept.contains(&n))
             });
             let behind_endless = kept.last().is_some_and(|&l| is_bonus(l));
             let wanted = self.state(q) != TechState::Done && self.current != Some(q) && !kept.contains(&q);
@@ -104,7 +110,7 @@ impl Research {
         self.queue.iter().for_each(|&q| w.u8(q));
     }
 
-    /// Reads the queue and drops whatever no longer fits (a tech table that changed).
+    /// Reads the raw queued tech ids (`read_state` calls `prune` once `open_rings` is read too).
     pub(super) fn read_queue(&mut self, r: &mut ByteReader) -> Option<()> {
         let n = r.count()?;
         if n > MAX_QUEUE {
@@ -113,7 +119,6 @@ impl Research {
         for _ in 0..n {
             self.queue.push(r.u8()?);
         }
-        self.prune();
         Some(())
     }
 }

@@ -187,7 +187,11 @@ TREE-FIND (`docs/ROADMAP_ORDER.md` wave 3b). Concept page with the full map: cla
 - **A map, not a ladder.** Camp in the centre; eras are rings (red, green, blue, violet, gold, sky); twelve
   disciplines are wedges through every ring, clockwise from the top: Logistics, Workshop, Ores & Metals, Chemistry,
   Power, Computing, Robots & Drones, Your Gear, Survey, Sea, Towns & Life, Building. A tech's place is (wedge, ring),
-  so new content always has a home. The UI draws the rings for the overview and unrolls one wedge as a lane to read.
+  so new content always has a home. The screen draws it as a grid (rings as columns left to right, wedges as rows),
+  not a disc: a radial drawing had no zoom where names and context both fit (user, 2026-11-25).
+- **Discovered, not shown.** A tech appears once it is done, available or queued; a locked one whose missing needs are
+  all available appears as a faint "next" teaser; the rest stay hidden, and columns stop at the first closed ring,
+  drawn as a lock with its count and its checklist in the rail. Prerequisite lines show only for the hovered tech.
 - **Rings open by threshold, not gate techs.** Green, Blue, Violet and Gold Science go. A ring's pack recipe unlocks
   once half the ring before it is researched (any half) and the pack's parts are known; crafting the first pack is
   the milestone. The sky ring opens with the first rocket launch. Inside a ring the wedges are independent.
@@ -196,7 +200,8 @@ TREE-FIND (`docs/ROADMAP_ORDER.md` wave 3b). Concept page with the full map: cla
 - **Three ways in:** lab research; **deeds**, done by doing (the red ring: Belt Routing, lay 40 belts; Belt Lifts,
   run a belt up 3 steps; and every ring milestone); **finds**, hidden until a discovery (a site reached, an ore
   scanned, a fishing ground sailed over), then researched with packs. Where finds go: `docs/TECH_ERAS.md` section 0.
-- **Planned ghosts:** roadmap techs that have a wave show in place as dashed, unresearchable nodes; a UI data table.
+- **No planned ghosts** (dropped 2026-11-25 with discovery: nothing shows that can't be unlocked). The roadmap's
+  techs live in `docs/TECH_ERAS.md` section 0.
 - **Gear and discovery, not perks.** Handcrafting I–III become Work Gloves, worn and raised by kits like the hauler
   pack. Deep Survey (endless, compute only; each level reveals one more far site) replaces Mining Productivity,
   Machine Speed and Drone Speed (levels in saves stay). Orbital Science becomes Orbital Survey (satellites map sites

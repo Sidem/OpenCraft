@@ -1,19 +1,21 @@
-/* The research queue strip (research-queue.ts) and the queued marks on the tree's nodes (research.ts). */
+/* The research queue strip (research-queue.ts), in the rail's "now" card. Queued is yellow everywhere. */
 
 .rq {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  margin: 0 0 12px;
   max-height: 96px;
   overflow-y: auto;
 }
 
 .rq-label {
-  font-size: 12px;
-  color: var(--muted);
   margin-right: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .rq-chip {
@@ -22,13 +24,13 @@
   gap: 6px;
   padding: 3px 4px 3px 8px;
   border-radius: 999px;
-  border: 1px solid var(--accent);
-  background: var(--accent-soft);
+  border: 1px solid rgba(253, 230, 138, 0.6);
+  background: rgba(253, 230, 138, 0.1);
   font-size: 12px;
 }
 
 .rq-n {
-  color: var(--accent);
+  color: #fde68a;
   font-weight: 700;
 }
 
@@ -49,25 +51,4 @@
 .rq-x:focus-visible {
   outline: none;
   background: rgba(255, 255, 255, 0.28);
-}
-
-/* A tech in the queue: accent border, dashed so it reads as "later" next to the one being researched. */
-.rs-node.queued {
-  border-color: var(--accent);
-  border-style: dashed;
-  opacity: 1;
-}
-
-.rs-node.queued .rs-badge {
-  background: var(--accent);
-}
-
-.rs-node.queued .rs-node-state {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.rs-key.queued::before {
-  border-color: var(--accent);
-  border-style: dashed;
 }

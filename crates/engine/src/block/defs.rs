@@ -2,6 +2,7 @@
 //! (`decor.rs`) and the coal miner's into `DEFS`. Ids and the row type live in `mod.rs`; the row builders in `make.rs`.
 //! To add a block: its id in `mod.rs` (or a set file), then its row here at the end of `BASE_DEFS` (or the set's table).
 
+use super::clay::CLAY_DEFS;
 use super::coal_miner::COAL_MINER_DEFS;
 use super::ejector::EJECTOR_DEFS;
 use super::forester::FORESTER_DEFS;
@@ -40,6 +41,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = crate::join::join(&[
     &GAS_DEFS,
     &THUMPER_DEFS,
     &KILN_DEFS,
+    &CLAY_DEFS,
 ]);
 
 const BASE_DEFS: [BlockDef; BASE_COUNT] = [

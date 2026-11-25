@@ -169,7 +169,7 @@ async function main(): Promise<void> {
   const machine = new MachinePanel(game, (id) => hud.itemIcon(id), inventory), trains = new TrainPanel(game, inventory);
   const research = new ResearchPanel(game, (id) => hud.itemIcon(id));
   research.onDone = () => sound.ui();
-  const codex = new CodexPanel(game, (id) => hud.itemIcon(id));
+  const codex = new CodexPanel(game, (id) => hud.itemIcon(id), (kind) => sound.cue(kind));
   research.onCodex = () => (research.close(false), codex.open());
   const analytics = new AnalyticsPanel(game, (id) => hud.itemIcon(id));
   const hints = new Hints(game, renderer, () => sound.preview('powerup', 0));
@@ -177,14 +177,14 @@ async function main(): Promise<void> {
   const sites = new SitePanel(game), drone = new DronePanel(game, (id) => hud.itemIcon(id));
   const craftQueue = new CraftQueueView(game, (id) => hud.itemIcon(id));
   const prospect = new ProspectPanel(game);
-  prospect.onReading = () => sound.scan();
+  prospect.onReading = () => sound.cue('scan');
   const pins = new Pins(game, meta.pins);
   const logbook = new LogbookPanel(game, pins);
   const vault = new VaultPanel(game);
   const signEditor = new SignPanel(game);
   const ledPanel = new LedPanel(game);
   const seismic = new SeismicPanel(game, pins);
-  seismic.onPulse = () => sound.thump();
+  seismic.onPulse = () => sound.cue('thump');
   const signFaces = new SignFaces(game, renderer, texSize);
   const adminConsole = new ConsolePanel(consoleHost(game, renderer, () => coop !== null));
   session?.keepPins(pins);

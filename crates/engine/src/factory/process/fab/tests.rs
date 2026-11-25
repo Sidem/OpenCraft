@@ -112,21 +112,17 @@ fn a_wafer_gives_back_every_shell_it_took() {
 
 #[test]
 fn the_fab_waits_for_its_techs() {
-    let tech = |name: &str| TECHS.iter().position(|t| t.name == name).unwrap() as u8;
-    let (wafers, accelerators) = (tech("Wafers"), tech("Accelerators"));
-    assert_eq!(wafers, 56, "saved by index");
-    assert!(TECHS[accelerators as usize].needs.contains(&wafers));
-    assert!(TECHS[wafers as usize].needs.contains(&tech("Gold Science")));
+    let chip_fab = crate::research::ids::CHIP_FAB;
+    assert_eq!(TECHS[chip_fab as usize].ring, crate::research::Ring::Gold);
     assert!(RECIPES.iter().any(|r| r.output == ItemId::block(CHIP_FAB)));
 
     let mut world = World::new(1, 2);
     let mut f = Factory::default();
     f.place(&mut world, CHIP_FAB, IVec3::ZERO, 0, IVec3::ZERO, 0);
-    assert_eq!(f.insert(IVec3::ZERO, SILICON, 2), 0, "no wafer recipe before Wafers");
-    (0..TECHS[wafers as usize].units).for_each(|_| f.research.add_unit(wafers));
+    assert_eq!(f.insert(IVec3::ZERO, SILICON, 2), 0, "no wafer recipe before Chip Fab");
+    assert_eq!(f.insert(IVec3::ZERO, PROCESSOR, 2), 0, "no accelerator recipe before Chip Fab");
+    f.research.finish("Chip Fab");
     assert_eq!(f.insert(IVec3::ZERO, SILICON, 2), 2);
-    assert_eq!(f.insert(IVec3::ZERO, PROCESSOR, 2), 0, "no accelerator recipe before Accelerators");
-    (0..TECHS[accelerators as usize].units).for_each(|_| f.research.add_unit(accelerators));
     assert_eq!(f.insert(IVec3::ZERO, PROCESSOR, 2), 2);
     assert!(f.research.locked_by(Unlock::MachineRecipe(ACCELERATOR_RECIPE)).is_none());
 }

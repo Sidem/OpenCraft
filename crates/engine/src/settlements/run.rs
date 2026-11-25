@@ -8,7 +8,7 @@ use crate::factory::{Buffer, Want};
 use crate::sim::{Sim, SimEvent};
 use crate::TICK_RATE;
 
-use super::{Town, ORDERS};
+use super::{Made, Town, ORDERS};
 
 /// Ticks between two upkeeps.
 pub(super) const MINUTE: u64 = 60 * TICK_RATE as u64;
@@ -16,9 +16,10 @@ pub(super) const MINUTE: u64 = 60 * TICK_RATE as u64;
 impl Sim {
     /// Tells each depot what its town and its perk take in now, and marks the drone ports a river town relays.
     pub(crate) fn sync_depots(&mut self) {
+        let made = &self.settlements.made;
         for t in &self.settlements.towns {
             let mut wants: Vec<Want> =
-                t.wants().into_iter().map(|(item, cap)| Want { item, cap, perk: false }).collect();
+                t.wants(made).into_iter().map(|(item, cap)| Want { item, cap, perk: false }).collect();
             wants.extend(t.perk_wants());
             self.factory.set_depot_wants(t.pos, wants);
         }
@@ -29,12 +30,12 @@ impl Sim {
     /// drones.
     pub(crate) fn step_towns(&mut self) {
         for i in 0..self.settlements.towns.len() {
-            let t = &mut self.settlements.towns[i];
+            let (t, made) = (&mut self.settlements.towns[i], &self.settlements.made);
             if t.dormant {
                 continue;
             }
             if let Some(store) = self.factory.depot_store(t.pos) {
-                t.step(store, self.tick, &mut self.events);
+                t.step(store, made, self.tick, &mut self.events);
             }
             if let Some((input, out)) = self.factory.depot_perk(t.pos) {
                 t.step_perk(input, out, self.tick, &mut self.events);
@@ -49,8 +50,8 @@ impl Sim {
 
 impl Town {
     /// One tick: the upkeep when due, then deliveries toward the open order unless stalled.
-    pub fn step(&mut self, store: &mut Buffer, tick: u64, events: &mut Vec<SimEvent>) {
-        let upkeep = self.upkeep();
+    pub fn step(&mut self, store: &mut Buffer, made: &Made, tick: u64, events: &mut Vec<SimEvent>) {
+        let upkeep = self.upkeep(made);
         if !upkeep.is_empty() && tick >= self.due {
             self.stalled = upkeep.iter().any(|&(item, n)| store.count_like(item) < n);
             if !self.stalled {

@@ -1,11 +1,13 @@
 // Codex screen (Shift+T, or from the Research header / Home menu): an unlocking 118-element periodic
 // table (`codex-elements.ts`) showing every discovered element and its in-game chemical forms, plus
-// the world's achievements tab. Everything is read from the engine (`codex_*`); no state is kept here.
+// the world's achievements tab. Everything is read from the engine (`codex_*`); no state is kept here. It also owns
+// the unlock popups (`codex-toast.ts`), which open it on what they show.
 
 import './machine.css';
 import './codex.css';
 import type { Game } from '../wasm/engine.js';
 import { CATEGORY_LABELS, ELEMENT_BY_Z, FORM_LABELS, PERIODIC_ELEMENTS } from './codex-elements';
+import { CodexToasts } from './codex-toast';
 import { button, h } from './dom';
 
 const ICON_PX = 64;
@@ -29,10 +31,16 @@ export class CodexPanel {
   private selectedZ = 26; // Iron by default
   private drawnVersion = -1;
 
+  private readonly toasts: CodexToasts;
+
   constructor(
     private readonly game: Game,
     private readonly icon: (item: number) => HTMLCanvasElement,
+    chime: (kind: 'discover' | 'achieve') => void,
   ) {
+    this.toasts = new CodexToasts(game, icon);
+    this.toasts.onChime = chime;
+    this.toasts.onOpen = (target) => this.openAt(target);
     this.dialog.setAttribute('role', 'dialog');
     this.dialog.setAttribute('aria-modal', 'true');
     this.dialog.tabIndex = -1;
@@ -53,7 +61,7 @@ export class CodexPanel {
     bar.append(tabs, this.summary);
 
     for (const el of PERIODIC_ELEMENTS) {
-      const cell = button('cx-cell', '', () => {
+      const cell = button('cx-cell cx-cat', '', () => {
         this.selectedZ = el.z;
         this.highlightSelected();
         this.drawCard();
@@ -104,13 +112,26 @@ export class CodexPanel {
     this.dialog.focus({ preventScroll: true });
   }
 
+  /** Opens on element `z` in the table, or on achievement `achievement`, glowing (an unlock popup was clicked). */
+  openAt(target: { z: number } | { achievement: number }): void {
+    if ('z' in target) this.selectedZ = target.z;
+    this.open();
+    this.showTab('z' in target ? 'table' : 'achievements');
+    const el = 'z' in target ? this.cells.get(target.z) : this.achPane.children[target.achievement];
+    el?.scrollIntoView({ block: 'nearest' });
+    el?.classList.add('cx-flash');
+    el?.addEventListener('animationend', () => el.classList.remove('cx-flash'), { once: true });
+  }
+
   close(resume: boolean): void {
     if (!this.isOpen) return;
     this.backdrop.classList.add('hidden');
     this.onClose(resume);
   }
 
+  /** Call every frame: the unlock popups, and the screen when open. */
   update(): void {
+    this.toasts.update();
     if (!this.isOpen) return;
     const v = this.game.codex_obtained_count();
     if (v !== this.drawnVersion) this.refresh();

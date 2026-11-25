@@ -1,5 +1,6 @@
 //! Glass Kiln (`block::GLASS_KILN`, L-COLOUR): a brick-and-iron burner furnace that melts glass, sand or quartz
-//! together with any of the 16 pigments into stained glass (`recipes/glass.rs`).
+//! together with any of the 16 pigments into stained glass (`recipes/glass.rs`), and fires clay into terracotta, kaolin
+//! and granite into porcelain, and porcelain with a pigment into glazed tiles (`Category::Firing`, `recipes/clay.rs`).
 //!
 //! Uses `Pick::ByInput` with 2 input slots + 1 fuel slot + 1 output slot (`SINGLE` 1×1×1 footprint), so players can
 //! drop or belt-feed any silica source (`GLASS`, `SAND` or `QUARTZ_ORE`) plus any pigment and coal/charcoal/wood fuel,
@@ -14,15 +15,15 @@ use super::specs::{Energy, Pick, ProcessSpec, ProcessTier};
 
 pub(super) const GLASS_KILN_SPEC: ProcessSpec = ProcessSpec {
     block: GLASS_KILN,
-    categories: &[Category::Glassmaking],
+    categories: &[Category::Glassmaking, Category::Firing],
     pick: Pick::ByInput,
     buffers: [2, 1, 1],
     side: 0,
     tiers: &[ProcessTier { energy: Energy::Burner, speed: 1000, fuel: 1000, power: 0 }],
     footprint: SINGLE,
     verb: "Melting",
-    products: "stained glass",
-    waiting: "Waiting for glass, sand or quartz + pigment",
+    products: "stained glass and ceramics",
+    waiting: "Waiting for glass, sand or quartz + pigment, or clay",
     map_colour: 0xe89b3c,
     compute: 0,
     parts: &KILN_PARTS,
@@ -53,3 +54,6 @@ const KILN_PARTS: [Part; 10] = [
     // Status lamp on the front-right shoulder (y = 0.24 .. 0.32, z = 0.285 .. 0.355, clear of the crown).
     part([0.34, 0.28, 0.32], [0.10, 0.08, 0.07], Look::Lamp),
 ];
+
+#[cfg(test)]
+mod tests;

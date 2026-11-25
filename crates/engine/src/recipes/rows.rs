@@ -72,6 +72,7 @@ pub const UNDERPASS_ROW: u16 = 86;
 pub const RAIL_ROW: u16 = 87;
 /// The decor set's rows (`decor.rs`, tech Architecture): `DECOR_ROWS` after the ruins' row 135; then `refit::REFIT_LATER`.
 pub const DECOR_FIRST: u16 = 136;
+#[cfg(test)]
 pub const DECOR_ROWS: u16 = 14;
 /// The Pigments tech's rows (`dye.rs`), after `refit::REFIT_LATER`'s five (rows 150 to 154): the plant's blue and ten mixes
 /// (`DYE_FIRST` on), then the assembler's eleven tints, in `HUES` order. `REFIT_LATER` is full: a tier added later goes in a
@@ -83,7 +84,8 @@ pub const DYE_PLANT_ROWS: u16 = 11;
 /// Stained glass (`glass.rs`, Glass Kiln): sixteen hues in `block/glass.rs` order (5 primary + 11 mixed).
 pub const GLASS_FIRST: u16 = 177;
 pub const GLASS_ROWS: u16 = 16;
-pub const GLASS_PRIMARY_COUNT: u16 = 5;
+/// Primary hues (Red, Green, Black, White) unlock with Glass; Yellow (sulfur) and the 11 mixed hues unlock with Pigments.
+pub const GLASS_PRIMARY_COUNT: u16 = 4;
 /// Natural gas (`gas.rs`, CHEM-GAS): gas plant sweetening (193), steam reforming (194), ethane cracking (195), LPG
 /// cracking (196), and ethylene polymerisation to plastic (197).
 pub const GAS_PROCESS_RECIPE: u16 = 193;
@@ -95,6 +97,13 @@ pub const POLYETHYLENE_RECIPE: u16 = 197;
 pub const GLASS_RAW_FIRST: u16 = 200;
 #[cfg(test)]
 pub const GLASS_RAW_ROWS: u16 = 32;
+/// Clay and kilns (`clay.rs`, after the raw stained glass): clay bricks in a furnace, then the kiln's terracotta,
+/// porcelain, turquoise and amber tiles.
+pub const CLAY_BRICK_ROW: u16 = 232;
+pub const TERRACOTTA_ROW: u16 = 233;
+pub const PORCELAIN_ROW: u16 = 234;
+pub const TURQUOISE_ROW: u16 = 235;
+pub const AMBER_ROW: u16 = 236;
 /// Legacy dyed-concrete assembler rows (136..141 in `DECOR`, 166..177 in `DYE`), kept at their indices for old-save
 /// machines but retired from new play in favour of spray-painting concrete in place (`L-COLOUR`).
 pub const fn is_retired_recipe(row: u16) -> bool {

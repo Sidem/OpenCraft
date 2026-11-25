@@ -115,11 +115,12 @@ impl Known {
 /// says (`describe.rs`) cannot differ. Add a variant with its shape constant, and `describe.rs` must explain it.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Subject {
-    /// A deposit the player knows of; `dry` once no ore is left in it.
+    /// A deposit the player knows of; `dry` once no ore is left in it, `forecast` while miners work it.
     Deposit {
         ore: BlockId,
         tier: Tier,
         dry: bool,
+        forecast: Option<factory::DepositForecast>,
     },
     Ore(BlockId),
     /// An AI survey guess; `strength` is 1 to 3.
@@ -137,6 +138,8 @@ pub enum Subject {
         tier: u8,
         /// A miner that has worked out its deposit.
         dry: bool,
+        /// Live depletion forecast for a miner on an active deposit.
+        forecast: Option<factory::DepositForecast>,
     },
     Launch,
     Pod {
@@ -264,7 +267,16 @@ impl Minimap {
         });
         let mut deposit = |d: &Deposit| {
             if inside(d.center) {
-                f(d.center.x, d.center.z, Subject::Deposit { ore: d.ore(), tier: d.tier(), dry: dry(factory, d) });
+                f(
+                    d.center.x,
+                    d.center.z,
+                    Subject::Deposit {
+                        ore: d.ore(),
+                        tier: d.tier(),
+                        dry: dry(factory, d),
+                        forecast: factory.deposit_forecast(&d.key),
+                    },
+                );
             }
         };
         self.known.deposits.iter().for_each(&mut deposit);
@@ -291,7 +303,14 @@ impl Minimap {
             let subject = match block {
                 block::POD_LAUNCHER | block::LANDING_PAD | block::TOWN_DEPOT => return, // drawn below
                 block::LAUNCH_SITE => Subject::Launch,
-                _ => Subject::Machine { block, tier, dry: dry_miners.contains(&p) },
+                _ => Subject::Machine {
+                    block,
+                    tier,
+                    dry: dry_miners.contains(&p),
+                    forecast: (block == block::MINER || block == block::COAL_MINER)
+                        .then(|| factory.miner_forecast(p))
+                        .flatten(),
+                },
             };
             f(p.x, p.z, subject);
         });
@@ -325,6 +344,8 @@ pub fn ore_color(ore: BlockId) -> i32 {
         block::OIL_SAND => 0xa87a2c,
         block::GAS_SHALE => 0x38bdf8,
         block::URANIUM_ORE => 0x9bd84a,
+        block::CLAY => 0x9a8470,
+        block::KAOLIN => 0xf2efe6,
         _ => 0xffffff,
     }
 }

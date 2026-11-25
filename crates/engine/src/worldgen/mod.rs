@@ -30,11 +30,14 @@
 //! 12 = grown trees: eleven kinds with branching limbs and clear trunks, placed by forest biome, shore and grove
 //! (`grow/`, `biome.rs` `local_biome_at`);
 //! 13 = CHEM-GAS natural gas fields (`gas.rs`): deep gas shale veins and lodes on their own grid under plains,
-//! lowlands and deserts without disturbing any existing ore deposit.
+//! lowlands and deserts without disturbing any existing ore deposit;
+//! 14 = MAT-CLAY's clay beds by rivers, lakes and ponds and kaolin pockets in highland granite (`clay.rs`), on their own
+//! streams like the gas fields.
 
 mod bearing;
 mod biome;
 mod caves;
+mod clay;
 mod column;
 mod gas;
 mod geology;
@@ -76,7 +79,7 @@ use crate::math::{hash2, hash3, smoothstep, unit, IVec3};
 use crate::noise::Perlin;
 
 /// The newest generator version, which new worlds get. A save records its world's own version.
-pub const WORLDGEN_VERSION: u32 = 13;
+pub const WORLDGEN_VERSION: u32 = 14;
 pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;

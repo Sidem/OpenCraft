@@ -1,0 +1,183 @@
+/* The picture on a Codex unlock popup (codex-toast.ts; the card itself is codex-toast.css): an element's tile, which
+   flips in with a glint, or an achievement's gold medal, which pops in with turning rays and sparks. */
+
+/* An element's tile, as on the periodic table. */
+.cxt-tile,
+.cxt-mini {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid var(--cat-col, #5dc3ff);
+  border-radius: 10px;
+  background: radial-gradient(
+    circle at 30% 25%,
+    color-mix(in srgb, var(--cat-col, #5dc3ff) 62%, #fff),
+    color-mix(in srgb, var(--cat-col, #5dc3ff) 30%, rgba(14, 17, 24, 0.95)) 70%
+  );
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.cxt-tile {
+  width: 60px;
+  height: 60px;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--cat-col, #5dc3ff) 50%, transparent);
+  animation: cxt-flip 700ms cubic-bezier(0.25, 1.4, 0.4, 1) 120ms both;
+}
+
+.cxt-z {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.cxt-sym {
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.cxt-shine {
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(120deg, transparent 40%, rgba(255, 255, 255, 0.55) 50%, transparent 60%);
+  transform: translateX(-100%);
+  animation: cxt-sheen 900ms ease-out 520ms both;
+}
+
+.cxt-minis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 96px;
+  flex: none;
+  order: -1;
+}
+
+.cxt-mini {
+  width: 28px;
+  height: 28px;
+  border-width: 1px;
+  border-radius: 6px;
+}
+
+.cxt-mini .cxt-z {
+  display: none;
+}
+
+.cxt-mini .cxt-sym {
+  font-size: 13px;
+}
+
+/* An achievement's medal: gold, with turning rays behind it and sparks flying off once (siblings in the wrap). */
+.cxt-medal-wrap {
+  position: relative;
+  flex: none;
+  width: 60px;
+  height: 60px;
+}
+
+.cxt-medal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff1bd, #f6c453 45%, #a8741f 100%);
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 244, 205, 0.55),
+    inset 0 -4px 8px rgba(120, 70, 10, 0.45),
+    0 0 26px rgba(246, 196, 83, 0.6);
+  animation: cxt-pop 720ms cubic-bezier(0.2, 1.6, 0.4, 1) 120ms both;
+}
+
+.cxt-icon {
+  width: 36px;
+  height: 36px;
+  filter: drop-shadow(0 2px 2px rgba(60, 30, 0, 0.55));
+}
+
+.cxt-rays {
+  position: absolute;
+  inset: -30px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255, 220, 130, 0.38) 0 10deg, transparent 10deg 30deg);
+  mask: radial-gradient(circle, #000 25%, transparent 68%);
+  -webkit-mask: radial-gradient(circle, #000 25%, transparent 68%);
+  animation: cxt-turn 9s linear infinite, cxt-fade-in 600ms ease-out 200ms both;
+}
+
+.cxt-spark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px;
+  border-radius: 50%;
+  background: #fff3c4;
+  box-shadow: 0 0 6px #f6c453;
+  opacity: 0;
+  animation: cxt-spark 900ms ease-out calc(420ms + var(--d)) both;
+}
+
+@keyframes cxt-flip {
+  from {
+    opacity: 0;
+    transform: perspective(300px) rotateY(95deg) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cxt-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.3) rotate(-25deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cxt-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes cxt-spark {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(0) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(-44px) scale(0.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cxt-tile,
+  .cxt-medal,
+  .cxt-rays {
+    animation: none;
+  }
+
+  .cxt-shine,
+  .cxt-spark {
+    display: none;
+  }
+}

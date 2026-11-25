@@ -26,7 +26,8 @@ impl Game {
     pub fn town_goods(&self) -> Vec<u16> {
         let orders = crate::settlements::ORDERS.iter().flat_map(|o| o.iter().map(|l| l.0 .0));
         let kinds = 0..KINDS.len() as u8;
-        let upkeeps = kinds.flat_map(|k| (1..=STAGES as u8).flat_map(move |built| upkeep(k, built))).map(|l| l.0 .0);
+        let upkeeps =
+            kinds.flat_map(|k| (1..=STAGES as u8).flat_map(move |built| upkeep(k, built, |_| true))).map(|l| l.0 .0);
         let all: Vec<u16> = orders.chain(upkeeps).collect();
         (1..ITEM_COUNT as u16).filter(|i| all.contains(i)).collect()
     }
@@ -47,7 +48,8 @@ impl Game {
             out.extend([u32::from(item.0), got, want]);
         }
         let held = self.sim.factory.depot_held(t.pos);
-        let upkeep = upkeep(t.kind, t.built.max(1));
+        let made = &self.sim.settlements.made;
+        let upkeep = upkeep(t.kind, t.built.max(1), |item| made.has(item));
         out.push(upkeep.len() as u32);
         for (item, n) in upkeep {
             out.extend([u32::from(item.0), n, held.map_or(0, |b| b.count_like(item))]);

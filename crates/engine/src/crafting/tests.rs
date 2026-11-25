@@ -102,10 +102,13 @@ fn crafts_take_time_one_after_another_and_deliver_when_done() {
 }
 
 #[test]
-fn handcrafting_research_makes_crafts_shorter() {
+fn work_gloves_make_crafts_shorter() {
     let mut sim = Sim::new(7, 2);
-    let first = crate::research::TECHS.iter().position(|t| t.name == "Handcrafting I").unwrap() as u8;
-    (0..crate::research::TECHS[first as usize].units).for_each(|_| sim.factory.research.add_unit(first));
+    give(&mut sim, crate::item::WORK_GLOVES, 1);
+    let slot = (0..crate::inventory::INVENTORY_SLOTS as u8)
+        .find(|&s| sim.player(P).unwrap().inventory.slots[s as usize].item == crate::item::WORK_GLOVES)
+        .unwrap();
+    sim.apply(P, Action::ClickSlot { slot, shift: true });
     give(&mut sim, IRON_INGOT, 2);
     let plate = recipe(IRON_PLATE);
     let each = craft_ticks(&RECIPES[plate as usize], 1250);
@@ -141,7 +144,7 @@ fn worn_gloves_shorten_a_craft_and_taking_them_off_restores_the_time() {
         .find(|&s| sim.player(P).unwrap().inventory.slots[s as usize].item == CRAFT_GLOVES);
     sim.apply(P, Action::ClickSlot { slot: slot.unwrap(), shift: true });
     assert_eq!(count(&sim, CRAFT_GLOVES), 0, "worn, not carried");
-    assert_eq!(craft_one(&mut sim), base * 1000 / 1500, "50% faster");
+    assert_eq!(craft_one(&mut sim), craft_ticks(&RECIPES[plate as usize], 2250), "125% faster");
     sim.apply(P, Action::ClickGear { slot: 5, shift: true });
     assert_eq!(craft_one(&mut sim), base, "off again");
 }

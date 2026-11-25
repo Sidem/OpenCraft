@@ -7,7 +7,7 @@
 //! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`,
 //! planks, ladders and sticks in `wood.rs`, tier stripes in `stripes.rs`, bricks and quicklime in
 //! `masonry.rs`, the assembler, ports, concrete and the motor in `assembly.rs`, steelmaking in `steel.rs`, steam, crushing and silos in `heavy.rs`,
-//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`, the drone chain's parts in `robotics.rs`, water and steam pipes in `piping.rs`, worn gear in `gear.rs`, aluminium in `aluminium.rs`, trains in `transport.rs`, barrels and the pumpjack in `chemistry.rs`, washed ore, tailings and the washer in `washing.rs`, the hoist shaft and winch in `hoist.rs`, the fuel cell, centrifuge and reactor in `nuclear.rs`, the coin and the recycler in `recycling.rs`, compute's parts and the chip fab in `compute.rs`, smoke puffs in `smoke.rs`, the plants (ground cover, indicators, saplings) in `hires.rs`, the other trees in `forest.rs`, the ruins in `ruins.rs`, the decor set in `decor.rs`, the LED lamp in `led.rs`, the item models' plain materials in `materials.rs`, the rocket's and drop pod's hulls and their exhaust in `flight.rs`.
+//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`, the drone chain's parts in `robotics.rs`, water and steam pipes in `piping.rs`, worn gear in `gear.rs`, aluminium in `aluminium.rs`, trains in `transport.rs`, barrels and the pumpjack in `chemistry.rs`, washed ore, tailings and the washer in `washing.rs`, the hoist shaft and winch in `hoist.rs`, the fuel cell, centrifuge and reactor in `nuclear.rs`, the coin and the recycler in `recycling.rs`, compute's parts and the chip fab in `compute.rs`, smoke puffs in `smoke.rs`, the plants (ground cover, indicators, saplings) in `hires.rs`, the other trees in `forest.rs`, the ruins in `ruins.rs`, the decor set in `decor.rs`, clay and ceramics in `clay.rs`, the LED lamp in `led.rs`, the item models' plain materials in `materials.rs`, the rocket's and drop pod's hulls and their exhaust in `flight.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
@@ -17,6 +17,7 @@ mod assembly;
 mod avatar;
 mod brush;
 mod chemistry;
+mod clay;
 mod compute;
 mod decor;
 mod electronics;
@@ -241,7 +242,8 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::HAULER_PACK..=tex::MINING_RIG
         | tex::HAULER_PACK_MK3..=tex::HAULER_PACK_MK5
         | tex::CRAFT_GLOVES
-        | tex::XRAY_GOGGLES => gear::pixel(layer, x, y),
+        | tex::XRAY_GOGGLES
+        | tex::WORK_GLOVES..=tex::WORK_GLOVES_MK4 => gear::pixel(layer, x, y),
         tex::CRUSHED_BAUXITE..=tex::CELL_TOP | tex::HOVER_PACK | tex::CARGO_DRONE => aluminium::pixel(layer, x, y),
         tex::RAIL..=tex::SIGNAL => transport::pixel(layer, x, y),
         tex::EMPTY_BARREL..=tex::ELECTROLYSER_TOP => chemistry::pixel(layer, x, y),
@@ -269,6 +271,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::CHARCOAL..=tex::FLAMETHROWER_CHROME => fire::pixel(layer, x, y),
         tex::THUMPER_SIDE..=tex::THUMPER_PISTON => thumper::pixel(layer, x, y),
         tex::KILN_SIDE..=tex::PAINT_SPRAYER => kiln::pixel(layer, x, y),
+        tex::CLAY..=tex::AMBER_TILES => clay::pixel(layer, x, y),
         l if l >= tex::planks_layer(0) => woods::pixel(layer, x, y),
         tex::RED_CONCRETE..=tex::PANEL_LIGHT => decor::pixel(layer, x, y),
         tex::WOOD_DOOR..=tex::PLASTER => house::pixel(layer, x, y),

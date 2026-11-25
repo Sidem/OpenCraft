@@ -13,7 +13,7 @@ use crate::recipes::{
     b, Category, GLASS_FIRST, GLASS_PRIMARY_COUNT, GLASS_RAW_FIRST, GLASS_RAW_ROWS, GLASS_ROWS, MACHINE_RECIPES,
     RECIPES,
 };
-use crate::research::{Research, Unlock, TECHS};
+use crate::research::{Research, Unlock};
 
 fn stained_ids() -> impl Iterator<Item = BlockId> {
     STAINED_GLASS_FIRST..STAINED_GLASS_FIRST + STAINED_GLASS_COUNT as BlockId
@@ -28,7 +28,12 @@ fn stained_glass_blocks_and_recipes_match_glass_kiln_with_pigments() {
     let seis = crate::recipes::refit::REFIT_SEISMIC.len();
     assert_eq!(
         MACHINE_RECIPES.len(),
-        GLASS_FIRST as usize + STAINED_GLASS.len() + gas + seis + STAINED_GLASS_RAW.len()
+        GLASS_FIRST as usize
+            + STAINED_GLASS.len()
+            + gas
+            + seis
+            + STAINED_GLASS_RAW.len()
+            + crate::recipes::clay::CLAY_RECIPES.len()
     );
     let kiln_spec = process_spec(GLASS_KILN).expect("Glass Kiln spec");
     let mut seen_inputs = HashSet::new();
@@ -37,7 +42,7 @@ fn stained_glass_blocks_and_recipes_match_glass_kiln_with_pigments() {
         assert!(is_stained_glass(id) && is_glass(id));
         assert_eq!((def.render, def.solid, def.drop, def.placeable), (Render::Translucent, true, id, true));
         assert_eq!(def.faces, [tex::stained_glass_layer(i as u16); 6]);
-        assert!(def.faces[0] < 512, "cube layer must fit in 9 bits");
+        assert!(def.faces[0] < 2048, "cube layer must fit in the 11-bit terrain layer cap");
         let pigment = crate::colour::pigment_of(i as u8 + 1).expect("matching pigment");
         for (row, expected_silica) in [
             (&STAINED_GLASS[i], (b(GLASS), 4)),
@@ -56,13 +61,13 @@ fn stained_glass_blocks_and_recipes_match_glass_kiln_with_pigments() {
 }
 
 #[test]
-fn architecture_unlocks_primary_stained_glass_and_pigments_unlocks_mixed_hues() {
-    let arch = TECHS.iter().position(|t| t.name == "Architecture").unwrap() as u8;
-    let pig = TECHS.iter().position(|t| t.name == "Pigments").unwrap() as u8;
+fn glass_unlocks_primary_stained_glass_and_pigments_unlocks_yellow_and_mixed_hues() {
+    let glass = crate::research::ids::GLASS;
+    let pig = crate::research::ids::PIGMENTS;
     let mut research = Research::default();
     for i in 0..GLASS_PRIMARY_COUNT {
         for row in [GLASS_FIRST + i, GLASS_RAW_FIRST + i, GLASS_RAW_FIRST + GLASS_ROWS + i] {
-            assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), Some(arch));
+            assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), Some(glass));
         }
     }
     for i in GLASS_PRIMARY_COUNT..GLASS_ROWS {
@@ -70,9 +75,7 @@ fn architecture_unlocks_primary_stained_glass_and_pigments_unlocks_mixed_hues() 
             assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), Some(pig));
         }
     }
-    for t in TECHS[usize::from(arch)].needs.iter().copied().chain([arch]) {
-        (0..TECHS[usize::from(t)].units).for_each(|_| research.add_unit(t));
-    }
+    research.finish("Glass");
     for i in 0..GLASS_PRIMARY_COUNT {
         for row in [GLASS_FIRST + i, GLASS_RAW_FIRST + i, GLASS_RAW_FIRST + GLASS_ROWS + i] {
             assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), None);

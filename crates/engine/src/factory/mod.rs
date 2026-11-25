@@ -23,6 +23,7 @@ mod facts;
 mod fibre;
 pub mod filter_rules;
 pub mod footprint;
+mod forecast;
 mod generator;
 pub mod grid_colour;
 mod hitbox;
@@ -93,6 +94,7 @@ use belt::Belt;
 pub(crate) use belt::BELT_HEIGHT;
 pub(crate) use belt::BELT_TIERS;
 use fibre::{Data, Node};
+pub use forecast::DepositForecast;
 use generator::Generator;
 use lab::Lab;
 use links::Slot;
@@ -260,6 +262,20 @@ impl Factory {
     /// Whether any `block` machine holds `item` to work on (a crusher fed slag: `hints::SIDE_HINTS`).
     pub fn any_fed(&self, block: BlockId, item: crate::item::ItemId) -> bool {
         self.processors.iter().any(|p| p.spec.block == block && p.input.count(item) > 0)
+    }
+
+    /// Feeds this tick's core events to `research` (red deeds and ring milestones).
+    pub fn note_research(&mut self, events: &[crate::sim::SimEvent]) {
+        let needs_belts = self.research.state(crate::research::ids::BELT_LIFTS) != crate::research::TechState::Done
+            && events
+                .iter()
+                .any(|e| matches!(e, crate::sim::SimEvent::BlockPlaced { block, .. } if *block == crate::block::BELT));
+        if needs_belts {
+            let pos: Vec<IVec3> = self.belts.iter().map(|b| b.pos).collect();
+            self.research.note(events, &pos);
+        } else {
+            self.research.note(events, &[]);
+        }
     }
 
     /// Adds the machine that `block` is at `pos` (`facing` horizontal direction, `against` clicked block).

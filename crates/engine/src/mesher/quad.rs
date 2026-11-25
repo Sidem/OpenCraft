@@ -13,17 +13,18 @@ fn ao(side1: bool, side2: bool, corner: bool) -> u32 {
 }
 
 /// The merge key: 4 corners of `CORNER_BITS` (AO 2 bits, light 8 bits, then 2 bits only a liquid corner uses:
-/// the high bits of its drop, `water.rs`), then layer, cutout, liquid, translucent, flag.
+/// the high bits of its drop, `water.rs`), then 12-bit layer, cutout, liquid, translucent, flag.
 pub(super) const CORNER_BITS: usize = 12;
 pub(super) const KEY_LAYER: usize = 4 * CORNER_BITS;
-pub(super) const KEY_CUTOUT: usize = KEY_LAYER + 9;
+pub(super) const KEY_CUTOUT: usize = KEY_LAYER + 12;
 pub(super) const KEY_LIQUID: usize = KEY_CUTOUT + 1;
 pub(super) const KEY_TRANSLUCENT: usize = KEY_LIQUID + 1;
 pub(super) const KEY_FLAG: u64 = 1 << 63;
 
 pub struct MeshOutput {
-    /// The vertices, opaque quads first, then cutout, liquid, translucent; then their `[light, paint]` byte pairs
-    /// in the same order, packed two vertices per `u32` (little-endian, so bytes read in order).
+    /// The vertices, opaque quads first, then cutout, liquid, translucent; then their
+    /// `[light, paint | (layer >> 9) << 5]` byte pairs in the same order, packed two vertices per `u32`
+    /// (little-endian, so bytes read in order).
     pub verts: Vec<u32>,
     pub opaque_quads: u32,
     pub cutout_quads: u32,
@@ -49,7 +50,14 @@ impl MeshOutput {
 
     /// The paint palette index (`0..=16`) of vertex `i`.
     pub fn paint(&self, i: usize) -> u8 {
-        (self.verts[self.vertex_count() + i / 2] >> ((i % 2) * 16 + 8)) as u8
+        ((self.verts[self.vertex_count() + i / 2] >> ((i % 2) * 16 + 8)) as u8) & 31
+    }
+
+    /// The 12-bit texture array layer (`0..=4095`) of non-liquid vertex `i`.
+    pub fn layer(&self, i: usize) -> u16 {
+        let lo = (self.verts[i] >> 23) as u16;
+        let hi = (((self.verts[self.vertex_count() + i / 2] >> ((i % 2) * 16 + 8)) as u8) >> 5) as u16;
+        lo | (hi << 9)
     }
 }
 
@@ -86,7 +94,9 @@ pub(super) fn emit_quad(
     (w, h): (u32, u32),
     (key, paint): (u64, u8),
 ) {
-    let layer = (key >> KEY_LAYER) as u32 & 0x1FF; // for a liquid quad: its kind and direction (`water.rs`)
+    let layer = (key >> KEY_LAYER) as u32 & 0xFFF; // for a liquid quad: its kind and direction (`water.rs`)
+    let lo = layer & 0x1FF;
+    let attr = (paint & 31) | (((layer >> 9) as u8) << 5);
     let corner = corners_of(key);
     let corners = [(bu, bv), (bu + w, bv), (bu + w, bv + h), (bu, bv + h)];
     let mut vs = [0u32; 4];
@@ -98,17 +108,17 @@ pub(super) fn emit_quad(
         c[u] = corners[i].0;
         c[v] = corners[i].1;
         let (a, l) = (corner[i] & 3, (corner[i] >> 2) as u8);
-        let layer = layer | (corner[i] >> 10) << 5; // a liquid vertex's layer bits hold its drop's high bits
-        vs[i] = c[0] | (c[1] << 6) | (c[2] << 12) | ((face as u32) << 18) | (a << 21) | (layer << 23);
+        let low = lo | (corner[i] >> 10) << 5; // a liquid vertex's layer bits hold its drop's high bits
+        vs[i] = c[0] | (c[1] << 6) | (c[2] << 12) | ((face as u32) << 18) | (a << 21) | (low << 23);
         ls[i] = l;
         bright[i] = a * 16 + u32::from((l & 15).max(l >> 4));
     }
     // Split the quad along the brighter diagonal to avoid the anisotropic AO and light seam.
     if bright[0] + bright[2] < bright[1] + bright[3] {
         out.extend_from_slice(&[vs[1], vs[2], vs[3], vs[0]]);
-        lights.extend_from_slice(&[ls[1], paint, ls[2], paint, ls[3], paint, ls[0], paint]);
+        lights.extend_from_slice(&[ls[1], attr, ls[2], attr, ls[3], attr, ls[0], attr]);
     } else {
         out.extend_from_slice(&vs);
-        lights.extend_from_slice(&[ls[0], paint, ls[1], paint, ls[2], paint, ls[3], paint]);
+        lights.extend_from_slice(&[ls[0], attr, ls[1], attr, ls[2], attr, ls[3], attr]);
     }
 }

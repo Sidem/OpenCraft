@@ -3,8 +3,8 @@
 //! else in the engine needs to change.
 
 use crate::block::{
-    BAUXITE_ORE, COAL_ORE, CONCRETE, COPPER_ORE, GAS_SHALE, GLASS, IRON_ORE, LIMESTONE, OIL_SAND, QUARTZ_ORE,
-    URANIUM_ORE,
+    BAUXITE_ORE, CLAY, COAL_ORE, CONCRETE, COPPER_ORE, GAS_SHALE, GLASS, IRON_ORE, KAOLIN, LIMESTONE, OIL_SAND,
+    PORCELAIN, QUARTZ_ORE, URANIUM_ORE,
 };
 use crate::item::{
     self, ItemId, ACID_BARREL, ALUMINIUM_INGOT, ALUMINIUM_PLATE, CHARCOAL, CIRCUIT, COPPER_INGOT, COPPER_WIRE,
@@ -85,6 +85,14 @@ pub const FORMS: &[ElementForm] = &[
     entry(8, ROCKET_FUEL_BARREL, Form::Liquid, "Oxygen-rich propellant for orbital rockets"),
     // 13 — Aluminium
     block_entry(13, BAUXITE_ORE, Form::Ore, "Hydrated aluminium oxide ore found in arid provinces"),
+    block_entry(13, CLAY, Form::Ore, "Fine aluminium silicate silt settled by slow rivers and lakes"),
+    block_entry(13, KAOLIN, Form::Ore, "Kaolinite, the white china clay left where granite weathers in place"),
+    block_entry(
+        13,
+        PORCELAIN,
+        Form::Compound,
+        "Kaolin and feldspar fired hot until they fuse into white glass-bound tile",
+    ),
     entry(13, CRUSHED_BAUXITE, Form::Ore, "Crushed ore ready for washing or electrolysis"),
     entry(13, WASHED_BAUXITE, Form::Oxide, "Cleaned alumina-rich concentrate"),
     entry(13, ALUMINIUM_INGOT, Form::Pure, "Smelted via Hall–Héroult electrolysis"),
@@ -214,6 +222,8 @@ pub const ALL_ORES: &[ItemId] = &[
     ItemId::block(OIL_SAND),
     ItemId::block(URANIUM_ORE),
     ItemId::block(GAS_SHALE),
+    ItemId::block(CLAY),
+    ItemId::block(KAOLIN),
 ];
 
 /// Every satellite item that can be launched into orbit.

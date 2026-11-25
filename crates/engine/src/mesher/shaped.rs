@@ -14,7 +14,8 @@
 //!                      texture spans in eighths)
 //!         bits 24..32  light (sky | block << 4, as the cube mesher's light byte)
 //! word 2: bits  0..16  normal, octahedral (8 bits each)
-//!         bits 16..32  texture layer (item and model layers may pass 511; cube faces may not: `quad.rs`)
+//!         bits 16..27  texture layer (11 bits, 0..=2047)
+//!         bits 27..32  surface paint palette index (5 bits, 0..=16)
 //! ```
 //!
 //! Invariant: a vertex's position is its cell (an integer) plus an offset computed only from the blocks around it,

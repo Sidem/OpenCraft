@@ -48,41 +48,52 @@ fn it_takes_science_packs_only_a_stack_of_each() {
 #[test]
 fn it_researches_at_twice_a_labs_speed_with_one_pack_a_unit_and_never_overshoots() {
     let mut f = rig();
+    f.research.open_ring(crate::research::Ring::Green);
+    let tech = crate::research::ids::UNDERPASSES; // 15 units of 10 s, so 5 s a unit here
     f.insert(IVec3::ZERO, RED_PACK, 64);
-    f.research.set_current(Some(0)); // Belt Routing: 10 units of 5 s, so 2.5 s a unit here
-    run(&mut f, 5.05);
-    assert_eq!((f.research.progress(0), center(&f).input.count(RED_PACK)), (2, 61), "two done, a third started");
+    f.insert(IVec3::ZERO, crate::item::GREEN_PACK, 64);
+    f.research.set_current(Some(tech));
+    run(&mut f, 10.1);
+    assert_eq!((f.research.progress(tech), center(&f).input.count(RED_PACK)), (2, 61), "two done, a third started");
     assert_eq!(f.power.demand[0], 20);
-    run(&mut f, 30.0);
-    assert_eq!(f.research.state(0), TechState::Done);
-    assert_eq!(center(&f).input.count(RED_PACK), 54, "exactly one pack per unit");
+    run(&mut f, 70.0);
+    assert_eq!(f.research.state(tech), TechState::Done);
+    assert_eq!(center(&f).input.count(RED_PACK), 49, "exactly one pack per unit");
     assert!(center(&f).status_text().starts_with("No research chosen"));
 }
 
 #[test]
 fn it_waits_for_packs_and_names_them() {
     let mut f = rig();
-    f.research.set_current(Some(0));
+    f.research.open_ring(crate::research::Ring::Green);
+    let tech = crate::research::ids::UNDERPASSES;
+    f.research.set_current(Some(tech));
     run(&mut f, 1.0);
-    assert_eq!(center(&f).status_text(), "Waiting for Red Science Pack");
+    assert!(center(&f).status_text().starts_with("Waiting for"), "{}", center(&f).status_text());
     f.insert(IVec3::ZERO, RED_PACK, 1);
+    f.insert(IVec3::ZERO, crate::item::GREEN_PACK, 1);
     run(&mut f, 1.0);
-    assert!(center(&f).status_text().starts_with("Researching Belt Routing"), "{}", center(&f).status_text());
+    assert!(center(&f).status_text().starts_with("Researching Underpasses"), "{}", center(&f).status_text());
     let text = f.describe(IVec3::ZERO).unwrap();
-    assert!(text.contains("@stats|×2 speed|20 kW") && text.contains("@bar|Belt Routing|0|10|0 / 10|cyan"), "{text}");
+    assert!(text.contains("@stats|×2 speed|20 kW") && text.contains("@bar|Underpasses|0|15|0 / 15|cyan"), "{text}");
 }
 
 #[test]
 fn a_unit_in_progress_survives_a_save() {
     let mut f = rig();
+    f.research.open_ring(crate::research::Ring::Green);
+    let tech = crate::research::ids::UNDERPASSES;
     f.insert(IVec3::ZERO, RED_PACK, 10);
-    f.research.set_current(Some(0));
+    f.insert(IVec3::ZERO, crate::item::GREEN_PACK, 10);
+    f.research.set_current(Some(tech));
     run(&mut f, 1.0);
     let (unit, progress) = (center(&f).study_state().unit, center(&f).study_state().progress);
     assert!(unit.is_some() && progress > 0);
     let mut w = ByteWriter::default();
     center(&f).write_state(&mut w);
-    let back = Processor::read_state(&mut ByteReader::new(&w.bytes)).unwrap();
+    let mut reader = ByteReader::new(&w.bytes);
+    reader.version = crate::save::SAVE_VERSION;
+    let back = Processor::read_state(&mut reader).unwrap();
     assert_eq!((back.study_state().unit, back.study_state().progress), (unit, progress));
     // Given back with the rest if the center is taken down: the packs of an unfinished unit.
     assert_eq!(back.contents().len(), back.input.contents().len() + back.study_contents().len());
@@ -100,18 +111,14 @@ fn tiers_are_twice_a_labs_and_the_lab_rule_follows_the_packs() {
     assert_eq!(
         centered,
         [
-            "Mk5 Machines",
-            "Wafers",
-            "Accelerators",
+            "Mk5 Kits",
+            "Chip Fab",
             "Data Network",
             "Datacenters",
-            "Cooling",
             "AI Labs",
-            "AI Research",
             "Optimizer",
             "Photonics",
             "Drone Swarms",
-            "Fabricator Gloves",
             "Rocketry",
             "Orbital Comms",
             "Orbital Power",
@@ -124,7 +131,8 @@ fn tiers_are_twice_a_labs_and_the_lab_rule_follows_the_packs() {
 #[test]
 fn a_gold_tech_is_researched_in_a_center_and_a_small_lab_has_no_slot_for_the_pack() {
     let mut f = rig();
-    let mk5 = TECHS.iter().position(|t| t.name == "Mk5 Machines").unwrap() as u8;
+    let mk5 = crate::research::ids::MK5_KITS;
+    f.research.open_ring(crate::research::Ring::Gold);
     for (i, t) in TECHS.iter().enumerate().filter(|(i, _)| *i as u8 != mk5) {
         (0..t.units).for_each(|_| f.research.add_unit(i as u8));
     }

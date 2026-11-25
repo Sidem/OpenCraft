@@ -15,7 +15,8 @@
 //!   nothing, so rebuilt blocks can't be farmed.
 //! - **Orders and upkeep** (`orders.rs` data, `run.rs` the tick): the depot takes in only its town's goods; each minute
 //!   the town uses up its upkeep from the depot, or stalls until it is there; while not stalled the rest goes toward the
-//!   open order, and a complete order builds the next stage.
+//!   open order, and a complete order builds the next stage. From the village on, upkeep adds the kind's late good once
+//!   the players' machines have made one.
 //! - **Growth** (`plans.rs` data, `plots.rs` where, `build.rs` the town's drones): each stage built adds its buildings
 //!   on plots round the depot, and the town's own drones build them, free, bottom first.
 //! - **Perks** (`perks/`, one module each): what a supplied town gives back, paused while it is stalled.
@@ -173,17 +174,18 @@ impl Town {
         ORDERS.get(self.built as usize).copied().unwrap_or(&[])
     }
 
-    /// What it uses up a minute (none before the camp).
-    pub fn upkeep(&self) -> Vec<Line> {
-        upkeep(self.kind, self.built)
+    /// What it uses up a minute (none before the camp); `made` is what the players' machines have ever made, which
+    /// turns on its wares and its late good.
+    pub fn upkeep(&self, made: &Made) -> Vec<Line> {
+        upkeep(self.kind, self.built, |item| made.has(item))
     }
 
     /// What its depot takes in, and up to how many it holds of each: `STOCK_MINUTES` of upkeep (the camp's already
     /// before it stands, so the player can stock up), plus, unless stalled, what the open order still misses. So the
     /// store never fills with one good, and a stalled town only takes what ends the stall.
-    pub fn wants(&self) -> Vec<Line> {
-        let mut wants: Vec<Line> =
-            upkeep(self.kind, self.built.max(1)).iter().map(|&(i, n)| (i, n * STOCK_MINUTES)).collect();
+    pub fn wants(&self, made: &Made) -> Vec<Line> {
+        let upkeep = upkeep(self.kind, self.built.max(1), |item| made.has(item));
+        let mut wants: Vec<Line> = upkeep.iter().map(|&(i, n)| (i, n * STOCK_MINUTES)).collect();
         if self.stalled {
             return wants;
         }

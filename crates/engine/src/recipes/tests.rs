@@ -11,12 +11,12 @@ use crate::item::{COPPER_INGOT, COPPER_WIRE, IRON_INGOT, IRON_PLATE, IRON_ROD};
 use crate::research::{pack_slot, Research, Unlock};
 use crate::tools;
 use Category::{
-    Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Fabrication,
+    Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Fabrication, Firing,
     GasProcessing, Glassmaking, Launch, Pressing, Refit, Reforming, Smelting, Splitting, Washing,
 };
 
 /// Every category (the match below stops compiling until a new one is listed).
-const CATEGORIES: [Category; 19] = [
+const CATEGORIES: [Category; 20] = [
     Smelting,
     Pressing,
     Assembly,
@@ -36,10 +36,12 @@ const CATEGORIES: [Category; 19] = [
     GasProcessing,
     Reforming,
     Glassmaking,
+    Firing,
 ];
 const _: fn(Category) = |c| match c {
     Smelting | Pressing | Assembly | Blasting | Crushing | Arc | Electrolysis | Distilling | Cracking | Chemistry
-    | Splitting | Washing | Enrichment | Fabrication | Launch | Refit | GasProcessing | Reforming | Glassmaking => {}
+    | Splitting | Washing | Enrichment | Fabrication | Launch | Refit | GasProcessing | Reforming | Glassmaking
+    | Firing => {}
 };
 
 /// Blocks the world has (generated, or left by worked-out deposits): breaking them is how their drops
@@ -65,6 +67,8 @@ const WORLD_BLOCKS: &[BlockId] = &[
     OIL_SAND,
     GAS_SHALE,
     URANIUM_ORE,
+    CLAY,
+    KAOLIN,
     RUSTY_SOIL,
     DARK_SOIL,
     GREEN_SOIL,

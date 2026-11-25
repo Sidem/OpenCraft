@@ -18,7 +18,7 @@ use crate::{TICK, TICK_RATE};
 
 use super::belt::Belt;
 use super::buffer::Buffer;
-use super::describe::{fmt_duration, fmt_int};
+use super::describe::fmt_int;
 use super::links::{deliver, Link, Sinks};
 use super::miner_burner::{Burner, COAL_STATS, COAL_TIER};
 use super::miner_model::{self, Look};
@@ -265,18 +265,9 @@ impl Miner {
         ))
     }
 
-    /// How long the deposit lasts at the draw of every miner on it, while any is drawing.
+    /// Depletion forecast for the deposit it works (remaining units, %, active miners, time to dry).
     fn deposit_tail(&self, f: &Factory) -> Option<String> {
-        let key = self.deposit?;
-        let st = f.deposits.get(&key)?;
-        let total_draw: f64 = f.miners.iter().filter(|o| o.deposit == Some(key)).map(|o| o.draw_rate).sum();
-        (total_draw > 0.01 && !st.exhausted()).then(|| {
-            format!(
-                "{} units left · about {} at the current draw",
-                fmt_int(st.remaining_units() as u64),
-                fmt_duration(st.remaining_units() / total_draw)
-            )
-        })
+        f.deposit_forecast(&self.deposit?).map(super::DepositForecast::detail_line)
     }
 
     /// What it is doing, in a line (the readout and a coal miner's panel).

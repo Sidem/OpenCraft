@@ -60,7 +60,9 @@ const B: PlayerId = PlayerId(1);
 /// the end of the core); the previous hash was 0x5a33_29a4_b3fb_51f6.
 /// On 2026-11-22 L-COLOUR added per-chunk surface paint and paint charges (`world/colours.rs`, `colour/`, save 85:
 /// 20 zero bytes when empty at the end of the core); the previous hash was 0x1897_870a_4573_aa56.
-const GOLDEN_HASH: u64 = 0x6ba5_10a9_e8e2_0e36;
+// Save 86 (TREE-CORE): 76-tech frontier map, open_rings bitmask and belts_laid counter (6_850_157_767_433_831_835).
+// MAT-CLAY: the research table has 78 techs and new worlds record generator 14 (clay); nothing else moved.
+const GOLDEN_HASH: u64 = 3_449_135_006_108_830_561;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -133,6 +135,7 @@ pub(crate) fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
         (0, B, give(COAL_ORE.into(), 8)),
         (0, B, give(LAB.into(), 1)),
         (0, B, give(RED_PACK, 6)),
+        (0, B, give(crate::item::GREEN_PACK, 6)),
         (1, B, Action::BreakBlock { pos: above_box }),
         (1, B, Action::BreakBlock { pos: above_miner }),
         (1, B, Action::BreakBlock { pos: press }),
@@ -161,8 +164,9 @@ pub(crate) fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
         (9, B, place(dynamo, 6, 0, above_box)),
         (10, B, Action::Insert { pos: dynamo, item: COAL_ORE.into() }),
         (11, B, place(lab, 9, 0, sieve)),
-        (11, B, Action::SetResearch { tech: 0 }),
+        (11, B, Action::SetResearch { tech: crate::research::ids::UNDERPASSES }),
         (12, B, Action::Insert { pos: lab, item: RED_PACK }),
+        (12, B, Action::Insert { pos: lab, item: crate::item::GREEN_PACK }),
         (5, A, Action::BreakBlock { pos: other }),
     ]);
     log
@@ -171,6 +175,7 @@ pub(crate) fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
 /// A fresh core with the whole log queued.
 fn scripted(log: &[(u64, PlayerId, Action)]) -> Sim {
     let mut sim = Sim::new(SEED, 2);
+    sim.factory.research.open_ring(crate::research::Ring::Green);
     for &(tick, player, action) in log {
         sim.queue(tick, player, action);
     }
@@ -222,10 +227,14 @@ fn same_actions_give_the_same_state_every_tick() {
     assert!(ramp.item_at(1.0).1 == 0.0 && !ramp.items.is_empty(), "the box feeds the old ramp, which lies flat");
     let fuel = a.factory.panel(top + IVec3::new(3, 3, 0)).unwrap().slots[0].1.count;
     let research = &a.factory.research;
-    // The miner (5 kW for about 105 s), the lab (10 kW for 30 s) and the constructor use about 900 kJ:
-    // four coal of eight, since generators give only what is drawn.
-    assert_eq!(fuel, 4);
-    assert_eq!((research.current, research.progress(0)), (Some(0), 6), "six packs: six 5 s units");
+    // The miner (5 kW for about 105 s), the lab (10 kW for 60 s) and the constructor use about 1,200 kJ:
+    // five coal of eight, since generators give only what is drawn.
+    assert_eq!(fuel, 3);
+    assert_eq!(
+        (research.current, research.progress(crate::research::ids::UNDERPASSES)),
+        (Some(crate::research::ids::UNDERPASSES), 6),
+        "six packs: six 10 s units"
+    );
 }
 
 #[test]

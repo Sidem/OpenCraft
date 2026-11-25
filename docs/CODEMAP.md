@@ -27,7 +27,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `bytes.rs`: canonical encoding (a block id is one byte below 255, else 255 and a `u16`). `save.rs`: the file, `SAVE_VERSION`. `join.rs`: const-table joins. `math.rs`: vectors, hashes, `Rng`.
 - `doors.rs`, `deposits.rs` (pools, tiers, `HAND_YIELD`), `daytime.rs`, `crafting.rs`, `take_apart.rs`, `perks.rs`, `mode.rs`, `tools.rs`.
 - `inventory.rs` + `inventory/stacks.rs` + `inventory/kinds.rs`; `equipment.rs` (worn gear, packs); `offhand.rs`.
-- `research.rs`; `research/`: `techs.rs` (first era), `electronics.rs`, `later.rs` (open end), `queue.rs`, `bonus.rs`.
+- `research.rs`; `research/`: `techs.rs` (`TECHS`), `ids.rs`, `rings.rs` (rings, wedges, thresholds, red deeds), `red_green.rs`, `blue.rs`, `violet.rs`, `gold_sky.rs`, `later.rs` (techs added since, at the open end), `migrate.rs` (save < 86 migration), `queue.rs`, `bonus.rs`.
 - `codex/`: world-wide obtained-items bitset (save 83), `data.rs` (periodic table forms/facts), `achievements.rs`.
 - `ghosts.rs` (planned blocks). `drones/` (construction drones, `earthworks.rs`, `cargo/`).
 - `helpers/`: jetpack, hover pack, `drone/` (personal drone, `trip.rs`). `blueprint/mod.rs` (data, bytes; `plan.rs` the view from above).
@@ -43,7 +43,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - Logistics: `belt.rs` (`BELT_TIERS`), `provenance.rs`, `belt_items.rs`, `belt_shape.rs` (ramps, lifts), `belt_model.rs`,
   `belt_curve.rs`, `underpass.rs`, `belt_chain.rs`, `router.rs` (splitter, filter, merger) + `router_model.rs` + `filter_rules.rs`, `storage.rs` +
   `box_label.rs`, `buffer.rs`, `links.rs` (`relink`) + `belt_order.rs`, `ports.rs` (drone pads), `stock.rs`.
-- Extraction: `miner.rs` (+ `miner_model.rs`, `miner_burner.rs`), `quarry.rs` + `quarry/`, `pipes.rs`, `pumping.rs`.
+- Extraction: `miner.rs` (+ `miner_model.rs`, `miner_burner.rs`), `forecast.rs` (deposit depletion forecast), `quarry.rs` + `quarry/`, `pipes.rs`, `pumping.rs`.
 - Power: `power.rs`, `pole.rs` + `pole_mount.rs` + `pole_tower.rs` + `pole_hang.rs` (where wires hang: insulators), `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs`,
   `grid_colour.rs`. Data and light: `fibre.rs`, `laser.rs`. Logic: `sensor.rs`.
 - Rails: `rail.rs` + `rail/curve.rs` + `rail/ground.rs` + `rail/pieces.rs` (docks as track pieces; core side `action/docks.rs`),
@@ -71,6 +71,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   Natural gas (CHEM-GAS): blocks 255–260 (`block/gas.rs`; 256–260 first wide blocks in `WIDE_BLOCK_ITEMS`), items 430–439, `recipes/gas.rs` (rows 193–197), `worldgen/gas.rs` (v13 independent fields), `item_models/gas.rs`, `textures/gas.rs`.
   Seismic prospecting (F-SEIS): block 261 (`block/thumper.rs`), items 442–444 (Mk1–Mk3), `recipes/thumper.rs`, `item_models/thumper.rs`, `textures/thumper.rs`.
   Glass Kiln & Paint Sprayer (L-COLOUR): block 262 (`block/kiln.rs`), items 445–446, `item_models/kiln.rs`, `textures/kiln.rs`.
+  Clay & kilns (MAT-CLAY): blocks 263–269 (`block/clay.rs`; wide, paired in `WIDE_BLOCK_ITEMS`), items 451–457, `recipes/clay.rs` (rows 232–236, `Category::Firing`), `worldgen/clay.rs` (v14 beds and pockets), `textures/clay.rs`; river towns' `WARES` in `settlements/orders.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs`): `ItemId`; ids below 256 are blocks, wider blocks pair with items in `WIDE_BLOCK_ITEMS`. `wood.rs`: the ten woods.
 - `recipes/`: `mod.rs` (`RECIPES`; `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`; `machine_later.rs`), `process_notes.rs` (one line of real chemistry a chemical machine row; shown on its card and in the item guide), `rows.rs`, `tiers.rs`,
   `refit.rs`, `timing.rs`, `group.rs` + `menu_order.rs`, `item_groups.rs`, `recycling.rs`, `content.rs`; one file per era or
@@ -85,7 +86,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `world/glows.rs`, `world/settle.rs` (simulation liquid edits wait 0.15 s), `world/cover_clear.rs` (sickle-cut columns; saved), `world/upgrade.rs` (in-place deposits-layer refresh).
 - `worldgen/mod.rs`: heights, caves, `generate`, generator versions (pinned by `released_versions_never_change`). `layers.rs` (`Layers`: ground, water, cover, deposits), `column.rs`,
   `biome.rs`, `landform.rs`, `caves.rs`, `water.rs`, `rivers.rs` + `rivers/`, `shore.rs`, `trees.rs` (up to version 11),
-  `grow/` (version 12: `kinds.rs`, `shapes.rs`, `place.rs`), `geology.rs` + `strata.rs` + `ore.rs`, `gas.rs` (v13 gas fields), `bearing.rs`, `ruins.rs`, `logbook.rs`.
+  `grow/` (version 12: `kinds.rs`, `shapes.rs`, `place.rs`), `geology.rs` + `strata.rs` + `ore.rs`, `gas.rs` (v13 gas fields), `clay.rs` (v14 clay and kaolin), `bearing.rs`, `ruins.rs`, `logbook.rs`.
 - `noise.rs`, `light.rs` (sky and block light while meshing; render cache only).
 
 ### Local player: hands, tools and previews (presentation; act only by queuing actions)
@@ -125,7 +126,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `render/`: `renderer.ts` (+ `frame.ts`), `mesh-events.ts`, `shaped.ts`, `falling.ts`, `geometry.ts`, `shaders.ts`, `boxes.ts` +
   `round-mesh.ts` + `box-glsl.ts`, `water.ts`, `outlines.ts`, `precip.ts`, `halos.ts`, `fire.ts` (instanced shader flames & embers), `sky.ts` + `sky/`, `art-pack.ts` (128 px pack),
   `art/` (the pack's files), `held-light.ts`, `sign-faces.ts` + `sign-layout.ts`, `tier-paint.ts` + `tier-wire.ts` (a tier palette recolours the baked layers), `frame-stats.ts`, `gpu-probe.ts`, `quality.ts`, `auto-quality.ts`, `gl.ts`, `mat4.ts`.
-- `audio/`: `sound.ts` (master bus), `sound-actions.ts`, `synth.ts` + `synth-orbit.ts` + `synth-fire.ts` + `synth-seismic.ts` + `flame-loop.ts` (continuous torch audio), `settings.ts`, `ambience.ts` +
+- `audio/`: `sound.ts` (master bus), `sound-actions.ts`, `synth.ts` + `synth-orbit.ts` + `synth-fire.ts` + `synth-seismic.ts` + `synth-chime.ts` (Codex unlock chimes) + `flame-loop.ts` (continuous torch audio), `settings.ts`, `ambience.ts` +
   `ambience-levels.ts` + `ambience-mix.ts` + `synth-ambience.ts`, `surroundings.ts`, `music.ts` + `music-director.ts` +
   `music-pieces.ts` (one row a piece) + `music/`.
 - `net/`: `session.ts`, `host.ts`, `client.ts`, `protocol.ts`, `build-id.ts`, `coop.ts`, `transport.ts`, `webrtc.ts`, `broadcast.ts`, `signal.ts`, `ticker.ts`.
@@ -139,8 +140,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   - Machines: `machine.ts`, `machine-upgrade.ts`, `machine-recipes.ts` (+ `recipe-rates.ts`), `rate-table.ts`, `filter-panel.ts`,
     `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`, `sign.ts` (`colour-wheel.ts`,
     `colour.ts`), `seismic.ts` + `seismic-controls.ts` + `seismic-render.ts` + `seismic-volume.ts` + `seismic-data.ts`, `train.ts`.
-  - Research: `research.ts` (+ `research-card.css`), `research-view.ts`, `tech-tree.ts`, `research-eras.ts`, `research-node.ts`,
-    `research-kinds.ts`, `research-map.ts`, `research-search.ts`, `research-queue.ts`, `codex.ts` (+ `codex-elements.ts`: periodic table & achievements).
+  - Research: `research.ts` (screen, HUD tracker), `research-frontier.ts` (pure: cells, discovery, wide rings, chains), `research-grid.ts` (rings × disciplines grid, hover lines), `research-chip.ts`, `research-now.ts` (now, ready, next-ring checklist), `research-detail.ts` (selected tech), `research-wedges.ts` (12 discipline rows), `research-kinds.ts`, `research-search.ts`, `research-queue.ts`, `codex.ts` (+ `codex-elements.ts`: periodic table & achievements; `codex-toast.ts`: unlock popups).
   - Maps: `worldmap.ts`, `pins.ts`, `map-pin-list.ts`, `map-filter.ts` + `map-filter-panel.ts`, `map-info.ts`, `map-key.ts` (+
     `map-key-rows.ts`), `map-focus.ts` + `map-focus-layer.ts`, `ore-guide.ts`. Analytics (P): `analytics.ts`, a tab each in
     `analytics-overview.ts`, `analytics-power.ts` (+ `analytics-grids.ts`), `analytics-items.ts`, `analytics-machines.ts`

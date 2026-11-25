@@ -164,8 +164,15 @@ export class ItemGuide {
       const n = g.recipe_output_count(way.recipe);
       const tech = g.recipe_locked_by(way.recipe);
       foot.textContent = `Makes ${n} · ${g.recipe_tenths(way.recipe) / 10} s`;
-      if (tech >= 0) foot.append(lock(`Research ${g.tech_name(tech)} to unlock it (T)`));
-      else if (g.craftable_times(way.recipe) > 0) {
+      if (tech !== -1) {
+        foot.append(
+          lock(
+            tech >= 0
+              ? `Research ${g.tech_name(tech)} to unlock it (T)`
+              : 'Finish half of the previous ring and its parts to unlock it (T)',
+          ),
+        );
+      } else if (g.craftable_times(way.recipe) > 0) {
         foot.append(button('guide-craft', 'Craft one', () => { g.craft(way.recipe, 1); }));
       } else if (g.drone_ready() && g.drone_craft_fetches(way.recipe, 1).length > 0) {
         // The parts lie in boxes or machines nearby: the personal drone gathers them (ui/drone.ts).
@@ -178,7 +185,15 @@ export class ItemGuide {
       const side = at > 0 ? ' as a byproduct' : '';
       foot.textContent = `Makes ${outs[at + 1]}${side} · ${formatSeconds(g.machine_recipe_seconds(way.recipe))} a batch`;
       const tech = g.machine_recipe_locked_by(way.recipe);
-      if (tech >= 0) foot.append(lock(`Research ${g.tech_name(tech)} to unlock it (T)`));
+      if (tech !== -1) {
+        foot.append(
+          lock(
+            tech >= 0
+              ? `Research ${g.tech_name(tech)} to unlock it (T)`
+              : 'Finish half of the previous ring and its parts to unlock it (T)',
+          ),
+        );
+      }
     }
     row.append(label, ins, foot);
     // How many machines feed how many, to plan a line before building it.

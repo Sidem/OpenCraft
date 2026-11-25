@@ -10,7 +10,7 @@
 use super::tex;
 
 /// Layers that turn any of eight ways: rock and soil with no grain.
-pub const TURNS: [u16; 21] = [
+pub const TURNS: [u16; 23] = [
     tex::STONE,
     tex::DIRT,
     tex::GRASS_TOP,
@@ -32,6 +32,8 @@ pub const TURNS: [u16; 21] = [
     tex::PALE_GRASS_TOP,
     tex::BAUXITE_ORE,
     tex::URANIUM_ORE,
+    tex::CLAY,
+    tex::KAOLIN,
 ];
 
 /// Layers with level strata or ripples: they mirror and flip upside down, never turn on their side.
@@ -51,8 +53,8 @@ pub const LAYERED: [u16; 9] = [
 pub const UPRIGHT: [u16; 5] =
     [tex::GRASS_SIDE, tex::RUSTY_GRASS_SIDE, tex::DARK_GRASS_SIDE, tex::GREEN_GRASS_SIDE, tex::PALE_GRASS_SIDE];
 
-/// Words in `MASK`: two bits for each of the 512 layers a vertex can name (9 bits, `mesher/quad.rs`).
-pub const MASK_WORDS: usize = 32;
+/// Words in `MASK`: two bits for each of 2048 layers (32 `uvec4`s in `shaders.ts`).
+pub const MASK_WORDS: usize = 128;
 
 /// Bits `2 * (layer % 16)` of word `layer / 16`: 0 still, 1 upright, 2 layered, 3 turns (what the host uploads:
 /// `Game::texture_turns`).

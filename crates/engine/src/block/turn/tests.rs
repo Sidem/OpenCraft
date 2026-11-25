@@ -20,4 +20,7 @@ fn natural_layers_and_their_alternates_turn_but_machines_and_leaves_do_not() {
     let limit = tex::COUNT.min(MASK_WORDS * 16) as u16;
     let turning = (0..limit).filter(|&l| mode(l) != 0).count();
     assert_eq!(turning, TURNS.len() + LAYERED.len() + UPRIGHT.len() + 5 * tex::ALTERNATES as usize);
+    assert_eq!(MASK_WORDS * 16, 2048);
+    assert_eq!(mode(601), 0);
+    assert_eq!(mode(2047), 0);
 }

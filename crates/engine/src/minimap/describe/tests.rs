@@ -27,13 +27,15 @@ fn shape_constants() -> Vec<(String, i32)> {
 
 /// One subject of every variant, and of every shape a variant makes.
 fn samples() -> Vec<Subject> {
+    let fc = factory::DepositForecast { pct_left: 42, units_left: 12_000, secs_left: Some(900), miners: 2 };
     let mut all = vec![
-        Subject::Deposit { ore: IRON_ORE, tier: Tier::Lode, dry: false },
-        Subject::Deposit { ore: IRON_ORE, tier: Tier::Vein, dry: false },
-        Subject::Deposit { ore: IRON_ORE, tier: Tier::Vein, dry: true },
+        Subject::Deposit { ore: IRON_ORE, tier: Tier::Lode, dry: false, forecast: None },
+        Subject::Deposit { ore: IRON_ORE, tier: Tier::Vein, dry: false, forecast: Some(fc) },
+        Subject::Deposit { ore: IRON_ORE, tier: Tier::Vein, dry: true, forecast: None },
         Subject::Ore(COAL_ORE),
-        Subject::Machine { block: SMELTER, tier: 2, dry: false },
-        Subject::Machine { block: block::MINER, tier: 1, dry: true },
+        Subject::Machine { block: SMELTER, tier: 2, dry: false, forecast: None },
+        Subject::Machine { block: block::MINER, tier: 1, dry: false, forecast: Some(fc) },
+        Subject::Machine { block: block::MINER, tier: 1, dry: true, forecast: None },
         Subject::Launch,
         Subject::Pod { launcher: false, channel: 0 },
         Subject::Pod { launcher: true, channel: 5 },
@@ -155,6 +157,25 @@ fn the_nearest_come_first_within_reach_and_a_footprint_counts_by_its_ring() {
     let on_ring = g.world_map_describe(reach, 0, 3);
     assert!(on_ring.contains("Survey satellite cover"), "{on_ring}");
     assert!(!g.world_map_describe(0, 0, 3).contains("cover"), "its middle is not marked");
+}
+
+#[test]
+fn worked_deposits_and_miners_show_depletion_forecast_on_map_and_panel() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    let (ore, key) = find_outcrop_block(&mut g, 3);
+    let m = ore + IVec3::new(0, 1, 0);
+    g.place_at(m.x, m.y, m.z, block::MINER, 0);
+    // Idle miner on a deposit shows remaining units, % and idle status on both panel and map.
+    let panel_notes = g.sim.factory.rate_notes(m).expect("miner notes");
+    assert!(panel_notes.contains("idle (1 miner)"), "{panel_notes}");
+    let map_lines = g.world_map_describe(m.x, m.z, 2);
+    assert!(map_lines.contains("100% left") && map_lines.contains("idle (1 miner)"), "{map_lines}");
+    // Low-reserve flag appears once remaining % drops to or below 15%.
+    let fc_low = factory::DepositForecast { pct_left: 12, units_left: 1200, secs_left: Some(600), miners: 1 };
+    assert!(fc_low.is_low());
+    assert!(fc_low.detail_line().contains("running low"), "{}", fc_low.detail_line());
+    let _ = key;
 }
 
 #[test]

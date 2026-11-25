@@ -80,8 +80,7 @@ fn hints_follow_what_the_player_has_done() {
     place(&mut f, ARC_FURNACE, 50);
     assert_eq!(progress(&inv, &f), 16, "silicon");
     let n = HINTS.len() - 9; // the chemistry hints (oil, nuclear, gold), the compute and the orbit hints come last
-    let violet = TECHS.iter().position(|t| t.name == "Violet Science").unwrap() as u8;
-    (0..TECHS[violet as usize].units).for_each(|_| f.research.add_unit(violet));
+    f.research.open_ring(crate::research::Ring::Violet);
     assert_eq!(progress(&inv, &f), n - 8, "violet science");
     place(&mut f, SOLAR_PANEL, 60);
     assert_eq!(progress(&inv, &f), n - 7, "solar");
@@ -106,8 +105,7 @@ fn hints_follow_what_the_player_has_done() {
     assert_eq!(progress(&inv, &f), n + 1, "oil");
     place(&mut f, crate::block::REACTOR, 100);
     assert_eq!(progress(&inv, &f), n + 2, "nuclear");
-    let gold = TECHS.iter().position(|t| t.name == "Gold Science").unwrap() as u8;
-    (0..TECHS[gold as usize].units).for_each(|_| f.research.add_unit(gold));
+    f.research.open_ring(crate::research::Ring::Gold);
     assert_eq!(progress(&inv, &f), n + 3, "gold science");
     place(&mut f, crate::block::DATACENTER, 110);
     assert_eq!(progress(&inv, &f), n + 4, "compute");

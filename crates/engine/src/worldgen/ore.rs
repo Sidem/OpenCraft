@@ -100,6 +100,7 @@ impl WorldGen {
         if self.layers.deposits >= 3 {
             self.seed_deposits_v3(cx, cz, out);
             self.seed_gas_fields(cx, cz, out);
+            self.seed_clay(cx, cz, out);
             return;
         }
         if self.layers.deposits >= 2 {

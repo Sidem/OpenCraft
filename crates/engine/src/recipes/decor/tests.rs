@@ -3,7 +3,7 @@ use crate::block;
 use crate::factory::process_spec;
 use crate::item;
 use crate::recipes::{Category, DECOR_FIRST, DECOR_ROWS, MACHINE_RECIPES};
-use crate::research::{Research, Unlock, TECHS};
+use crate::research::{Research, Unlock};
 
 const FIRST_DECOR_BLOCK: block::BlockId = block::RED_CONCRETE;
 
@@ -20,10 +20,11 @@ fn the_decor_rows_are_the_last_of_the_table_where_research_says() {
     let gas = crate::recipes::gas::GAS_MACHINES.len();
     let seis = crate::recipes::refit::REFIT_SEISMIC.len();
     let glass_raw = crate::recipes::glass::STAINED_GLASS_RAW.len();
+    let clay = crate::recipes::clay::CLAY_RECIPES.len();
     assert_eq!(
         MACHINE_RECIPES.len(),
-        DECOR_FIRST as usize + DECOR.len() + later + dye + glass + gas + seis + glass_raw,
-        "only upgrader, dye, stained glass, gas, seismic refit and raw glass rows follow"
+        DECOR_FIRST as usize + DECOR.len() + later + dye + glass + gas + seis + glass_raw + clay,
+        "only upgrader, dye, stained glass, gas, seismic refit, raw glass and clay rows follow"
     );
     assert_eq!(MACHINE_RECIPES[DECOR_FIRST as usize - 1].inputs, &[(item::SCRAP_METAL, 3)][..], "the salvage row");
     assert_eq!(
@@ -78,19 +79,22 @@ fn the_shapes_behave() {
 }
 
 #[test]
-fn architecture_unlocks_every_row_and_nothing_earlier_does() {
+fn decor_techs_unlock_every_row_and_nothing_earlier_does() {
+    use crate::research::ids::{GLASS, METALWORK, STONE_STYLES};
     let mut research = Research::default();
-    let tech = TECHS.iter().position(|t| t.name == "Architecture").unwrap() as u8;
-    assert_eq!(tech, 85, "saved index");
-    // The 5 legacy dyed-concrete rows are retired (`is_retired_recipe`); the 9 active decor rows unlock with Architecture.
+    // The 5 legacy dyed-concrete rows are retired (`is_retired_recipe`).
     for row in DECOR_FIRST..DECOR_FIRST + 5 {
         assert!(!research.has(Unlock::MachineRecipe(row)));
     }
-    for row in DECOR_FIRST + 5..DECOR_FIRST + DECOR_ROWS {
-        assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), Some(tech));
+    for row in DECOR_FIRST + 5..DECOR_FIRST + 9 {
+        assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), Some(STONE_STYLES));
     }
-    for prerequisite in TECHS[tech as usize].needs.iter().copied().chain([tech]) {
-        (0..TECHS[prerequisite as usize].units).for_each(|_| research.add_unit(prerequisite));
+    assert_eq!(research.locked_by(Unlock::MachineRecipe(DECOR_FIRST + 9)), Some(GLASS));
+    for row in DECOR_FIRST + 10..DECOR_FIRST + DECOR_ROWS {
+        assert_eq!(research.locked_by(Unlock::MachineRecipe(row)), Some(METALWORK));
+    }
+    for name in ["Stone Styles", "Glass", "Metalwork"] {
+        research.finish(name);
     }
     for row in DECOR_FIRST..DECOR_FIRST + 5 {
         assert!(!research.has(Unlock::MachineRecipe(row)), "retired dyed concrete stays hidden");

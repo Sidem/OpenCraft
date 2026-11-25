@@ -228,6 +228,7 @@ impl Sim {
         self.step_tips();
         self.run_felling();
         self.run_fire();
+        self.factory.note_research(&self.events[events_from..]);
         self.codex.note(&self.events[events_from..]);
         self.tick += 1;
     }

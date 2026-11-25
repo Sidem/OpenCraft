@@ -69,7 +69,7 @@ fn layer_digest(layers: Layers) -> u64 {
 fn deposits_v6_to_latest_keep_every_seeded_deposit_identical() {
     let base = Layers::uniform(7);
     let v6 = WorldGen::with_layers(1337, base.with_deposits(6));
-    let mut gas_seen = 0usize;
+    let (mut gas_seen, mut clay_seen) = (0usize, 0usize);
     for v in 7..=WORLDGEN_VERSION {
         let other = WorldGen::with_layers(1337, base.with_deposits(v));
         for cz in (-20..=20).step_by(3) {
@@ -84,7 +84,15 @@ fn deposits_v6_to_latest_keep_every_seeded_deposit_identical() {
                 } else {
                     assert_eq!(gas_here, 0, "v{v} must not seed gas fields");
                 }
-                b.retain(|d| d.ore() != crate::block::GAS_SHALE);
+                // v14 appends independent clay beds and kaolin pockets the same way.
+                let clay_here =
+                    b.iter().filter(|d| matches!(d.ore(), crate::block::CLAY | crate::block::KAOLIN)).count();
+                if v >= 14 {
+                    clay_seen += clay_here;
+                } else {
+                    assert_eq!(clay_here, 0, "v{v} must not seed clay");
+                }
+                b.retain(|d| !matches!(d.ore(), crate::block::GAS_SHALE | crate::block::CLAY | crate::block::KAOLIN));
                 assert_eq!(a.len(), b.len(), "v{v} column ({cx},{cz}) existing ore deposit count changed");
                 for (da, db) in a.iter().zip(&b) {
                     assert_eq!(da.key, db.key, "v{v} key changed");
@@ -96,6 +104,7 @@ fn deposits_v6_to_latest_keep_every_seeded_deposit_identical() {
         }
     }
     assert!(gas_seen > 0, "v13 must seed independent gas fields");
+    assert!(clay_seen > 0, "v14 must seed clay beds");
 }
 
 #[test]

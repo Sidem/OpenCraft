@@ -788,38 +788,42 @@ fn lab_with(f: &mut Factory, pos: IVec3, red: u32) {
 
 #[test]
 fn labs_research_the_chosen_tech_and_never_overshoot() {
-    use crate::research::TechState;
+    use crate::item::GREEN_PACK;
+    use crate::research::{ids, Ring, TechState};
     use lab::LabStatus;
     let mut f = Factory::default();
+    f.research.open_ring(Ring::Green);
     powered(&mut f);
     let labs = [IVec3::new(0, 0, 0), IVec3::new(1, 0, 0), IVec3::new(3, 0, 0)];
     for pos in labs {
         lab_with(&mut f, pos, 10);
+        f.insert(pos, GREEN_PACK, 10);
     }
-    let packs = |f: &Factory| labs.iter().map(|&p| f.lab_at(p).packs.total()).sum::<u32>();
+    let packs = |f: &Factory| labs.iter().map(|&p| f.lab_at(p).packs.count(crate::item::RED_PACK)).sum::<u32>();
     run(&mut f, 1.0, |_| {});
     assert_eq!((f.lab_at(labs[0]).status, packs(&f), f.power.demand[0]), (LabStatus::NoResearch, 30, 0));
-    // Belt Routing: 10 units of 5 s. Three labs finish three units at a time.
-    f.research.set_current(Some(0));
-    run(&mut f, 5.05, |_| {});
-    assert_eq!((f.research.progress(0), packs(&f), f.power.demand[0]), (3, 24, 30), "three done, three started");
+    // Underpasses: 15 units of 10 s. Three labs finish three units at a time.
+    let tech = ids::UNDERPASSES;
+    f.research.set_current(Some(tech));
+    run(&mut f, 10.05, |_| {});
+    assert_eq!((f.research.progress(tech), packs(&f), f.power.demand[0]), (3, 24, 30), "three done, three started");
     let mut f = round_trip(&f);
-    run(&mut f, 15.0, |f| assert!(f.research.progress(0) <= 10));
-    assert_eq!(f.research.state(0), TechState::Done);
-    assert_eq!((f.research.current, packs(&f)), (None, 20), "exactly one pack per unit");
+    run(&mut f, 45.0, |f| assert!(f.research.progress(tech) <= 15));
+    assert_eq!(f.research.state(tech), TechState::Done);
+    assert_eq!((f.research.current, packs(&f)), (None, 15), "exactly one pack per unit");
     assert!(labs.iter().all(|&p| f.lab_at(p).status == LabStatus::NoResearch && f.lab_at(p).unit.is_none()));
-    assert_eq!(f.research.locked_by(crate::research::Unlock::Recipe(crate::block::SPLITTER.into())), None);
+    assert_eq!(f.research.locked_by(crate::research::Unlock::Recipe(crate::block::UNDERPASS_IN.into())), None);
 }
 
 #[test]
 fn a_lab_needs_one_of_each_pack_and_power() {
     use crate::item::{GREEN_PACK, RED_PACK};
+    use crate::research::{ids, Ring};
     use lab::LabStatus;
     let mut f = Factory::default();
-    for (tech, units) in [(0, 10), (2, 30)] {
-        (0..units).for_each(|_| f.research.add_unit(tech));
-    }
-    f.research.set_current(Some(3)); // Underpasses: red and green, 10 s a unit
+    f.research.open_ring(Ring::Green);
+    let tech = ids::UNDERPASSES; // Underpasses: red and green, 10 s a unit
+    f.research.set_current(Some(tech));
     powered(&mut f);
     lab_with(&mut f, IVec3::ZERO, 5);
     lab_with(&mut f, IVec3::new(20, 0, 0), 5); // out of reach of the pole
@@ -834,7 +838,7 @@ fn a_lab_needs_one_of_each_pack_and_power() {
     f.add_belt(IVec3::new(-1, 0, 0), EAST);
     run(&mut f, 22.0, |_| {});
     let lab = f.lab_at(IVec3::ZERO);
-    assert_eq!((f.research.progress(3), lab.packs.count(RED_PACK), lab.packs.count(GREEN_PACK)), (2, 3, 0));
+    assert_eq!((f.research.progress(tech), lab.packs.count(RED_PACK), lab.packs.count(GREEN_PACK)), (2, 3, 0));
     assert_eq!(lab.status, LabStatus::NoPacks);
     assert_eq!(f.remove(IVec3::ZERO), vec![crate::inventory::Stack { item: RED_PACK, count: 3 }]);
 }
@@ -906,8 +910,8 @@ fn labs_take_blue_packs_and_a_blue_tech_uses_one_of_each_of_three() {
     use crate::item::{BLUE_PACK, GREEN_PACK, RED_PACK};
     use crate::research::{TechState, TECHS};
     let mut f = Factory::default();
-    // Everything before Mk3 Logistics (tech 11: red, green and blue, 20 s a unit) is done.
-    let mk3 = TECHS.iter().position(|t| t.name == "Mk3 Logistics").unwrap() as u8;
+    let mk3 = crate::research::ids::MK3_KITS;
+    f.research.open_ring(crate::research::Ring::Blue);
     let mut before = vec![mk3];
     while let Some(t) = before.pop() {
         before.extend(TECHS[t as usize].needs.iter().copied());
@@ -982,8 +986,8 @@ fn labs_take_violet_packs_and_a_violet_tech_uses_one_of_each_of_four() {
     use crate::item::{BLUE_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
     use crate::research::{TechState, TECHS};
     let mut f = Factory::default();
-    // Everything before Mk4 Logistics (r g b v, 30 s a unit) is done.
-    let mk4 = TECHS.iter().position(|t| t.name == "Mk4 Logistics").unwrap() as u8;
+    let mk4 = crate::research::ids::MK4_KITS;
+    f.research.open_ring(crate::research::Ring::Violet);
     let mut before = vec![mk4];
     while let Some(t) = before.pop() {
         before.extend(TECHS[t as usize].needs.iter().copied());

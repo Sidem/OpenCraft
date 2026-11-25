@@ -6,7 +6,8 @@
 //! - `water`: sea & ponds (`water.rs`, v3/v8), rivers & lakes (`rivers.rs`, v7/v8), waterfalls (`column.rs`, v8).
 //! - `cover`: trees (`trees.rs`, v9; `grow/`, v12; forest biomes `local_biome_at`, v12) and ruins (`ruins.rs`, v9/v10).
 //! - `deposits`: ore placement (`ore.rs`, v2/v3; `geology.rs`, v5/v6/v8; `strata.rs`, v4/v6; `bearing.rs`) and future
-//!   additions (such as gas fields) placed on their own grid without disturbing existing ores.
+//!   additions (gas fields `gas.rs` v13, clay and kaolin `clay.rs` v14) placed on their own grid without disturbing
+//!   existing ores.
 //!
 //! Invariants:
 //! - Every layer version is in `1..=WORLDGEN_VERSION`.
@@ -24,9 +25,9 @@ pub const LAYERS_SAVED: u32 = 81;
 /// The first deposits version whose existing ore deposits remain identical under all later upgrades
 /// (v6 froze `ore_at` / `EXTRAS` / `strata`; later deposit additions use their own independent placement).
 pub const DEPOSITS_SAFE_FROM: u32 = 6;
-/// The newest generator version that changed the `deposits` layer (v13: independent natural gas fields in
-/// `worldgen/gas.rs`). Bump alongside `WORLDGEN_VERSION` whenever new deposits ship.
-pub const DEPOSITS_LATEST: u32 = 13;
+/// The newest generator version that changed the `deposits` layer (v14: clay beds and kaolin pockets in
+/// `worldgen/clay.rs`). Bump alongside `WORLDGEN_VERSION` whenever new deposits ship.
+pub const DEPOSITS_LATEST: u32 = 14;
 
 /// The four independent generator layer versions of a world.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

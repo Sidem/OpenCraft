@@ -128,22 +128,19 @@ export const KINDS: Record<Kind, KindStyle> = {
 
 const BY_NAME: Record<string, Kind> = {};
 const LISTS: Record<Kind, string> = {
-  logistics:
-    'Belt Routing|Belt Lifts|Underpasses|Bulk Storage|Rails|Trains|Freight|Auto-Routing',
+  logistics: 'Belt Routing|Belt Lifts|Underpasses|Bulk Storage|Railways|Auto-Routing',
   machines: 'Mechanics|Assembly',
-  upgrade: 'Belt Mk2|Mk3 Logistics|Mk3 Machines|Mk4 Logistics|Mk4 Machines|Mk5 Machines',
+  upgrade: 'Mk3 Kits|Mk4 Kits|Mk5 Kits',
   materials: 'Masonry|Steelmaking|Ore Crushing|Ore Washing|Bauxite Processing|Recycling',
   power: 'Steam Power|Solar Power|Hydropower|Diesel Power|Nuclear Power|Long-Distance Power|Orbital Power',
-  science:
-    'Green Science|Blue Science|Violet Science|Gold Science|Research Center|AI Labs|AI Research',
-  chip: 'Electronics|Logic|Processors|Wafers|Accelerators|Data Network|Datacenters|Cooling|Optimizer|Photonics',
+  science: 'Research Center|AI Labs',
+  chip: 'Electronics|Logic|Processors|Chip Fab|Data Network|Datacenters|Optimizer|Photonics',
   fluid: 'Fluid Handling|Electrolysis',
-  oil: 'Oil Processing|Refining|Plastics|Acids and Lubricants|Pigments|Gas Wells|Gas Processing',
-  drone:
-    'Robotics|Drone Power|Navigation|Construction Drones|Swarm Logistics|Personal Drone|Cargo Drones|Drone Swarms',
-  tools: 'Steel Tools|Handcrafting I|Handcrafting II|Handcrafting III|Fabricator Gloves|Flamethrower',
-  player: 'Hauler Gear|Field Gear|Exosuit|Jetpack|Hover Pack|Hauler Mk3|Hauler Mk4|Hauler Mk5|X-ray Goggles',
-  build: 'Earthworks|Hoists|Settlements|Architecture|LED Lamps',
+  oil: 'Oil Refining|Plastics|Acids and Lubricants|Pigments|Natural Gas',
+  drone: 'Robotics|Construction Drones|Swarm Logistics|Personal Drone|Cargo Drones|Drone Swarms',
+  tools: 'Steel Tools|Work Gloves|Flamethrower',
+  player: 'Hauler Gear|Field Gear|Exosuit|Jetpack|Hover Pack|X-ray Goggles',
+  build: 'Earthworks|Hoists|Settlements|Stone Styles|Glass|Metalwork|Paint|LED Lamps|Clay & Kilns|Porcelain & Glazes',
   nature: 'Forestry',
   survey: 'Ore Scanning|Advanced Scanning|Seismic Prospecting|AI Survey',
   space: 'Rocketry|Orbital Comms|Orbital Science|Drop Pods',

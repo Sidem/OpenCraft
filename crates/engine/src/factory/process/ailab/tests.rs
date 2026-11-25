@@ -13,8 +13,8 @@ use crate::world::World;
 
 use super::*;
 
-/// "AI Research", the one tech so far that costs compute.
-const AI_TECH: u8 = 62;
+/// "Mining Productivity", a compute-only endless tech researched in an AI lab.
+const AI_TECH: u8 = crate::research::ids::MINING_PRODUCTIVITY;
 
 fn producer(compute: i32) -> &'static ProcessSpec {
     Box::leak(Box::new(ProcessSpec {
@@ -36,6 +36,7 @@ fn producer(compute: i32) -> &'static ProcessSpec {
 
 /// Finishes `tech` and everything it needs.
 fn finish(r: &mut Research, tech: u8) {
+    r.open_ring(TECHS[tech as usize].ring);
     for &n in TECHS[tech as usize].needs {
         finish(r, n);
     }
@@ -63,7 +64,7 @@ fn rig(block: BlockId, datacenter: bool) -> Factory {
         add_to(&mut f.processors, Processor::new(at, producer(100), 0), &mut f.at, Slot::Process);
     }
     f.dirty = true;
-    finish(&mut f.research, AI_TECH - 1);
+    finish(&mut f.research, crate::research::ids::AI_LABS);
     f.research.set_current(Some(AI_TECH));
     assert_eq!(f.research.current, Some(AI_TECH), "the tech is available");
     for p in PACKS {
@@ -93,19 +94,22 @@ fn the_spec_is_a_2x2x2_data_consumer_that_works_like_a_center() {
 }
 
 #[test]
-fn only_ai_research_costs_compute() {
+fn only_bonus_techs_cost_compute() {
     assert!(needs_ai_lab(AI_TECH) && !needs_ai_lab(0));
-    assert_eq!(TECHS[AI_TECH as usize].name, "AI Research");
+    assert_eq!(TECHS[AI_TECH as usize].name, "Mining Productivity");
 }
 
 #[test]
 fn with_a_datacenter_on_the_grid_it_researches_and_every_second_unit_is_free() {
     let mut f = rig(AI_LAB, true);
+    // Test pack-using research in an AI lab: every second unit is free of packs.
+    let tech = crate::research::ids::OPTIMIZER;
+    f.research.set_current(Some(tech));
     run(&mut f, 65.0); // 60 s a unit at twice a lab's speed: 30 s
-    assert_eq!(f.research.progress(AI_TECH), 2);
+    assert_eq!(f.research.progress(tech), 2);
     assert_eq!(lab(&f).input.count(PACKS[0]), 62, "units 1 and 3 paid, unit 2 was free");
     assert_eq!(f.power.demand[0], 101, "20 TF is on the data grid, the lab's 100 kW and the winch's 1");
-    assert_eq!(lab(&f).center_text().unwrap(), "Researching AI Research");
+    assert_eq!(lab(&f).center_text().unwrap(), "Researching Optimizer");
     let i = f.processors.iter().position(|p| p.is_ai_lab()).unwrap();
     assert_eq!(f.compute_line(i).unwrap(), "@bar|Compute|20|100|20 / 100 TF · 100%|cyan");
 }
@@ -122,10 +126,8 @@ fn without_compute_on_its_grid_it_does_not_work() {
 #[test]
 fn a_bonus_tech_takes_compute_alone_and_each_level_takes_a_quarter_longer() {
     let mut f = rig(AI_LAB, true);
-    finish(&mut f.research, AI_TECH);
-    let bonus = AI_TECH + 1; // Mining Productivity
-    f.research.set_current(Some(bonus));
-    assert_eq!(f.research.current, Some(bonus), "AI Research opens it");
+    let bonus = AI_TECH; // Mining Productivity
+    assert_eq!(f.research.current, Some(bonus), "AI Labs opens it");
     run(&mut f, 31.0); // 60 s at twice a lab's speed
     assert_eq!(f.research.progress(bonus), 1);
     run(&mut f, 30.0); // the second unit takes 75 s, so 37.5 s
@@ -140,13 +142,12 @@ fn a_bonus_tech_takes_compute_alone_and_each_level_takes_a_quarter_longer() {
 #[test]
 fn a_small_lab_and_a_center_cannot_research_a_bonus_tech_and_do_not_ask_for_power() {
     let mut f = rig(RESEARCH_CENTER, true);
-    finish(&mut f.research, AI_TECH);
-    f.research.set_current(Some(AI_TECH + 3));
+    f.research.set_current(Some(crate::research::ids::DRONE_SPEED));
     let mut world = World::new(1, 2);
     let at = IVec3::new(8, 0, 4);
     f.place(&mut world, LAB, at, 0, at, 0);
     run(&mut f, 5.0);
-    assert_eq!(f.research.progress(AI_TECH + 3), 0);
+    assert_eq!(f.research.progress(crate::research::ids::DRONE_SPEED), 0);
     assert_eq!(f.labs[0].status_text(&f.research), "Drone Speed needs an AI lab");
     assert!(!f.labs[0].wants_power(&f.research));
 }
@@ -160,6 +161,6 @@ fn a_center_and_a_small_lab_say_the_tech_needs_an_ai_lab() {
     run(&mut f, 5.0);
     assert_eq!(f.research.progress(AI_TECH), 0);
     let center = f.processors.iter().find(|p| p.is_center()).unwrap();
-    assert_eq!(center.center_text().unwrap(), "AI Research needs an AI lab");
-    assert_eq!(f.labs[0].status_text(&f.research), "AI Research needs an AI lab");
+    assert_eq!(center.center_text().unwrap(), "Mining Productivity needs an AI lab");
+    assert_eq!(f.labs[0].status_text(&f.research), "Mining Productivity needs an AI lab");
 }

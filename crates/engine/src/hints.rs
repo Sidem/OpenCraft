@@ -133,9 +133,9 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.processors_of(ARC_FURNACE) > 0,
     },
     Hint {
-        text: "Violet science: research it, then assemble *violet packs* from circuits, a steel beam and a motor. \
-               Labs take them in a fourth slot; violet kits make Mk4.",
-        done: |_, f| tech_done(f, "Violet Science"),
+        text: "Violet science: finish half of the blue ring and assemble *violet packs* from circuits, a steel beam \
+               and a motor to open the violet ring. Labs take them in a fourth slot; violet kits make Mk4.",
+        done: |_, f| f.research.ring_open(crate::research::Ring::Violet),
     },
     Hint {
         text: "Solar power: research Solar Power. A *panel* gives up to 10 kW by day and nothing at night; wire it to a \
@@ -206,10 +206,10 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.processors_of(REACTOR) > 0,
     },
     Hint {
-        text: "Gold science: research Gold Science and a *research center*, which alone has slots for gold packs. \
-               Assemble packs from a plastic, a battery and a processor; Mk5 Machines, researched with them, makes \
-               gold kits for Mk5.",
-        done: |_, f| tech_done(f, "Gold Science"),
+        text: "Gold science: finish half of the violet ring and build a *research center*, which alone has slots for \
+               gold packs. Assemble packs from a plastic, a battery and a processor to open the gold ring; Mk5 Kits \
+               makes gold kits for Mk5.",
+        done: |_, f| f.research.ring_open(crate::research::Ring::Gold),
     },
     Hint {
         text: "Compute: research Data Network and Datacenters. Fibre nodes within 12 blocks join into a data grid, and \

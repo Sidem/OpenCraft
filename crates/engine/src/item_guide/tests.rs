@@ -17,7 +17,7 @@ fn needed() -> Vec<ItemId> {
     out.extend(FUELS.iter().map(|f| f.0));
     out.extend(ORDERS.iter().flat_map(|o| o.iter().map(|l| l.0)));
     for kind in 0..4 {
-        out.extend((1..=STAGES as u8).flat_map(|built| upkeep(kind, built)).map(|l| l.0));
+        out.extend((1..=STAGES as u8).flat_map(|built| upkeep(kind, built, |_| true)).map(|l| l.0));
     }
     out.extend(
         (0..BLOCK_COUNT)

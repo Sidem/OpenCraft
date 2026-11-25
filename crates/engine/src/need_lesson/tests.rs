@@ -94,11 +94,13 @@ fn power_short() -> Game {
 }
 
 fn short_grid(mut g: Game) -> Game {
-    let tech = TECHS.iter().position(|t| t.needs.is_empty() && t.packs == [item::RED_PACK]).unwrap() as u8;
+    g.sim.factory.research.open_ring(crate::research::Ring::Green);
+    let tech = crate::research::ids::MECHANICS;
     let labs: Vec<IVec3> = (0..8).map(|i| at(i * 2, 3)).collect();
     for &l in &labs {
         g.place_at(l.x, l.y, l.z, block::LAB, 0);
         stock(&mut g, l, item::RED_PACK, 50);
+        stock(&mut g, l, item::GREEN_PACK, 50);
     }
     let poles: Vec<IVec3> = (0..4).map(|i| at(2 + i * 4, 1)).collect();
     power(&mut g, poles[0], &labs[0..2]);
@@ -111,10 +113,8 @@ fn short_grid(mut g: Game) -> Game {
         }
     }
     g.sim.factory.research.current = Some(tech);
-    for t in 0..TECHS.len() as u8 {
-        if TECHS[t as usize].packs == [item::RED_PACK] {
-            g.act(Action::QueueResearch { tech: t });
-        }
+    for t in [crate::research::ids::UNDERPASSES, crate::research::ids::MASONRY, crate::research::ids::FLUID_HANDLING] {
+        g.act(Action::QueueResearch { tech: t });
     }
     stay(&mut g, at(14, 6), labs[7], 40.0);
     g

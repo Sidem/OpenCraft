@@ -40,12 +40,19 @@ from `crates/engine/src/settlements/`; keep this file in sync when they change.
 - From the camp on, a town **uses up goods every minute**: 20 at a camp, 60 at a hamlet, 150 at a village, 300 at
   a town and 600 at a city, shared over its kind's goods (two basics first, one better good added a stage):
 
-| Kind              | Goods, in the order they join                                       |
-| ----------------- | ------------------------------------------------------------------- |
-| Harbour           | planks, glass, lamps, concrete, plastic, circuits                   |
-| River town        | stone bricks, lamps, glass, steel plates, motors, circuits          |
-| Highland workshop | gears, steel plates, motors, steel beams, circuits, processors      |
-| Basalt forge      | coal ore, quicklime, stone bricks, steel plates, motors, circuits   |
+| Kind              | Goods, in the order they join                                       | Late good        |
+| ----------------- | ------------------------------------------------------------------- | ---------------- |
+| Harbour           | planks, glass, lamps, concrete, plastic, circuits                   | batteries        |
+| River town        | stone bricks, lamps, glass, steel plates, motors, circuits          | drones           |
+| Highland workshop | gears, steel plates, motors, steel beams, circuits, processors      | AI accelerators  |
+| Basalt forge      | coal ore, quicklime, stone bricks, steel plates, motors, circuits   | aluminium plates |
+
+- **Late goods.** From the village on, a town also uses a few of its late good a minute, more as it grows
+  (`LATE_PER_MINUTE` in `settlements/orders.rs`), on top of the rest. It starts asking only once your machines have
+  made one, so a village never stalls on something you can't make yet.
+
+- **Wares.** From the hamlet on, a river town also uses up what its houses are built from: clay bricks and terracotta
+  roof tiles (`WARES`, `WARES_PER_MINUTE` in `settlements/orders.rs`), each only once your machines have made one.
 
 - If a minute's upkeep is missing, the town **stalls**: its order stops filling and its perk pauses until the
   goods are there. A message tells you when a town stalls (and what it is short of) and when it is supplied again.

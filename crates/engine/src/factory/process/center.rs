@@ -282,7 +282,13 @@ impl Study {
 
     pub(super) fn read_state(&mut self, r: &mut ByteReader) -> Option<()> {
         let unit = r.u8()?;
-        self.unit = (unit != u8::MAX).then_some(unit).filter(|&t| (t as usize) < TECHS.len());
+        self.unit = if unit == u8::MAX {
+            None
+        } else if r.version < 86 {
+            crate::research::migrate::map_tech_id(unit)
+        } else {
+            Some(unit).filter(|&t| (t as usize) < TECHS.len())
+        };
         self.progress = r.u32()?;
         (self.since_free, self.free) = (r.u8()?, r.bool()?);
         Some(())

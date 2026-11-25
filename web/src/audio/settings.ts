@@ -11,7 +11,7 @@ export const MATERIAL_DIALS = ['pitch', 'tone', 'length', 'crunch', 'scatter', '
 export type MaterialDial = (typeof MATERIAL_DIALS)[number];
 export type MaterialParams = Record<MaterialDial, number>;
 
-export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click', 'scan', 'thump', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown', 'denied', 'flame'] as const;
+export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click', 'scan', 'thump', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown', 'denied', 'flame', 'discover', 'achieve'] as const;
 export type ActionName = (typeof ACTIONS)[number];
 
 export const ACTION_DIALS = ['volume', 'pitch', 'length', 'weight', 'debris'] as const;
@@ -220,6 +220,18 @@ export const ACTION_INFO: Record<ActionName, { label: string; help: string; mate
     material: false,
     dials: ['volume', 'pitch', 'length'],
   },
+  discover: {
+    label: 'New element',
+    help: 'Two glassy bell notes rising when the Codex records an element for the first time.',
+    material: false,
+    dials: ['volume', 'pitch', 'length'],
+  },
+  achieve: {
+    label: 'Achievement',
+    help: 'A rising bell arpeggio landing on a ringing chord when you unlock an achievement.',
+    material: false,
+    dials: ['volume', 'pitch', 'length'],
+  },
 };
 
 // prettier-ignore
@@ -274,6 +286,8 @@ export const DEFAULT_DESIGN: SoundDesign = {
     poddown: neutral(),
     denied: neutral(),
     flame: neutral(),
+    discover: neutral(),
+    achieve: neutral(),
   },
 };
 

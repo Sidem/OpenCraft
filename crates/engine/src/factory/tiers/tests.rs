@@ -229,23 +229,26 @@ fn a_mk2_generator_gives_100_kw_and_a_quarter_more_energy_from_the_same_coal() {
 
 #[test]
 fn labs_work_at_one_two_and_three_times_the_speed_and_a_mk3_skips_every_fifth_pack() {
-    use crate::item::RED_PACK;
-    // Belt Routing: 5 s a unit at full power. 10 s and a bit is 603 ticks.
+    use crate::item::{GREEN_PACK, RED_PACK};
+    use crate::research::{ids, Ring};
+    // Underpasses: 10 s a unit at full power. 20 s and a bit is 1207 ticks.
     let units = |tier: u8, packs: u32, ticks: f64| {
         let mut f = Factory::default();
+        f.research.open_ring(Ring::Green);
         powered(&mut f, 0);
         place_at(&mut f, LAB, IVec3::ZERO, tier);
         assert_eq!(f.insert(IVec3::ZERO, RED_PACK, packs), packs);
-        f.research.set_current(Some(0));
+        assert_eq!(f.insert(IVec3::ZERO, GREEN_PACK, packs), packs);
+        f.research.set_current(Some(ids::UNDERPASSES));
         run(&mut f, ticks / crate::TICK_RATE as f64, |_| {});
-        (f.research.progress(0), f.lab_at(IVec3::ZERO).packs.total(), f.power.demand[0])
+        (f.research.progress(ids::UNDERPASSES), f.lab_at(IVec3::ZERO).packs.count(RED_PACK), f.power.demand[0])
     };
-    assert_eq!(units(0, 20, 603.5), (2, 17, 10), "Mk1: two units, a third started");
-    assert_eq!(units(1, 20, 603.5), (4, 15, 20), "Mk2: 2.5 s a unit");
-    assert_eq!(units(2, 20, 603.5), (6, 14, 30), "Mk3: six units for five packs and a free fifth");
+    assert_eq!(units(0, 20, 1207.0), (2, 17, 10), "Mk1: two units, a third started");
+    assert_eq!(units(1, 20, 1207.0), (4, 15, 20), "Mk2: 5 s a unit");
+    assert_eq!(units(2, 20, 1207.0), (6, 14, 30), "Mk3: six units for five packs and a free fifth");
     // Four packs are enough for five units at Mk3, and only four units at Mk1.
-    assert_eq!(units(2, 4, 500.5).0, 5);
-    assert_eq!(units(0, 4, 2000.0).0, 4);
+    assert_eq!(units(2, 4, 1001.0).0, 5);
+    assert_eq!(units(0, 4, 4000.0).0, 4);
     // The lab says so.
     let mut f = Factory::default();
     place_at(&mut f, LAB, IVec3::ZERO, 2);
@@ -293,15 +296,22 @@ fn a_mk4_belt_carries_about_twenty_items_a_second() {
 
 #[test]
 fn a_mk4_lab_works_four_times_as_fast_and_every_third_unit_is_free() {
-    use crate::item::RED_PACK;
+    use crate::item::{GREEN_PACK, RED_PACK};
+    use crate::research::{ids, Ring};
     let mut f = Factory::default();
+    f.research.open_ring(Ring::Green);
     powered(&mut f, 0);
     place_at(&mut f, LAB, IVec3::ZERO, 3);
     assert_eq!(f.insert(IVec3::ZERO, RED_PACK, 20), 20);
-    f.research.set_current(Some(0));
-    // 5 s a unit at full power is 1.25 s at Mk4: eight units in 10 s, two of them free (6 packs), and the ninth,\n    // a free one too, is under way.
-    run(&mut f, 603.5 / crate::TICK_RATE as f64, |_| {});
-    assert_eq!((f.research.progress(0), f.lab_at(IVec3::ZERO).packs.total(), f.power.demand[0]), (8, 14, 40));
+    assert_eq!(f.insert(IVec3::ZERO, GREEN_PACK, 20), 20);
+    f.research.set_current(Some(ids::UNDERPASSES));
+    // 10 s a unit at full power is 2.5 s at Mk4: eight units in 20 s, two of them free (6 packs), and the ninth,
+    // a free one too, is under way.
+    run(&mut f, 1207.0 / crate::TICK_RATE as f64, |_| {});
+    assert_eq!(
+        (f.research.progress(ids::UNDERPASSES), f.lab_at(IVec3::ZERO).packs.count(RED_PACK), f.power.demand[0]),
+        (8, 14, 40)
+    );
     assert!(f.describe(IVec3::ZERO).unwrap().contains("@stats|×4 speed|40 kW|Every 3rd free"));
 }
 

@@ -13,6 +13,7 @@ use crate::item::ItemId;
 mod aluminium;
 mod automate;
 mod chemistry;
+pub(crate) mod clay;
 mod compute;
 pub mod content;
 mod decor;
@@ -289,6 +290,10 @@ pub const RECIPES: &[Recipe] = &[
     THUMPER_MK3_RECIPE,
     GLASS_KILN_RECIPE,
     PAINT_SPRAYER_RECIPE,
+    WORK_GLOVES_RECIPE,
+    WORK_GLOVES_MK2_RECIPE,
+    WORK_GLOVES_MK3_RECIPE,
+    WORK_GLOVES_MK4_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

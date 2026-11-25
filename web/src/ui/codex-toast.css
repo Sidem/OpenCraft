@@ -1,0 +1,233 @@
+/* Codex unlock popups (codex-toast.ts): glassy cards stacked at the top left. An element card glows in its category
+   colour (`--cat-col` from `.cx-cat` in codex.css), an achievement card in gold. Cards spring in, a sheen crosses them
+   once, a thin bar at the bottom runs out while they stay (hover pauses it), then they slide away. */
+
+/* In the HUD's left column (hud-columns.css), under the helper status and above the tips; the cards' glow and
+   slide-in reach past it, so it doesn't clip. */
+#hud-left > .cxt-stack {
+  flex-shrink: 0;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+#hud-left > .cxt-stack:empty {
+  display: none;
+}
+
+.cxt {
+  --glow: var(--cat-col, #5dc3ff);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 16px 14px 12px;
+  border-radius: 14px;
+  overflow: hidden;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  pointer-events: auto;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--glow) 18%, rgba(14, 17, 24, 0.94)),
+    rgba(12, 14, 20, 0.92) 62%
+  );
+  border: 1px solid color-mix(in srgb, var(--glow) 50%, transparent);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 0 26px color-mix(in srgb, var(--glow) 24%, transparent);
+  backdrop-filter: blur(8px);
+  animation: cxt-in 560ms cubic-bezier(0.2, 1.35, 0.35, 1) both;
+}
+
+.cxt:hover {
+  border-color: var(--glow);
+}
+
+/* One sweep of light across the card as it lands. */
+.cxt::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.13) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: cxt-sheen 1100ms ease-out 260ms both;
+  pointer-events: none;
+}
+
+.cxt-achievement {
+  --glow: #f6c453;
+}
+
+.cxt-complete .cxt-kicker {
+  color: #f6c453;
+}
+
+.cxt-complete .cxt-tile {
+  border-color: #f6c453;
+  box-shadow: 0 0 0 3px rgba(246, 196, 83, 0.25), 0 0 22px rgba(246, 196, 83, 0.55);
+}
+
+.cxt-leaving {
+  animation: cxt-out 460ms ease-in forwards;
+  pointer-events: none;
+}
+
+/* The words. */
+.cxt-body {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cxt-kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--glow);
+}
+
+.cxt-title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cxt-achievement .cxt-title {
+  background: linear-gradient(90deg, #fff6d6, #f6c453 70%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.cxt-sub {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.cxt-count {
+  margin-top: 3px;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--glow) 55%, var(--muted));
+  font-variant-numeric: tabular-nums;
+}
+
+/* The time left, running out along the bottom edge. */
+.cxt-timer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--glow));
+  transform-origin: left;
+  animation: cxt-timer linear forwards;
+}
+
+.cxt:hover .cxt-timer {
+  animation-play-state: paused;
+}
+
+@keyframes cxt-in {
+  from {
+    opacity: 0;
+    transform: translateX(-36px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cxt-out {
+  0% {
+    opacity: 1;
+    transform: none;
+    max-height: 140px;
+  }
+  55% {
+    opacity: 0;
+    transform: translateX(-40px);
+    max-height: 140px;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-40px);
+    max-height: 0;
+    margin-top: -10px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+@keyframes cxt-sheen {
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes cxt-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes cxt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Reduced motion: cards fade, nothing flies or turns; the timer still runs (it only shrinks). */
+@media (prefers-reduced-motion: reduce) {
+  .cxt {
+    animation: cxt-fade-in 200ms ease-out both;
+  }
+
+  .cxt-leaving {
+    animation: cxt-fade-out 200ms ease-in forwards;
+  }
+
+  .cxt::before {
+    display: none;
+  }
+}
+
+@keyframes cxt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* What an unlock popup pointed at, glowing once as the Codex opens on it (`CodexPanel.openAt`). */
+.cx-flash {
+  animation: cx-flash 1.4s ease-out 2;
+}
+
+@keyframes cx-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(246, 196, 83, 0);
+  }
+  40% {
+    box-shadow: 0 0 0 4px rgba(246, 196, 83, 0.75), 0 0 24px rgba(246, 196, 83, 0.6);
+  }
+}

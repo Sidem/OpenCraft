@@ -306,7 +306,20 @@ pub const KILN_SIDE: u16 = THUMPER_PISTON + 1;
 pub const KILN_TOP: u16 = KILN_SIDE + 1;
 pub const KILN_GLOW: u16 = KILN_TOP + 1;
 pub const PAINT_SPRAYER: u16 = KILN_GLOW + 1;
-pub const COUNT: usize = PAINT_SPRAYER as usize + 1;
+/// Work Gloves Mk1–Mk4 (TREE-CORE, model/item layers past 512; Mk5 is `CRAFT_GLOVES`).
+pub const WORK_GLOVES: u16 = PAINT_SPRAYER + 1;
+pub const WORK_GLOVES_MK2: u16 = WORK_GLOVES + 1;
+pub const WORK_GLOVES_MK3: u16 = WORK_GLOVES + 2;
+pub const WORK_GLOVES_MK4: u16 = WORK_GLOVES + 3;
+/// Clay and kilns (MAT-CLAY, `block/clay.rs`, `textures/clay.rs`): two soft ores and five fired ceramics.
+pub const CLAY: u16 = WORK_GLOVES_MK4 + 1;
+pub const KAOLIN: u16 = CLAY + 1;
+pub const CLAY_BRICKS: u16 = CLAY + 2;
+pub const TERRACOTTA: u16 = CLAY + 3;
+pub const PORCELAIN: u16 = CLAY + 4;
+pub const TURQUOISE_TILES: u16 = CLAY + 5;
+pub const AMBER_TILES: u16 = CLAY + 6;
+pub const COUNT: usize = AMBER_TILES as usize + 1;
 
 /// The case layer of the kit of tier `tier` (1 is Mk2, the green kit).
 pub const fn kit_paint(tier: u8) -> u16 {

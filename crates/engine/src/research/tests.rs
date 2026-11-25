@@ -73,7 +73,18 @@ fn the_tech_table_passes_the_lint() {
 #[test]
 fn the_tech_lint_catches_a_planted_mistake_of_each_kind() {
     const fn tech(name: &'static str, needs: &'static [u8], unlocks: &'static [Unlock]) -> Tech {
-        Tech { name, blurb: "", needs, packs: &[RED_PACK], units: 1, seconds: 1.0, unlocks }
+        Tech {
+            name,
+            blurb: "",
+            ring: Ring::Red,
+            wedge: Wedge::Logistics,
+            deed: None,
+            needs,
+            packs: &[RED_PACK],
+            units: 1,
+            seconds: 1.0,
+            unlocks,
+        }
     }
     const SPLITTERS: Unlock = Unlock::Recipe(ItemId::block(SPLITTER));
     const BAD: [Tech; 4] = [
@@ -103,28 +114,39 @@ fn the_tech_lint_catches_a_planted_mistake_of_each_kind() {
 #[test]
 fn prerequisites_gate_what_can_be_chosen() {
     let mut r = Research::default();
-    assert_eq!((r.state(0), r.state(1), r.state(3)), (TechState::Available, TechState::Locked, TechState::Locked));
-    r.set_current(Some(1));
+    assert_eq!(
+        (r.state(ids::BELT_ROUTING), r.state(ids::MECHANICS), r.state(ids::ASSEMBLY)),
+        (TechState::Available, TechState::Locked, TechState::Locked)
+    );
+    // Deeds cannot be chosen for labs.
+    r.set_current(Some(ids::BELT_ROUTING));
+    assert_eq!(r.current, None, "a deed can't be chosen for labs");
+    // Open the Green ring: Mechanics becomes available, Assembly still waits for Mechanics + Masonry.
+    r.open_ring(Ring::Green);
+    assert_eq!((r.state(ids::MECHANICS), r.state(ids::ASSEMBLY)), (TechState::Available, TechState::Locked));
+    r.set_current(Some(ids::ASSEMBLY));
     assert_eq!(r.current, None, "a locked tech can't be chosen");
-    r.set_current(Some(0));
-    assert_eq!(r.current, Some(0));
-    finish(&mut r, 0);
-    assert_eq!((r.state(0), r.current), (TechState::Done, None), "labs stop when it's done");
-    assert_eq!((r.state(1), r.state(2), r.state(3)), (TechState::Available, TechState::Available, TechState::Locked));
-    r.set_current(Some(0));
+    r.set_current(Some(ids::MECHANICS));
+    assert_eq!(r.current, Some(ids::MECHANICS));
+    finish(&mut r, ids::MECHANICS);
+    assert_eq!((r.state(ids::MECHANICS), r.current), (TechState::Done, None), "labs stop when it's done");
+    finish(&mut r, ids::MASONRY);
+    assert_eq!(r.state(ids::ASSEMBLY), TechState::Available);
+    r.set_current(Some(ids::MECHANICS));
     assert_eq!(r.current, None, "a done tech can't be chosen again");
-    r.add_unit(0);
-    assert_eq!(r.progress(0), TECHS[0].units, "progress never passes the units");
+    r.add_unit(ids::MECHANICS);
+    assert_eq!(r.progress(ids::MECHANICS), TECHS[ids::MECHANICS as usize].units, "progress never passes the units");
 }
 
 #[test]
 fn techs_lock_the_recipes_they_unlock() {
     let mut r = Research::default();
-    assert_eq!(r.locked_by(Unlock::Recipe(SPLITTER.into())), Some(0));
-    assert_eq!(r.locked_by(Unlock::Recipe(GREEN_PACK)), Some(2));
+    assert_eq!(r.locked_by(Unlock::Recipe(SPLITTER.into())), Some(ids::BELT_ROUTING));
+    assert!(!r.has(Unlock::Recipe(GREEN_PACK)), "green pack waits for half of the red ring");
     assert_eq!(r.locked_by(Unlock::Recipe(BELT.into())), None, "not in the tree: available from the start");
-    finish(&mut r, 0);
+    r.complete_deed(ids::BELT_ROUTING);
     assert_eq!(r.locked_by(Unlock::Recipe(SPLITTER.into())), None);
+    assert!(r.has(Unlock::Recipe(GREEN_PACK)), "1 of 2 red deeds unlocks the green pack recipe");
 }
 
 /// Every tech that has been done by the time `tech` is: it and its prerequisites, all the way back.
@@ -163,19 +185,19 @@ fn unlock_recipes(u: Unlock) -> Vec<(ItemId, Vec<ItemId>)> {
 /// smelted from ore from the start (Ore Crushing only adds a second way, from crushed ore).
 const EARLY_INGREDIENTS: &[(&str, &str)] = &[
     ("Pigments", "Copper Ingot"),
-    ("Architecture", "Iron Ingot"),
-    ("Architecture", "Copper Ingot"),
+    ("Glass", "Iron Ingot"),
+    ("Glass", "Copper Ingot"),
+    ("Glass", "Sand"),
+    ("Chip Fab", "Sand"),
     ("Mechanics", "Pump"),
     ("Mechanics", "Forester"),
-    ("Mk5 Machines", "Drone Port Mk4"),
-    ("Mk4 Machines", "Seismic Thumper"),
-    ("Mk5 Machines", "Seismic Thumper Mk2"),
+    ("Mk5 Kits", "Drone Port Mk4"),
+    ("Mk5 Kits", "Pumpjack"),
+    ("Mk4 Kits", "Seismic Thumper"),
+    ("Mk5 Kits", "Seismic Thumper Mk2"),
     ("Ore Washing", "Crushed Bauxite"),
     ("Assembly", "Sand"),
-    ("Architecture", "Sand"),
     ("Pigments", "Sand"),
-    ("Architecture", "Slag"),
-    ("Architecture", "Sulfur"),
 ];
 
 /// Whether `item` has no tech that unlocks a way to make it: raw, found, or crafted by hand from the start.
@@ -211,73 +233,196 @@ fn every_ingredient_comes_from_a_tech_before_the_tech_that_needs_it() {
 }
 
 #[test]
+fn every_declared_need_is_real() {
+    // Physical infrastructure dependencies that aren't item ingredients (e.g. piped water, compute grid, ghost mode).
+    const INFRA: &[(&str, &str)] = &[
+        ("Steam Power", "Fluid Handling"),
+        ("Ore Washing", "Fluid Handling"),
+        ("Oil Refining", "Fluid Handling"),
+        ("Electrolysis", "Fluid Handling"),
+        ("Nuclear Power", "Fluid Handling"),
+        ("Datacenters", "Fluid Handling"),
+        ("Datacenters", "Data Network"),
+        ("AI Labs", "Datacenters"),
+        ("Optimizer", "Datacenters"),
+        ("Drone Swarms", "Datacenters"),
+        ("Photonics", "Data Network"),
+        ("Orbital Comms", "Data Network"),
+        ("Orbital Science", "Data Network"),
+        ("Drop Pods", "Orbital Comms"),
+        ("Earthworks", "Construction Drones"),
+        ("Auto-Routing", "Construction Drones"),
+        ("AI Survey", "Advanced Scanning"),
+        ("AI Survey", "Processors"),
+        ("Diesel Power", "Oil Refining"),
+        ("Flamethrower", "Oil Refining"),
+        ("Natural Gas", "Acids and Lubricants"),
+    ];
+    let mut errors = Vec::new();
+    for (i, tech) in TECHS.iter().enumerate() {
+        for &need in tech.needs {
+            let b = &TECHS[need as usize];
+            if is_bonus(i as u8) && need == ids::AI_LABS {
+                continue;
+            }
+            if INFRA.contains(&(tech.name, b.name)) {
+                continue;
+            }
+            // 1. Does `tech` unlock a recipe/upgrade whose ingredient (or base block / kit) is unlocked by `b`?
+            let uses_item = tech.unlocks.iter().any(|&u| {
+                if let Unlock::Upgrade(block, tier) = u {
+                    if b.unlocks.contains(&Unlock::Recipe(ItemId::block(block)))
+                        || (tier > 1 && b.unlocks.contains(&Unlock::Upgrade(block, tier - 1)))
+                    {
+                        return true;
+                    }
+                    if let Some(kit) = crate::factory::upgrades::kit(tier) {
+                        if b.unlocks.iter().any(|&v| unlock_recipes(v).iter().any(|p| p.0 == kit)) {
+                            return true;
+                        }
+                    }
+                }
+                unlock_recipes(u).iter().any(|(_, ings)| {
+                    ings.iter().any(|&x| {
+                        !made_from_the_start(x) && b.unlocks.iter().any(|&v| unlock_recipes(v).iter().any(|p| p.0 == x))
+                    })
+                })
+            });
+            // 2. Does `tech` unlock a machine recipe whose category runs in a machine unlocked by `b`?
+            let uses_machine = tech.unlocks.iter().any(|&u| match u {
+                Unlock::MachineRecipe(r) => {
+                    let cat = MACHINE_RECIPES[usize::from(r)].category;
+                    b.unlocks.iter().any(|&v| match v {
+                        Unlock::Recipe(item) => {
+                            let blk = crate::item::def(item).map_or(crate::block::AIR, |d| d.places);
+                            blk != crate::block::AIR && crate::factory::makes(blk, cat)
+                        }
+                        _ => false,
+                    })
+                }
+                _ => false,
+            });
+            if !uses_item && !uses_machine {
+                errors.push(format!("{} declares need {} without using its items or machines", tech.name, b.name));
+            }
+        }
+    }
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+#[test]
 fn research_reads_back_what_it_wrote() {
     let mut r = Research::default();
-    finish(&mut r, 0);
-    (0..7).for_each(|_| r.add_unit(2));
-    r.set_current(Some(2));
+    r.complete_deed(ids::BELT_ROUTING);
+    r.open_ring(Ring::Green);
+    (0..7).for_each(|_| r.add_unit(ids::MECHANICS));
+    r.set_current(Some(ids::MECHANICS));
     let mut w = ByteWriter::default();
     r.write_state(&mut w);
-    assert_eq!(Research::read_state(&mut ByteReader::new(&w.bytes)), Some(r));
+    let mut reader = ByteReader::new(&w.bytes);
+    reader.version = crate::save::SAVE_VERSION;
+    assert_eq!(Research::read_state(&mut reader), Some(r));
 }
 
 #[test]
-fn forestry_is_a_violet_tech_that_comes_after_the_violet_pack_is_made() {
-    let by_name = |name: &str| TECHS.iter().position(|t| t.name == name).unwrap() as u8;
-    let forestry = &TECHS[by_name("Forestry") as usize];
-    assert_eq!(forestry.needs, &[by_name("Violet Science")]);
-    assert!(forestry.packs.contains(&VIOLET_PACK) && !forestry.packs.contains(&GOLD_PACK));
+fn forestry_is_a_green_tech() {
+    let forestry = &TECHS[ids::FORESTRY as usize];
+    assert_eq!(forestry.ring, Ring::Green);
+    assert_eq!(forestry.packs, &[RED_PACK, GREEN_PACK]);
 }
 
 #[test]
-fn the_drone_is_the_end_of_a_long_violet_ladder() {
-    let by_name = |name: &str| TECHS.iter().position(|t| t.name == name).unwrap() as u8;
-    let (processors, robotics, power, nav, drones) = (
-        by_name("Processors"),
-        by_name("Robotics"),
-        by_name("Drone Power"),
-        by_name("Navigation"),
-        by_name("Construction Drones"),
-    );
+fn the_drone_is_the_end_of_a_violet_ladder() {
+    let (processors, robotics, drones) = (ids::PROCESSORS, ids::ROBOTICS, ids::CONSTRUCTION_DRONES);
     let mut r = Research::default();
+    r.open_ring(Ring::Violet);
     let mut steps = 0;
-    // Finish prerequisites one at a time until the drones tech is available: every step is a tech to do.
     while r.state(drones) != TechState::Available {
-        let next = (0..TECHS.len() as u8).find(|&t| r.state(t) == TechState::Available && t != drones).unwrap();
+        let next =
+            (0..TECHS.len() as u8).find(|&t| r.state(t) == TechState::Available && t != drones && !is_deed(t)).unwrap();
         finish(&mut r, next);
         steps += 1;
     }
-    assert!(steps >= 12, "only {steps} techs stand in front of the drone");
-    for t in [processors, robotics, power, nav, drones] {
+    assert!(steps >= 6, "only {steps} techs stand in front of the drone");
+    for t in [processors, robotics, drones] {
         assert_eq!(r.state(t), if t == drones { TechState::Available } else { TechState::Done });
         assert!(TECHS[t as usize].packs.contains(&VIOLET_PACK), "{} needs violet packs", TECHS[t as usize].name);
     }
     assert!(TECHS[drones as usize].units >= 200, "the last rung is the dearest");
-    assert!(
-        r.locked_by(Unlock::MachineRecipe(crate::recipes::DRONE_RECIPES[5])).is_some()
-            == (r.state(drones) != TechState::Done)
+    assert_eq!(
+        r.locked_by(Unlock::MachineRecipe(crate::recipes::DRONE_RECIPES[5])).is_some(),
+        r.state(drones) != TechState::Done
     );
 }
 
 #[test]
 fn scanning_progression_spans_green_blue_violet_and_gold_tiers() {
-    let by_name = |name: &str| TECHS.iter().position(|t| t.name == name).unwrap() as u8;
-    let scan = by_name("Ore Scanning");
-    let adv = by_name("Advanced Scanning");
-    let seis = by_name("Seismic Prospecting");
-    let mk4 = by_name("Mk4 Machines");
-    let mk5 = by_name("Mk5 Machines");
-    let t_scan = &TECHS[scan as usize];
-    let t_adv = &TECHS[adv as usize];
-    let t_seis = &TECHS[seis as usize];
+    let t_scan = &TECHS[ids::ORE_SCANNING as usize];
+    let t_adv = &TECHS[ids::ADVANCED_SCANNING as usize];
+    let t_seis = &TECHS[ids::SEISMIC_PROSPECTING as usize];
     assert_eq!(t_scan.packs, &[RED_PACK, GREEN_PACK]);
     assert!(t_scan.unlocks.contains(&Unlock::Recipe(crate::item::SCANNER)));
     assert_eq!(t_adv.packs, &[RED_PACK, GREEN_PACK, BLUE_PACK]);
-    assert!(t_adv.needs.contains(&scan));
+    assert!(t_adv.needs.contains(&ids::ORE_SCANNING));
     assert!(t_adv.unlocks.contains(&Unlock::Recipe(crate::item::SCANNER_MK2)));
     assert_eq!(t_seis.packs, &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK]);
-    assert!(t_seis.needs.contains(&adv));
-    assert!(t_seis.needs.contains(&by_name("Violet Science")));
-    assert!(TECHS[mk4 as usize].unlocks.contains(&Unlock::Upgrade(crate::block::THUMPER, 1)));
-    assert!(TECHS[mk5 as usize].unlocks.contains(&Unlock::Upgrade(crate::block::THUMPER, 2)));
+    assert!(TECHS[ids::MK4_KITS as usize].unlocks.contains(&Unlock::Upgrade(crate::block::THUMPER, 1)));
+    assert!(TECHS[ids::MK5_KITS as usize].unlocks.contains(&Unlock::Upgrade(crate::block::THUMPER, 2)));
+}
+
+#[test]
+fn ring_pack_unlocks_at_half_the_previous_ring_and_opens_on_first_pack() {
+    let mut r = Research::default();
+    assert!(!r.ring_open(Ring::Green));
+    assert!(!r.ring_pack_unlocked(Ring::Green));
+    // Completing 1 of 2 Red deeds unlocks the Green Pack recipe, but doesn't open the Green ring yet.
+    r.complete_deed(ids::BELT_ROUTING);
+    assert!(r.ring_pack_unlocked(Ring::Green));
+    assert!(!r.ring_open(Ring::Green));
+    // Crafting the first Green Pack opens the Green ring!
+    r.note(&[crate::sim::SimEvent::Crafted { player: crate::sim::PlayerId(0), item: GREEN_PACK, count: 1 }], &[]);
+    assert!(r.ring_open(Ring::Green));
+    assert_eq!(r.state(ids::MECHANICS), TechState::Available);
+}
+
+#[test]
+fn red_deeds_complete_by_laying_belts_and_climbing_steps() {
+    use crate::math::IVec3;
+    use crate::sim::{PlayerId, SimEvent};
+    let mut r = Research::default();
+    // Lay 40 belts -> completes Belt Routing.
+    for i in 0..BELT_DEED_TARGET {
+        r.note(&[SimEvent::BlockPlaced { player: PlayerId(0), pos: IVec3::new(i as i32, 0, 0), block: BELT }], &[]);
+    }
+    assert_eq!(r.state(ids::BELT_ROUTING), TechState::Done);
+    assert_eq!(r.state(ids::BELT_LIFTS), TechState::Available);
+    // Run a connected belt line up 3 vertical steps -> completes Belt Lifts.
+    let chain = [IVec3::new(0, 0, 0), IVec3::new(1, 1, 0), IVec3::new(2, 2, 0), IVec3::new(3, 3, 0)];
+    r.note(&[SimEvent::BlockPlaced { player: PlayerId(0), pos: chain[3], block: BELT }], &chain);
+    assert_eq!(r.state(ids::BELT_LIFTS), TechState::Done);
+}
+
+#[test]
+fn pre_86_research_migrates_old_progress_science_gates_merges_and_splits() {
+    let mut w = ByteWriter::default();
+    w.u8(85); // old current = Architecture
+    w.count(migrate::OLD_TECH_COUNT);
+    let mut old = vec![0u32; migrate::OLD_TECH_COUNT];
+    old[2] = 30; // Green Science done -> opens Green ring
+    old[10] = 50; // Blue Science done -> opens Blue ring
+    old[85] = 40; // Architecture done -> Stone Styles, Glass, Metalwork, Paint
+    old[74] = 40; // Handcrafting I done -> Work Gloves
+    old[63] = 7; // Mining Productivity level 7 -> index 65 level 7
+    for p in old {
+        w.u32(p);
+    }
+    w.count(0); // empty queue
+    let mut reader = ByteReader::new(&w.bytes);
+    reader.version = 85;
+    let r = Research::read_state(&mut reader).expect("migrates cleanly");
+    assert!(r.ring_open(Ring::Blue));
+    for t in [ids::STONE_STYLES, ids::GLASS, ids::METALWORK, ids::PAINT, ids::WORK_GLOVES] {
+        assert_eq!(r.state(t), TechState::Done, "{}", TECHS[t as usize].name);
+    }
+    assert_eq!(r.level(Bonus::Mining), 7);
 }

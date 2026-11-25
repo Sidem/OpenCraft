@@ -18,7 +18,11 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::SPRING_BOOTS => boots(x, y, [40.0, 150.0, 150.0], true),
         tex::SERVO_BOOTS => boots(x, y, [60.0, 90.0, 170.0], false),
         tex::EXO_FRAME => exo_frame(x, y),
-        tex::CRAFT_GLOVES => gloves(x, y),
+        tex::WORK_GLOVES => gloves(x, y, 0),
+        tex::WORK_GLOVES_MK2 => gloves(x, y, 1),
+        tex::WORK_GLOVES_MK3 => gloves(x, y, 2),
+        tex::WORK_GLOVES_MK4 => gloves(x, y, 3),
+        tex::CRAFT_GLOVES => gloves(x, y, 4),
         tex::XRAY_GOGGLES => goggles(x, y),
         _ => mining_rig(x, y),
     }
@@ -105,8 +109,9 @@ fn exo_frame(x: i32, y: i32) -> [u8; 4] {
     rgb([84.0, 92.0, 112.0], 0.85 + 0.15 * n(424, x, y))
 }
 
-/// A dark glove: four fingers and a thumb, a gold cuff and a cyan servo pad on the back of the hand.
-fn gloves(x: i32, y: i32) -> [u8; 4] {
+/// A work glove (`tier` 0..=4): four fingers and a thumb, a cuff in leather (Mk1) or the tier's kit colour, and a cyan
+/// servo pad on the top tier (`CRAFT_GLOVES`).
+fn gloves(x: i32, y: i32, tier: usize) -> [u8; 4] {
     let finger = |i: i32| x >= 3 + 2 * i && x < 5 + 2 * i && y >= 2 + (i - 1).abs() && y < 8;
     let palm = (3..11).contains(&x) && (7..12).contains(&y);
     let thumb = (11..14).contains(&x) && (8..11).contains(&y);
@@ -115,9 +120,10 @@ fn gloves(x: i32, y: i32) -> [u8; 4] {
         return dark();
     }
     if y >= 12 {
-        return rgb([225.0, 180.0, 50.0], 0.95 + 0.15 * n(427, x, y));
+        let tint = if tier > 0 { FLAPS[tier - 1] } else { [148.0, 108.0, 68.0] };
+        return rgb(tint, 0.95 + 0.15 * n(427, x, y));
     }
-    if (6..9).contains(&x) && (8..11).contains(&y) {
+    if tier == 4 && (6..9).contains(&x) && (8..11).contains(&y) {
         return rgb([90.0, 226.0, 255.0], 1.1);
     }
     rgb([54.0, 58.0, 72.0], 0.85 + 0.2 * n(428, x, y))

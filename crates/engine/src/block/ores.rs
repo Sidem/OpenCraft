@@ -7,7 +7,17 @@ use super::*;
 pub fn is_ore(id: BlockId) -> bool {
     matches!(
         id,
-        COAL_ORE | IRON_ORE | COPPER_ORE | LIMESTONE | QUARTZ_ORE | BAUXITE_ORE | OIL_SAND | URANIUM_ORE | GAS_SHALE
+        COAL_ORE
+            | IRON_ORE
+            | COPPER_ORE
+            | LIMESTONE
+            | QUARTZ_ORE
+            | BAUXITE_ORE
+            | OIL_SAND
+            | URANIUM_ORE
+            | GAS_SHALE
+            | CLAY
+            | KAOLIN
     )
 }
 
@@ -23,6 +33,8 @@ pub fn ore_label(id: BlockId) -> &'static str {
         OIL_SAND => "Oil sand",
         URANIUM_ORE => "Uranium",
         GAS_SHALE => "Natural gas",
+        CLAY => "Clay",
+        KAOLIN => "Kaolin",
         _ => "Ore",
     }
 }

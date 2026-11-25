@@ -11,6 +11,7 @@
 //! the processor specs that take it.
 
 use super::automate::AUTOMATE;
+use super::clay::CLAY_RECIPES;
 use super::decor::DECOR;
 use super::dye::DYE;
 use super::gas::GAS_MACHINES;
@@ -71,6 +72,8 @@ pub enum Category {
     Reforming,
     /// Silica (glass, sand or quartz) and pigment melted into stained glass (the glass kiln).
     Glassmaking,
+    /// Clay, kaolin and porcelain fired into roof tiles, porcelain and glazed tiles (the glass kiln).
+    Firing,
 }
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `outputs` appear after
@@ -91,7 +94,8 @@ use Category::{Arc, Assembly, Blasting, Crushing, Electrolysis, Pressing, Smelti
 /// hold row indices, so rows only ever go on the end: a new table joins after the last one (a tier or family added to
 /// `refit.rs` later goes in a table of its own too, as the upgrader's rows are derived from `FAMILIES`, and a test asks
 /// that every tier has one). The ruins' salvage row (`scrap.rs`) follows, then the decor set's rows (`decor.rs`),
-/// then upgrader rows for families tiered later (`REFIT_LATER`, full), then the Pigments tech's (`dye.rs`).
+/// then upgrader rows for families tiered later (`REFIT_LATER`, full), then the Pigments tech's (`dye.rs`), stained glass,
+/// gas, the thumper's upgrades, raw stained glass and clay (`clay.rs`).
 pub const MACHINE_RECIPES: &[MachineRecipe] = &join::<
     MachineRecipe,
     {
@@ -108,6 +112,7 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &join::<
             + GAS_MACHINES.len()
             + REFIT_SEISMIC.len()
             + STAINED_GLASS_RAW.len()
+            + CLAY_RECIPES.len()
     },
 >(&[
     MAIN,
@@ -123,6 +128,7 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &join::<
     GAS_MACHINES,
     REFIT_SEISMIC,
     STAINED_GLASS_RAW,
+    CLAY_RECIPES,
 ]);
 
 const MAIN: &[MachineRecipe] = &[

@@ -110,10 +110,16 @@ impl Game {
         (0..MACHINE_RECIPES.len() as u32).filter(|&i| makes(block, MACHINE_RECIPES[i as usize].category)).collect()
     }
 
-    /// The tech whose research unlocks machine recipe `i`, or -1 if it isn't locked.
+    /// The tech whose research unlocks machine recipe `i`, `-1` if unlocked, or `-2` if locked by a ring threshold.
     pub fn machine_recipe_locked_by(&self, i: u32) -> i32 {
         let unlock = Unlock::MachineRecipe(i.min(u16::MAX as u32) as u16);
-        self.sim.factory.research.locked_by(unlock).map_or(-1, i32::from)
+        if let Some(t) = self.sim.factory.research.locked_by(unlock) {
+            i32::from(t)
+        } else if !self.sim.factory.research.has(unlock) {
+            -2
+        } else {
+            -1
+        }
     }
 
     /// A machine recipe's inputs as flat (item, count) pairs.

@@ -88,6 +88,8 @@ fn released_versions_never_change() {
     // Version 12 (grown trees, forest biomes): pinned 2026-11-14, re-pinned that day before release (grown oaks of their
     // own log, no wood dug into the ground, palm fronds arching lower).
     assert_eq!(digest(12), 0x1e26_f2b5_5860_7d5b, "version 12");
+    // Version 13 (gas fields): pinned 2026-11-25 with version 14 (clay), which branches only at `layers.deposits >= 14`.
+    assert_eq!(digest(13), 0x1e26_f2b5_5860_7d5b, "version 13");
 }
 
 #[test]

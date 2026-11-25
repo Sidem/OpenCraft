@@ -43,6 +43,8 @@ export const ACTION_BASE: Record<ActionName, ActionBase> = {
   poddown: { gain: 0.7, jitter: 0.05, variants: 2, material: false, pitch: 1, length: 1, weight: 0, reach: 3 },
   denied: { gain: 0.35, jitter: 0.03, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
   flame: { gain: 0.52, jitter: 0.1, variants: 3, material: false, pitch: 1, length: 1, weight: 0 },
+  discover: { gain: 0.3, jitter: 0, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
+  achieve: { gain: 0.36, jitter: 0, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
 };
 
 /** Typical in-game event volume and distance, so previews match what you hear while playing. */

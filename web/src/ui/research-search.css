@@ -22,7 +22,8 @@
 
 .rs-search-note {
   position: absolute;
-  right: 28px;
+  right: 30px;
+  white-space: nowrap;
   top: 6px;
   font-size: 12px;
   color: var(--accent);

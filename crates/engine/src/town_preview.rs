@@ -82,7 +82,7 @@ impl Game {
         if let Some(perk) = town.perk_text() {
             s += &format!("\n{perk}");
         }
-        let upkeep = upkeep(town.kind, town.built.max(1));
+        let upkeep = upkeep(town.kind, town.built.max(1), |item| self.sim.settlements.made.has(item));
         let goods: Vec<String> = upkeep.iter().map(|&(item, n)| format!("{} {n}", name(item))).collect();
         if built == 0 {
             return Some(s + &format!("\nThe camp will use a minute: {}", lines(&goods)));
@@ -114,7 +114,7 @@ impl Game {
     /// The upkeep goods its depot holds less than a minute of.
     pub(crate) fn short_of(&self, town: &Town) -> Vec<&'static str> {
         let held = |item| self.sim.factory.depot_held(town.pos).map_or(0, |b| b.count_like(item));
-        upkeep(town.kind, town.built.max(1))
+        upkeep(town.kind, town.built.max(1), |item| self.sim.settlements.made.has(item))
             .iter()
             .filter(|&&(item, n)| held(item) < n)
             .map(|&(item, _)| name(item))

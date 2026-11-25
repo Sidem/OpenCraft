@@ -32,7 +32,7 @@ fn the_town_panel_reads_its_depot_and_the_news_follows_a_stall_and_its_end() {
     assert!(news.starts_with("Your basalt forge has stalled: short of Coal Ore"), "{news}");
 
     // Its upkeep in the store: supplied again.
-    for (item, n) in g.sim.settlements.towns[0].upkeep() {
+    for (item, n) in g.sim.settlements.towns[0].upkeep(&g.sim.settlements.made) {
         g.sim.factory.depot_store(AT).unwrap().add(item, n);
     }
     g.sim.step();

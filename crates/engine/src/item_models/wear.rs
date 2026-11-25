@@ -9,7 +9,8 @@ use super::{part, turned, Part};
 use crate::block::tex;
 use crate::item::{
     ItemId, CRAFT_GLOVES, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5,
-    HOVER_PACK, JETPACK, MINING_RIG, PLANNER, SERVO_BOOTS, SICKLE, SPRING_BOOTS, TELESCOPE, XRAY_GOGGLES,
+    HOVER_PACK, JETPACK, MINING_RIG, PLANNER, SERVO_BOOTS, SICKLE, SPRING_BOOTS, TELESCOPE, WORK_GLOVES,
+    WORK_GLOVES_MK2, WORK_GLOVES_MK3, WORK_GLOVES_MK4, XRAY_GOGGLES,
 };
 
 const METAL: u16 = tex::MAT_METAL;
@@ -33,7 +34,11 @@ pub(super) fn parts(item: ItemId) -> &'static [Part] {
         SERVO_BOOTS => &SERVO_PAIR,
         EXO_FRAME => &EXO,
         MINING_RIG => &RIG,
-        CRAFT_GLOVES => &GLOVES,
+        WORK_GLOVES => &GLOVES_1,
+        WORK_GLOVES_MK2 => &GLOVES_2,
+        WORK_GLOVES_MK3 => &GLOVES_3,
+        WORK_GLOVES_MK4 => &GLOVES_4,
+        CRAFT_GLOVES => &GLOVES_5,
         XRAY_GOGGLES => &GOGGLES,
         PLANNER => &TABLET,
         TELESCOPE => &TELESCOPE_MODEL,
@@ -186,13 +191,15 @@ const RIG: [Part; 10] = Build::new()
     .with(turned([0.26, -0.28, 0.08], [0.04, 0.06, 0.04], 0.8, METAL))
     .done();
 
-/// A fabricator glove at `x` lying palm down, its thumb toward `inner` (-1 or 1): an ember cuff, the back of the
-/// hand with its glowing node, four fingers and the thumb.
-const fn glove(x: f32, inner: f32) -> [Part; 8] {
+/// A work glove at `x` lying palm down, its thumb toward `inner` (-1 or 1): a cuff in its tier colour, the back of the
+/// hand (with a glowing node on Mk5), four fingers and the thumb.
+const fn glove(x: f32, inner: f32, tier: u8) -> [Part; 8] {
+    let cuff = if tier == 0 { WEBBING } else { tex::stripe(tier) };
+    let pad = if tier == 4 { tex::LAMP_BLUE } else { cuff };
     [
-        part([x, -0.03, -0.16], [0.22, 0.08, 0.12], EMBER),
+        part([x, -0.03, -0.16], [0.22, 0.08, 0.12], cuff),
         part([x, -0.04, 0.0], [0.2, 0.06, 0.22], RUBBER),
-        part([x, -0.005, 0.0], [0.08, 0.012, 0.08], tex::LAMP_BLUE),
+        part([x, -0.005, 0.0], [0.08, 0.012, 0.08], pad),
         turned([x + inner * 0.12, -0.05, 0.03], [0.05, 0.04, 0.12], inner * 0.6, RUBBER),
         part([x - 0.075, -0.05, 0.16], [0.04, 0.04, 0.1], RUBBER),
         part([x - 0.025, -0.05, 0.175], [0.04, 0.04, 0.13], RUBBER),
@@ -201,8 +208,16 @@ const fn glove(x: f32, inner: f32) -> [Part; 8] {
     ]
 }
 
-/// Fabricator gloves: a pair, thumbs inward.
-const GLOVES: [Part; 16] = Build::new().all(glove(-0.2, 1.0)).all(glove(0.2, -1.0)).done();
+const fn gloves_pair(tier: u8) -> [Part; 16] {
+    Build::new().all(glove(-0.2, 1.0, tier)).all(glove(0.2, -1.0, tier)).done()
+}
+
+/// Work Gloves Mk1–Mk4 and Fabricator Gloves (Mk5): a pair, thumbs inward.
+const GLOVES_1: [Part; 16] = gloves_pair(0);
+const GLOVES_2: [Part; 16] = gloves_pair(1);
+const GLOVES_3: [Part; 16] = gloves_pair(2);
+const GLOVES_4: [Part; 16] = gloves_pair(3);
+const GLOVES_5: [Part; 16] = gloves_pair(4);
 
 /// X-ray goggles facing the viewer: a webbing strap, two brass-rimmed square lenses of glowing cyan glass and a bridge.
 const GOGGLES: [Part; 7] = [

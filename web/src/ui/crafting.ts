@@ -160,7 +160,7 @@ export class BuildMenu {
     this.goalGroup = -1;
     for (const t of this.tiles) {
       if (t.state === 'guide') continue;
-      t.state = g.recipe_locked_by(t.id) >= 0 ? 'locked' : g.craftable_times(t.id) > 0 ? 'ready' : 'short';
+      t.state = g.recipe_locked_by(t.id) !== -1 ? 'locked' : g.craftable_times(t.id) > 0 ? 'ready' : 'short';
       t.root.dataset.state = t.state;
       t.root.classList.toggle('craft-goal', t.item === goal);
       if (t.item === goal) this.goalGroup = t.group;

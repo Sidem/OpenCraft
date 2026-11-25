@@ -212,7 +212,7 @@ fn mesher_emits_per_face_paint_on_cubes_and_shaped_blocks() {
     };
     assert_eq!(same.opaque_quads, diff.opaque_quads - 1, "same-painted faces greedy-merge");
 
-    // Shaped slab carries its face paint in w2 bits 26..31.
+    // Shaped slab carries its face paint in w2 bits 27..32.
     centre.set(10, 12, 10, CONCRETE);
     centre.set_shape(10, 12, 10, crate::shape::SLAB_B2);
     centre.set_paint(10, 12, 10, set_face(0, 2, 5));
@@ -221,6 +221,6 @@ fn mesher_emits_per_face_paint_on_cubes_and_shaped_blocks() {
         chunks[13] = &centre;
         mesher.mesh(&chunks, &light, None)
     };
-    let has_yellow_top = shaped.shaped.chunks_exact(3).any(|w| ((w[2] >> 26) & 31) == 5);
+    let has_yellow_top = shaped.shaped.chunks_exact(3).any(|w| ((w[2] >> 27) & 31) == 5);
     assert!(has_yellow_top, "shaped slab top face carries yellow paint id in w2");
 }

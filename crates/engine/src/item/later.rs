@@ -139,3 +139,16 @@ pub const THUMPER_MK3: ItemId = ItemId(444);
 pub const GLASS_KILN_ITEM: ItemId = ItemId(445);
 /// Handheld Paint Sprayer (L-COLOUR, `colour_hands.rs`): sprays paintable building surfaces in place using pigments.
 pub const PAINT_SPRAYER: ItemId = ItemId(446);
+/// Work Gloves Mk1–Mk4 (`equipment.rs`, `GLOVES_TIERS`; Mk5 is `CRAFT_GLOVES`).
+pub const WORK_GLOVES: ItemId = ItemId(447);
+pub const WORK_GLOVES_MK2: ItemId = ItemId(448);
+pub const WORK_GLOVES_MK3: ItemId = ItemId(449);
+pub const WORK_GLOVES_MK4: ItemId = ItemId(450);
+/// Clay and kilns (MAT-CLAY, wide blocks 263–269, `block/clay.rs`): the two soft ores, then the five ceramics.
+pub const CLAY_ITEM: ItemId = ItemId(451);
+pub const KAOLIN_ITEM: ItemId = ItemId(452);
+pub const CLAY_BRICKS_ITEM: ItemId = ItemId(453);
+pub const TERRACOTTA_ITEM: ItemId = ItemId(454);
+pub const PORCELAIN_ITEM: ItemId = ItemId(455);
+pub const TURQUOISE_TILES_ITEM: ItemId = ItemId(456);
+pub const AMBER_TILES_ITEM: ItemId = ItemId(457);

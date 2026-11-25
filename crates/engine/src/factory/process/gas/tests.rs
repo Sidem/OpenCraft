@@ -45,8 +45,7 @@ fn above_deposit(world: &World, ore: crate::block::BlockId) -> IVec3 {
 
 fn powered_factory(world: &mut World, at: IVec3, gens: i32) -> Factory {
     let mut f = Factory::default();
-    f.research.finish("Gas Wells");
-    f.research.finish("Gas Processing");
+    f.research.finish("Natural Gas");
     let pole = at + IVec3::new(4, 0, 0);
     f.place(world, POLE, pole, 0, pole, 0);
     for k in 1..=gens {
@@ -137,8 +136,7 @@ fn gas_turbine_powers_grid_with_methane_and_lpg_ahead_of_diesel() {
     let at = IVec3::new(0, 70, 0);
     let mut f = Factory::default();
     f.research.finish("Ore Crushing");
-    f.research.finish("Gas Wells");
-    f.research.finish("Gas Processing");
+    f.research.finish("Natural Gas");
     let pole = at + IVec3::new(3, 0, 0);
     f.place(&mut world, POLE, pole, 0, pole, 0);
     f.place(&mut world, GAS_TURBINE, at, 0, at, 0);
@@ -214,8 +212,7 @@ fn steam_reformer_and_ethylene_to_polyethylene_chain_works() {
 #[test]
 fn gas_machines_survive_save_and_reload() {
     let mut g = Game::new_normal(1337, 2);
-    g.sim.factory.research.finish("Gas Wells");
-    g.sim.factory.research.finish("Gas Processing");
+    g.sim.factory.research.finish("Natural Gas");
     let spot = IVec3::new(0, 72, 0);
     for (i, block) in [GAS_WELL, WELLHEAD_SEPARATOR, GAS_PLANT, GAS_TURBINE, STEAM_REFORMER].into_iter().enumerate() {
         let p = spot + IVec3::new(i as i32 * 6, 0, 0);

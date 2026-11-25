@@ -140,7 +140,7 @@ impl Ctx<'_> {
 
     fn push_quad(&mut self, pts: [[f32; 3]; 4], uvs: [[f32; 2]; 4], normal: [f32; 3], face: usize, light: u8) {
         let paint = crate::colour::get_face(self.paint, face);
-        let layer = FACE_TEX[self.b as usize][face] | (u16::from(paint) << 10);
+        let layer = (FACE_TEX[self.b as usize][face] & 0x7FF) | (u16::from(paint) << 11);
         let q = std::array::from_fn(|i| vert(self.cell, pts[i], normal, uvs[i], 7, light));
         match self.pass {
             Pass::Opaque => self.out.packed(false, q, layer),

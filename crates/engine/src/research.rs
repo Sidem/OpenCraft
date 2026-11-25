@@ -12,24 +12,27 @@
 //! A new kind of unlock: an `Unlock` variant (features arrive with their first use), its arm in
 //! `Unlock::item` and in the lint (`tests.rs`). A tier item's hand recipe is locked like its upgrade.
 
-mod ai;
+mod blue;
 mod bonus;
-mod chemistry;
-mod compute;
-mod distance;
-mod electronics;
-mod hands;
+mod gold_sky;
+pub mod ids;
 mod later;
-mod orbit;
-mod personal;
+pub(crate) mod migrate;
 mod queue;
-mod recycling;
+mod red_green;
+mod rings;
 mod techs;
+mod violet;
 
 pub use bonus::{is_bonus, Bonus};
-pub use compute::needs_ai_lab;
 pub use queue::MAX_QUEUE;
+pub use rings::{is_deed, pack_part_techs, pack_recipe_ring, Deed, Ring, Wedge, BELT_DEED_TARGET, RING_COUNT};
 pub use techs::TECHS;
+
+/// Whether `tech` can be researched only in an AI lab (compute-only endless techs).
+pub fn needs_ai_lab(tech: u8) -> bool {
+    is_bonus(tech)
+}
 
 use crate::block::BlockId;
 use crate::bytes::{ByteReader, ByteWriter};
@@ -51,6 +54,7 @@ pub enum Unlock {
     /// A tool or view the player gets (`Feature`).
     Feature(Feature),
     /// One tier (1, 2, ...) of a player's own rate; `perks::player_bonus` adds up the finished tiers.
+    #[allow(dead_code)]
     Perk(Stat, u8),
 }
 
@@ -82,6 +86,12 @@ pub struct Tech {
     pub name: &'static str,
     /// One line for the research screen.
     pub blurb: &'static str,
+    /// Era ring (`docs/TECH_TREE.md` section 10).
+    pub ring: Ring,
+    /// Discipline wedge (`docs/TECH_TREE.md` section 10).
+    pub wedge: Wedge,
+    /// Present for red-ring deeds (completed by doing, not in labs).
+    pub deed: Option<Deed>,
     /// Techs (by index) that must be done first.
     pub needs: &'static [u8],
     /// One of each is used per unit.
@@ -104,7 +114,7 @@ pub enum TechState {
     Done,
 }
 
-/// The world's research: the chosen tech and units done per tech.
+/// The world's research: the chosen tech, units done per tech, opened rings and deed counters.
 #[derive(Clone, PartialEq, Debug)]
 pub struct Research {
     pub current: Option<u8>,
@@ -112,7 +122,11 @@ pub struct Research {
     queue: Vec<u8>,
     /// Units done, by tech index.
     progress: [u32; TECHS.len()],
-    /// Which machine recipes are unlocked (derived from `progress` by `refresh`, never saved).
+    /// Bitmask of opened rings (Red bit is always set; Green..Sky open on their milestone).
+    open_rings: u8,
+    /// Belts placed toward the `Belt Routing` deed (`BELT_DEED_TARGET`).
+    pub(crate) belts_laid: u32,
+    /// Which machine recipes are unlocked (derived from `progress` and `open_rings` by `refresh`, never saved).
     unlocked: [bool; MACHINE_RECIPES.len()],
 }
 
@@ -122,6 +136,8 @@ impl Default for Research {
             current: None,
             queue: Vec::new(),
             progress: [0; TECHS.len()],
+            open_rings: Ring::Red.bit(),
+            belts_laid: 0,
             unlocked: [false; MACHINE_RECIPES.len()],
         };
         res.refresh();
@@ -138,18 +154,18 @@ impl Research {
         let Some(t) = TECHS.get(tech as usize) else { return TechState::Locked };
         if self.progress(tech) >= t.units {
             TechState::Done
-        } else if t.needs.iter().all(|&n| self.state(n) == TechState::Done) {
+        } else if self.ring_open(t.ring) && t.needs.iter().all(|&n| self.state(n) == TechState::Done) {
             TechState::Available
         } else {
             TechState::Locked
         }
     }
 
-    /// Chooses what labs work on now; ignored unless the tech is available. The tech it replaces waits at the
-    /// front of the queue (an endless one is just dropped). `None` gives the current tech up and moves on to the
-    /// next queued one.
+    /// Chooses what labs work on now; ignored unless the tech is available and not a deed. The tech it replaces waits
+    /// at the front of the queue (an endless one is just dropped). `None` gives the current tech up and moves on to
+    /// the next queued one.
     pub fn set_current(&mut self, tech: Option<u8>) {
-        if tech.is_some_and(|t| self.state(t) != TechState::Available) {
+        if tech.is_some_and(|t| self.state(t) != TechState::Available || is_deed(t)) {
             return;
         }
         let old = self.current.filter(|&c| tech != Some(c) && !is_bonus(c));
@@ -181,7 +197,7 @@ impl Research {
         (self.state(i) != TechState::Done).then_some(i)
     }
 
-    /// Whether `unlock` is available: no tech lists it, or its tech is done.
+    /// Whether `unlock` is available: no tech or ring threshold locks it, or its gate is done.
     /// Retired dyed-concrete machine recipes are never unlocked in new play (`is_retired_recipe`).
     pub fn has(&self, unlock: Unlock) -> bool {
         if let Unlock::MachineRecipe(i) = unlock {
@@ -189,11 +205,16 @@ impl Research {
                 return false;
             }
         }
+        if let Some(ring) = pack_recipe_ring(unlock) {
+            return self.ring_pack_unlocked(ring);
+        }
         self.locked_by(unlock).is_none()
     }
 
-    /// Marks every tech done (creative worlds), so labs have nothing left to work on.
+    /// Marks every tech and ring milestone done (creative worlds), so labs have nothing left to work on.
     pub fn complete_all(&mut self) {
+        self.open_rings = (1 << RING_COUNT) - 1;
+        self.belts_laid = BELT_DEED_TARGET;
         for (p, t) in self.progress.iter_mut().zip(TECHS.iter()) {
             *p = t.units;
         }
@@ -230,22 +251,29 @@ impl Research {
         }
     }
 
-    /// Tests: finishes the tech called `name` at once.
+    /// Tests: finishes the tech called `name` at once (opening its ring too).
     #[cfg(test)]
     pub fn finish(&mut self, name: &str) {
         let t = TECHS.iter().position(|t| t.name == name).expect("a tech of that name") as u8;
+        self.open_ring(TECHS[t as usize].ring);
         (0..TECHS[t as usize].units).for_each(|_| self.add_unit(t));
     }
 
-    /// Current tech (`u8::MAX` for none), units done for every tech, then the queue (since save 41).
+    /// Current tech (`u8::MAX` for none), units done for every tech, queue (since save 41), then open rings and
+    /// `belts_laid` (since save 86).
     pub fn write_state(&self, w: &mut ByteWriter) {
         w.u8(self.current.unwrap_or(u8::MAX));
         w.count(TECHS.len());
         self.progress.iter().for_each(|&p| w.u32(p));
         self.write_queue(w);
+        w.u8(self.open_rings);
+        w.u32(self.belts_laid);
     }
 
     pub fn read_state(r: &mut ByteReader) -> Option<Research> {
+        if r.version < 86 {
+            return migrate::read_legacy(r);
+        }
         let current = r.u8()?;
         let n = r.count()?;
         if n > TECHS.len() {
@@ -255,14 +283,15 @@ impl Research {
         for (p, t) in res.progress.iter_mut().zip(&TECHS[..n]) {
             *p = r.u32()?.min(t.units);
         }
+        res.read_queue(r)?;
+        res.open_rings = r.u8()? | Ring::Red.bit();
+        res.belts_laid = r.u32()?.min(BELT_DEED_TARGET);
         res.refresh();
-        if current != u8::MAX {
-            res.set_current(Some(current));
+        if current != u8::MAX && res.state(current) == TechState::Available && !is_deed(current) {
+            res.current = Some(current);
         }
-        if r.version >= 41 {
-            res.read_queue(r)?;
-            res.advance();
-        }
+        res.prune();
+        res.advance();
         Some(res)
     }
 }

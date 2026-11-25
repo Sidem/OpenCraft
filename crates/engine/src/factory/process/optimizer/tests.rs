@@ -105,7 +105,7 @@ fn the_best_optimizer_in_range_counts_and_the_range_is_sixteen_blocks() {
 #[test]
 fn it_multiplies_with_the_machine_speed_research() {
     let mut f = rig(&[NEAR], true);
-    (0..10).for_each(|_| f.research.add_unit(64)); // Machine Speed level 10: x1.3
+    (0..10).for_each(|_| f.research.add_unit(crate::research::ids::MACHINE_SPEED)); // Machine Speed level 10: x1.3
     run(&mut f, 0.1, |_| {});
     assert_eq!(f.constructor_at(IVec3::ZERO).boost, 1625);
 }

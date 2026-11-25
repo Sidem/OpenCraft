@@ -95,16 +95,17 @@
   box-shadow: 0 0 12px rgba(246, 196, 83, 0.35);
 }
 
-.cx-cell[data-cat='nonmetal'] { --cat-col: #56c2ff; }
-.cx-cell[data-cat='noble'] { --cat-col: #b084f5; }
-.cx-cell[data-cat='alkali'] { --cat-col: #f06565; }
-.cx-cell[data-cat='alkaline'] { --cat-col: #f2a65a; }
-.cx-cell[data-cat='metalloid'] { --cat-col: #47d1a5; }
-.cx-cell[data-cat='halogen'] { --cat-col: #f2d06b; }
-.cx-cell[data-cat='metal'] { --cat-col: #7da6e8; }
-.cx-cell[data-cat='transition'] { --cat-col: #e89b5a; }
-.cx-cell[data-cat='lanthanide'] { --cat-col: #d482d9; }
-.cx-cell[data-cat='actinide'] { --cat-col: #6be675; }
+/* Category colours, shared by the table's cells and the unlock popups' tiles (codex-toast.ts). */
+.cx-cat[data-cat='nonmetal'] { --cat-col: #56c2ff; }
+.cx-cat[data-cat='noble'] { --cat-col: #b084f5; }
+.cx-cat[data-cat='alkali'] { --cat-col: #f06565; }
+.cx-cat[data-cat='alkaline'] { --cat-col: #f2a65a; }
+.cx-cat[data-cat='metalloid'] { --cat-col: #47d1a5; }
+.cx-cat[data-cat='halogen'] { --cat-col: #f2d06b; }
+.cx-cat[data-cat='metal'] { --cat-col: #7da6e8; }
+.cx-cat[data-cat='transition'] { --cat-col: #e89b5a; }
+.cx-cat[data-cat='lanthanide'] { --cat-col: #d482d9; }
+.cx-cat[data-cat='actinide'] { --cat-col: #6be675; }
 
 .cx-z {
   position: absolute;

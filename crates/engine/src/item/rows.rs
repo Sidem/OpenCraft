@@ -33,6 +33,11 @@ pub(super) const fn wide_machine(name: &'static str, tex: [u16; 3], places: crat
     ItemDef { name, stack: MAX_STACK, tex, size: [1.0; 3], places }
 }
 
+/// A wide building or ore block (block id >= 256): a full cube in its layer, placing places (`AIR` for an ore).
+pub(super) const fn wide_block(name: &'static str, layer: u16, places: crate::block::BlockId) -> ItemDef {
+    ItemDef { name, stack: MAX_STACK, tex: [layer; 3], size: [1.0; 3], places }
+}
+
 /// A tool: a flat plate showing it, whose stack size is its uses.
 pub(super) const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }

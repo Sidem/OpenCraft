@@ -101,10 +101,8 @@ fn kits_upgrade_belts_until_they_run_out_once_research_allows() {
     sim.apply(P, Action::Give { item: GREEN_KIT, count: 9 });
     let upgrade_all = |sim: &mut Sim| (0..12).for_each(|x| sim.apply(P, Action::Upgrade { pos: at(x), tier: 1 }));
     upgrade_all(&mut sim);
-    assert_eq!(inv(&sim).count(GREEN_KIT), 9, "Belt Mk2 isn't researched yet");
-    for tech in [0, 2, 4, 5] {
-        (0..crate::research::TECHS[tech as usize].units).for_each(|_| sim.factory.research.add_unit(tech));
-    }
+    assert_eq!(inv(&sim).count(GREEN_KIT), 9, "Mechanics isn't researched yet");
+    sim.factory.research.finish("Mechanics");
     upgrade_all(&mut sim);
     let tiers: Vec<u8> = (0..12).map(|x| sim.factory.tiered_at(at(x)).unwrap().1).collect();
     assert_eq!(tiers, [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0], "9 kits upgrade 9 of 12");
@@ -480,14 +478,38 @@ fn crafting_a_recipe_research_locks_does_nothing() {
     let splitter = RECIPES.iter().position(|r| r.output == SPLITTER.into()).unwrap() as u16;
     sim.apply(P, Action::Craft { recipe: splitter, times: 1 });
     assert_eq!((inv(&sim).count(SPLITTER.into()), inv(&sim).count(IRON_PLATE)), (0, 4), "Belt Routing isn't done");
-    sim.apply(P, Action::SetResearch { tech: 0 });
-    assert_eq!(sim.factory.research.current, Some(0));
-    (0..crate::research::TECHS[0].units).for_each(|_| sim.factory.research.add_unit(0));
+    sim.factory.research.complete_deed(crate::research::ids::BELT_ROUTING);
     sim.apply(P, Action::Craft { recipe: splitter, times: 1 });
     for _ in 0..RECIPES[splitter as usize].hand_ticks() {
         sim.step();
     }
     assert_eq!(inv(&sim).count(SPLITTER.into()), 1);
+}
+
+#[test]
+fn red_deeds_finish_from_belts_placed_in_play_up_a_staircase_and_along_the_ground() {
+    use crate::research::{ids, TechState, BELT_DEED_TARGET};
+    let mut sim = Sim::new(7, 2);
+    sim.apply(P, Action::Join { key: 0 });
+    sim.apply(P, Action::Give { item: BELT.into(), count: 64 });
+    let place = |sim: &mut Sim, pos: IVec3| {
+        let below = pos - IVec3::new(0, 1, 0);
+        sim.world.set_block_anywhere(below, STONE);
+        let slot = inv(sim).slots.iter().position(|s| s.item == BELT.into()).unwrap() as u8;
+        sim.queue(sim.tick, P, Action::PlaceBlock { pos, slot, facing: 1, against: below });
+        sim.step();
+        assert_eq!(sim.world.block_anywhere_or_generate(pos), BELT, "placed at {pos:?}");
+    };
+    // Four belts up three blocks, as a line laid up a slope places them.
+    for i in 0..4 {
+        place(&mut sim, IVec3::new(i, 140 + i, 0));
+    }
+    assert_eq!(sim.factory.research.state(ids::BELT_LIFTS), TechState::Done);
+    assert_eq!(sim.factory.research.deed_progress(ids::BELT_ROUTING), 4);
+    for i in 0..BELT_DEED_TARGET as i32 - 4 {
+        place(&mut sim, IVec3::new(i, 140, 10));
+    }
+    assert_eq!(sim.factory.research.state(ids::BELT_ROUTING), TechState::Done);
 }
 
 /// One of every action, with values that show up if a field is dropped or swapped.
@@ -575,6 +597,8 @@ fn samples() -> Vec<Action> {
         Action::Ignite { pos, heat: 3 },
         Action::Flame { origin: crate::math::Vec3::new(1.5, 65.0, -2.25), dir: crate::math::Vec3::new(0.0, 0.0, 1.0) },
         Action::PlaceShaped { pos, slot: 2, shape: crate::shape::SLAB_B2 },
+        Action::PaintFace { pos, face: 1, colour: 2 },
+        Action::UpgradeGloves,
     ]
 }
 
