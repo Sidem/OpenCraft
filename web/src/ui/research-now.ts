@@ -102,7 +102,14 @@ export class NowCard {
       const unlocked = g.ring_pack_unlocked(r);
       const left = unlocked ? 0 : g.ring_threshold_left(r);
       const prev = g.ring_name(r - 1);
-      list.append(step(left === 0, left > 0 ? `Research ${left} more ${prev} tech${left === 1 ? '' : 's'}` : `Research half the ${prev} ring`));
+      const red = r === 1;
+      const stepLabel =
+        left > 0
+          ? red
+            ? `Finish ${left} more ${prev} tech or deed`
+            : `Research ${left} more ${prev} tech${left === 1 ? '' : 's'}`
+          : `Finish half the ${prev} ring`;
+      list.append(step(left === 0, stepLabel));
       for (const t of g.ring_parts_left(r)) {
         const s = step(false, 'Research ');
         s.append(button('rn-step-link', g.tech_name(t), () => this.onSelect(t)));

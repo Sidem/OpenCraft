@@ -70,13 +70,6 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.count(Kind::Generator) > 0 && f.count(Kind::Pole) > 0,
     },
     Hint {
-        text: "Stone by machine: furnaces, generators and constructors all use *stone*, which lies under the grass \
-               and dirt. Rather than digging by hand, craft a *quarry* and wire it to a pole: it digs a pit in \
-               front of it and fills a belt or box beside it with stone and dirt (or *sand* on a beach). Hold one to \
-               see its box ([R] turns it); [Right-click] it to choose size and depth.",
-        done: |_, f| f.count(Kind::Quarry) > 0,
-    },
-    Hint {
         text: "Carry the ore away: hold [Right-click] on the ground next to the miner and *drag* to lay a \
                line of belts, and put a *storage box* at its end.",
         done: |_, f| powered_miner(f) && f.count(Kind::Belt) > 0 && f.count(Kind::Storage) > 0,
@@ -92,9 +85,17 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.processors_of(crate::block::CONSTRUCTOR) > 0,
     },
     Hint {
-        text: "Research: build a *research lab*, wire it to a pole, give it *red science packs*, and press [T] to choose \
-               what to research. New machines unlock as you go.",
-        done: |_, f| (0..TECHS.len()).any(|t| f.research.progress(t as u8) > 0),
+        text: "Stone by machine: furnaces, generators and constructors all use *stone*, which lies under the grass \
+               and dirt. Rather than digging by hand, craft a *quarry* and wire it to a pole: it digs a pit in \
+               front of it and fills a belt or box beside it with stone and dirt (or *sand* on a beach). Hold one to \
+               see its box ([R] turns it); [Right-click] it to choose size and depth.",
+        done: |_, f| f.count(Kind::Quarry) > 0,
+    },
+    Hint {
+        text: "Research: build a *research lab*, wire it to a pole, give it *red science packs*, and press [T] to \
+               pick a Red tech (such as *Ore Scanning*, *Masonry* or *Underpasses*). Laying belts in the world also \
+               completes Red *deeds*.",
+        done: |_, f| (0..TECHS.len()).any(|t| !crate::research::is_deed(t as u8) && f.research.progress(t as u8) > 0),
     },
     Hint {
         text: "Move water: research Fluid Handling, put a *pump* in a pond or a flooded pit and power it, and \
@@ -102,15 +103,15 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.count(Kind::Pipe) > 0,
     },
     Hint {
-        text: "Upgrade in place: *Mechanics* unlocks *green kits* (by hand, or by the beltful in an assembler). Hold \
-               kits and right-click a machine to make it Mk2, twice as fast; drag along a belt line to upgrade \
-               the belts, or [Shift]-click a belt for its whole line. Blue kits make Mk3.",
+        text: "Upgrade in place: finish half of the Red ring and craft a *green science pack* to open the Green ring, \
+               then research *Mechanics* for *green kits*. Hold kits and right-click a machine to make it Mk2, twice \
+               as fast; drag along a belt line to upgrade the belts, or [Shift]-click a belt for its whole line.",
         done: |_, f| tech_done(f, "Mechanics"),
     },
     Hint {
-        text: "Assemble: research Assembly and build an *assembler*, a 2×2×2 machine. Belts feed its back and \
-               sides, you choose its recipe in its panel, and parts come out of its front. Motors, concrete and \
-               science packs are made here.",
+        text: "Assemble and plan: research Assembly and build an *assembler* (2×2×2) for motors, concrete, packs and \
+               kits. Assembly also opens *ghost mode* ([B]): right-click to plant ghosts, [Z] and [Enter] to copy \
+               machines as a *blueprint* ([L] lists them), and [X] to build a ghost from your pack.",
         done: |_, f| f.processors_of(ASSEMBLER) > 0,
     },
     Hint {
@@ -144,17 +145,15 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.processors_of(SOLAR_PANEL) > 0,
     },
     Hint {
-        text: "Drones: a long road. Research Processors, Robotics, Drone Power and Navigation, then Construction \
-               Drones: an assembler builds the drone from actuators, a drone cell and a guidance module. Build a \
-               *drone port* (a 3×3 pad, 40 kW while drones fly) and put drones in it.",
+        text: "Drones: a long road. Research Processors, Robotics, then Construction Drones: an assembler builds \
+               the drone from actuators, a drone cell and a guidance module. Build a *drone port* (a 3×3 pad, 40 kW \
+               while drones fly) and put drones in it.",
         done: |_, f| f.processors_of(DRONE_PORT) > 0,
     },
     Hint {
-        text: "Plan for the drones: Construction Drones opened *ghost mode*. Press [B], hold a block or machine and \
-               right-click to plant a see-through *ghost* instead of building it; left-click marks a block to tear \
-               down. Drones build ghosts and clear marks within 32 blocks of their port, from storage boxes touching \
-               its pad. [Z] marks two corners and [Enter] copies a build as a blueprint ([L] lists them) to stamp \
-               elsewhere.",
+        text: "Let the drones build: set storage boxes touching your *drone port* with the blocks and machines your \
+               ghosts need. Drones fly out to build ghosts ([B]) and tear down marked blocks within 32 blocks of \
+               their pad, putting what they clear into the boxes.",
         done: |_, f| f.ports().iter().any(|p| p.home > 0),
     },
     Hint {

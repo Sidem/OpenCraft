@@ -61,7 +61,7 @@ export class MachinesTab implements Tab {
     this.summary.textContent =
       working === 0
         ? 'Every machine is idle at the moment.'
-        : `${working} ${working === 1 ? 'machine' : 'machines'} working, ${full} at full speed: ${overall}% efficient overall.`;
+        : `${working} ${working === 1 ? 'machine' : 'machines'} active, ${full} at full speed: ${overall}% efficient overall.`;
     this.paintSplit(working, full, held);
     this.paintTable(g, ctx, types, stride);
     this.paintSlowest(g, ctx);
@@ -99,7 +99,7 @@ export class MachinesTab implements Tab {
     // Kinds with machines working come first, worst average first; idle kinds close the list.
     rows.sort((a, b) => (b.row[1] > 0 ? 1 : 0) - (a.row[1] > 0 ? 1 : 0) || a.row[3] - b.row[3]);
     const head = h('div', 'an-mrow an-mhead');
-    head.append(h('span'), h('span', '', 'Machine'), h('span', 'an-num', 'Working'), h('span', 'an-num', 'Idle'), h('span', '', 'Efficiency'), h('span', '', 'Held back by'), h('span'));
+    head.append(h('span'), h('span', '', 'Machine'), h('span', 'an-num', 'Active'), h('span', 'an-num', 'Idle'), h('span', '', 'Efficiency'), h('span', '', 'Held back by'), h('span'));
     this.table.replaceChildren(head);
     for (const { block, row } of rows) {
       const [, working, full, percent, idle] = row;

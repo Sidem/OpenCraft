@@ -57,9 +57,16 @@ export class HomePanel {
     this.stat.replaceChildren(...this.stats().map(([value, label]) => stat(value, label)));
   }
 
-  /** The lesson on show, else the first tip not done yet, else a line saying there are none. */
+  /** The opening step when active, else the lesson on show, else the first tip not done yet. */
   private where(): HTMLElement[] {
     const g = this.parts.game;
+    const step = g.opening_step();
+    if (step > 0) {
+      const { title, body } = tipParts(g.opening_text(step));
+      const p = h('p', 'home-body');
+      richText(p, body);
+      return [h('div', 'home-title', title || 'Getting started'), p];
+    }
     const lesson = g.lesson_now() !== 0;
     const progress = g.hint_progress();
     const text = lesson ? g.lesson_text() : progress < g.hint_count() ? g.hint_text(progress) : '';

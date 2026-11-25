@@ -4,6 +4,14 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-25 · v0.16.0 · First-person pipette, To-do list, earlier blueprints & smoother start
+- **Middle-click / `V` pipette.** Point at any placed block, machine or ghost and press **Middle mouse** or **`V`** to pull it straight into your hand — matching its direction, tier (or the closest tier you carry) and slab/stair/roof shape. With a **Paint Sprayer** in hand, pipette copies the surface paint under your crosshair.
+- **Pinned To-do shopping list.** **Alt-click** any recipe in the build menu (`E`), or click **+ To-do** in the item guide, to pin targets to your HUD (`−` / `+` / `×`). The card tracks how many you hold and sums the missing parts or raw materials across your list.
+- **Ghost mode (`B`) & Blueprints (`Z`) unlock in Green Science.** **Assembly** now opens manual ghost planning (`B`), quick ghost building from your pack (`X`), and copying/stamping blueprints (`Z`, `L`) hours earlier; **Construction Drones** in Violet Science still unlocks automated drone ports to build ghosts for you.
+- **Red-pack starter techs for your first Research Lab.** **Underpasses**, **Fluid Handling**, **Masonry** and **Ore Scanning** now sit in the **Red ring** costing only **Red Science Packs** alongside the two Red belt deeds, so your first lab has immediate research to run before Green packs unlock.
+- **Brisker opening & hand-crafting.** The starter line's output box now holds **11 pre-smelted Iron Ingots** so you can craft your first two Coal Miners right after mending the belt, hand-crafting runs about a third faster across early parts and machines, a misplaced starter belt prompts a clear nudge, and the Quarry tip waits until you have automated parts with a Constructor.
+- **Clean first-person view & UI polish.** Retired the experimental third-person, strategy-follow and free-camera modes, fixed tool output counts in the item guide, synced the pause menu's guided-step card with the live HUD, and cleaned up HUD overlap behind the pause menu.
+
 ## 2026-11-24 · v0.15.0 · Frontier research tree, ring milestones, red deeds, Work Gloves & clay
 - **Rings open by threshold, not gate techs.** Green, Blue, Violet and Gold Science techs are gone: finish any half of the previous ring and know the pack's parts to unlock the next science pack recipe, then craft or assemble your first pack to open the ring. Launching your first rocket opens the Sky ring.
 - **Red-ring deeds.** Belt Routing (lay 40 belts) and Belt Lifts (run a belt line up 3 steps) now unlock automatically by doing the job rather than in a lab.

@@ -24,7 +24,7 @@ fn build(g: &mut Game, block: BlockId, pos: IVec3) {
 fn prompted() -> (Game, IVec3) {
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);
-    g.sim.factory.research.finish("Construction Drones");
+    g.sim.factory.research.finish("Assembly");
     let base = g.body().eye().floor() + IVec3::new(3, 3, 3);
     for i in 0..3 {
         build(&mut g, SMELTER, base + IVec3::new(4 * i, 0, 0));

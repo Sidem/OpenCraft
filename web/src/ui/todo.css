@@ -1,0 +1,122 @@
+/* Pinned HUD shopping list (ui/todo.ts), stacked inside #hud-left above the onboarding hint card. */
+
+#hud-left > .todo {
+  order: 0;
+  flex-shrink: 0;
+  width: min(300px, 100%);
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  font-size: 13px;
+}
+
+.todo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.todo-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.todo-clear {
+  padding: 2px 7px;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font: 600 11px var(--font);
+  cursor: pointer;
+}
+
+.todo-clear:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.todo-targets,
+.todo-needs {
+  display: grid;
+  gap: 3px;
+}
+
+.todo-sub {
+  margin: 7px 0 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--panel-border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.todo-row,
+.todo-need {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.todo-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.todo-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.todo-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.todo-row.done .todo-name,
+.todo-need.done .todo-name {
+  color: var(--muted);
+}
+
+.todo-row.done .todo-count,
+.todo-need.done .todo-count {
+  color: #4ade80;
+}
+
+.todo-steps {
+  display: flex;
+  gap: 2px;
+}
+
+.todo-step {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font: 600 12px/1 var(--font);
+  cursor: pointer;
+}
+
+.todo-step:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.todo-more {
+  font-size: 11px;
+  color: var(--muted);
+}

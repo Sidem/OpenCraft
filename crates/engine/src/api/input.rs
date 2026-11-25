@@ -185,6 +185,12 @@ impl Game {
         body.vel.y = 0.0;
     }
 
+    /// Middle-click / V: selects the block, machine or ghost under the crosshair into the player's hand (`pipette.rs`).
+    /// Returns a short notice when the item is missing from the pack, else "".
+    pub fn pipette(&mut self) -> String {
+        self.pipette_aimed()
+    }
+
     /// Throws one item from the selected slot.
     pub fn drop_selected(&mut self) {
         self.act(Action::DropSelected { count: 1 });

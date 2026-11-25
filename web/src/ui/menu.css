@@ -215,6 +215,18 @@
   overflow-y: auto;
 }
 
+/* While the menu is open, keep background HUD elements hidden so they never bleed through over menu text or links;
+   on the Settings preview page, keep only the crosshair and vignette visible so view/comfort changes show live. */
+body:has(#menu:not(.hidden):not(.previewing)) #hud {
+  opacity: 0;
+  pointer-events: none;
+}
+
+body:has(#menu.previewing:not(.hidden)) :is(#hud-top, #hud-left, #hotbar, #toasts, .key-prompt) {
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* While settings show, the dim and blur go so changes show on the game behind (the panel stays where it is). */
 #menu.previewing {
   background: none;

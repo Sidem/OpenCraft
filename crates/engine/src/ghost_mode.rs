@@ -6,7 +6,7 @@
 //! what building them all needs. Building the real block on a ghost is just placing it (`Sim::place_block`).
 //! Left-click (held to drag) marks the aimed block for tear-down instead of mining it (`Action::MarkRemoval`, a
 //! red outline; clicking a marked block clears the mark): drone ports break marked blocks (`drones/`).
-//! Research unlocks it with the drones that build ghosts (`Feature::GhostMode`); until then B only says so.
+//! Research unlocks it with Assembly (`Feature::GhostMode`); until then B only says so.
 
 use crate::action::Action;
 use crate::block;

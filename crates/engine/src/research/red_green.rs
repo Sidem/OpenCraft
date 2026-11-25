@@ -1,4 +1,4 @@
-//! Red (deeds, 0..2) and Green (2..17) rings of [`super::TECHS`].
+//! Red (deeds + starter lab techs) and Green rings of [`super::TECHS`].
 
 use crate::block::{
     ASSEMBLER, BELT, BELT_EJECTOR, BLAST_FURNACE, CONSTRUCTOR, FILTER, FORESTER, GENERATOR, GLASS_KILN, LAB, LIFT,
@@ -14,7 +14,7 @@ use crate::recipes::{
 
 use super::ids::*;
 use super::rings::{Deed, Ring, Wedge, BELT_DEED_TARGET, CLIMB_DEED_STEPS};
-use super::{r, Tech, Unlock};
+use super::{r, Feature, Tech, Unlock};
 
 /// Glass unlocks: Glass Kiln, Framed Glass, and the 4 primary-pigment stained glass batches (Red, Green, Black, White;
 /// Yellow needs Sulfur and moved to Pigments).
@@ -60,17 +60,17 @@ pub(super) const RED_GREEN: [Tech; 17] = [
         seconds: 1.0,
         unlocks: &[r(LIFT)],
     },
-    // --- Green ring (2..17) ---
+    // --- Red starter lab techs & Green ring (2..17; indices stay fixed for saves) ---
     Tech {
         name: "Underpasses",
         blurb: "Underpasses carry a belt under up to 4 blocks of anything. Drag a belt line over an obstacle and \
                 it dives under by itself, if you carry underpasses. Belt ejectors end a belt by dropping its items \
                 on the ground.",
-        ring: Ring::Green,
+        ring: Ring::Red,
         wedge: Wedge::Logistics,
         deed: None,
         needs: &[],
-        packs: &[RED_PACK, GREEN_PACK],
+        packs: &[RED_PACK],
         units: 15,
         seconds: 10.0,
         unlocks: &[r(UNDERPASS_IN), r(BELT_EJECTOR), Unlock::MachineRecipe(UNDERPASS_ROW)],
@@ -107,12 +107,12 @@ pub(super) const RED_GREEN: [Tech; 17] = [
     Tech {
         name: "Fluid Handling",
         blurb: "Pumps lift water out of ponds and pits; pipes carry it to outlets that pour it out elsewhere.",
-        ring: Ring::Green,
+        ring: Ring::Red,
         wedge: Wedge::Power,
         deed: None,
         needs: &[],
-        packs: &[RED_PACK, GREEN_PACK],
-        units: 25,
+        packs: &[RED_PACK],
+        units: 15,
         seconds: 10.0,
         unlocks: &[r(PUMP), r(PIPE), r(OUTLET)],
     },
@@ -120,19 +120,19 @@ pub(super) const RED_GREEN: [Tech; 17] = [
         name: "Masonry",
         blurb: "Smelters fire stone into bricks and limestone into quicklime: the blast furnace's bricks, and the \
                 quicklime that steel and concrete need.",
-        ring: Ring::Green,
+        ring: Ring::Red,
         wedge: Wedge::Building,
         deed: None,
         needs: &[],
-        packs: &[RED_PACK, GREEN_PACK],
-        units: 25,
+        packs: &[RED_PACK],
+        units: 15,
         seconds: 10.0,
         unlocks: &[Unlock::MachineRecipe(BRICK_RECIPE), Unlock::MachineRecipe(QUICKLIME_RECIPE)],
     },
     Tech {
         name: "Assembly",
-        blurb: "The assembler, a 2×2×2 machine that puts parts together: motors, concrete, and packs and kits \
-                by the beltful. Also the upgrader.",
+        blurb: "The assembler (2×2×2) puts parts together: motors, concrete, and packs and kits by the beltful. \
+                Also unlocks the upgrader, ghost mode (B) and blueprints (Z, Enter, L) to plan and copy layouts.",
         ring: Ring::Green,
         wedge: Wedge::Workshop,
         deed: None,
@@ -143,6 +143,7 @@ pub(super) const RED_GREEN: [Tech; 17] = [
         unlocks: &[
             r(ASSEMBLER),
             r(UPGRADER),
+            Unlock::Feature(Feature::GhostMode),
             Unlock::MachineRecipe(ASSEMBLY_RECIPES[0]),
             Unlock::MachineRecipe(ASSEMBLY_RECIPES[1]),
             Unlock::MachineRecipe(ASSEMBLY_RECIPES[2]),
@@ -189,12 +190,12 @@ pub(super) const RED_GREEN: [Tech; 17] = [
         blurb:
             "The hand-held Scanner: right-click to list every ore deposit within 48 blocks — what lies underground, \
                 how deep, which direction and how large.",
-        ring: Ring::Green,
+        ring: Ring::Red,
         wedge: Wedge::Survey,
         deed: None,
         needs: &[],
-        packs: &[RED_PACK, GREEN_PACK],
-        units: 25,
+        packs: &[RED_PACK],
+        units: 20,
         seconds: 10.0,
         unlocks: &[Unlock::Recipe(SCANNER)],
     },

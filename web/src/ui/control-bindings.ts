@@ -4,20 +4,19 @@
 // the player's layout (ui/keyboard-layout.ts). `web/test/controls.test.mjs` fails when this table and input.ts disagree.
 // To add a control: a row below (and its key in input.ts); a new key place also needs a cap in keyboard-view.ts.
 
-export type Category = 'move' | 'build' | 'screens' | 'plan' | 'camera' | 'other';
+export type Category = 'move' | 'build' | 'screens' | 'plan' | 'other';
 
-/** Category colours: started from the Okabe-Ito set and tuned (a search in the scratch, kept near its hues) until every pair
- *  stays apart for the common kinds of colour blindness; `web/test/controls.test.mjs` fails if an edit here loses that. */
+/** Category colours: started from the Okabe-Ito set and tuned until every pair stays apart for the common kinds of
+ *  colour blindness; `web/test/controls.test.mjs` fails if an edit here loses that. */
 export const CATEGORIES: readonly { id: Category; title: string; colour: string }[] = [
   { id: 'move', title: 'Getting around', colour: '#5dc3ff' },
   { id: 'build', title: 'Building', colour: '#e69f00' },
   { id: 'screens', title: 'Screens', colour: '#188e66' },
   { id: 'plan', title: 'Planning and helpers', colour: '#987099' },
-  { id: 'camera', title: 'Camera', colour: '#ffecbb' },
   { id: 'other', title: 'Other', colour: '#e7fafe' },
 ];
 
-export type MouseInput = 'move' | 'left' | 'right' | 'wheel';
+export type MouseInput = 'move' | 'left' | 'middle' | 'right' | 'wheel';
 
 export interface Binding {
   cat: Category;
@@ -52,6 +51,7 @@ export const BINDINGS: readonly Binding[] = [
   mouse('build', ['left'], 'Hold left mouse', 'Mine the block you point at'),
   mouse('build', ['right'], 'Right mouse', 'Place the selected block (belts run the way you face; drag to lay a line)'),
   mouse('build', ['right'], 'Right mouse on a box or machine', 'Open it (hold {KeyC} to place against it instead)'),
+  mouse('build', ['middle'], 'Middle mouse / {KeyV}', 'Pick the block, machine or ghost you point at into your hand, matching its direction and shape', ['KeyV']),
   key('build', ['KeyR'], '{KeyR}', 'Turn the belt, machine, stair, roof slope or vertical slab you point at (connect/sever wire with a pole, or eyedropper paint with a Paint Sprayer)'),
   key('build', [...SHIFTS, 'KeyR'], '{ShiftLeft} + {KeyR}', 'Bend the belt you point at (or next belt laid); with a building block or roof tile, cycle shape; with a Paint Sprayer, cycle pigment colour ({ShiftLeft} + wheel works too)'),
   key('build', ['KeyI'], '{KeyI}', 'Pick up the item on a belt you point at (or the one you clicked to select)'),
@@ -69,18 +69,13 @@ export const BINDINGS: readonly Binding[] = [
   key('screens', ['KeyL'], '{KeyL}', 'Blueprints'),
   key('screens', ['Tab'], 'Hold {Tab}', 'Who is playing with you'),
 
-  key('plan', ['KeyB'], '{KeyB}', 'Ghost mode: right-click plants a free ghost to build later'),
+  key('plan', ['KeyB'], '{KeyB}', 'Ghost mode (opens with Assembly): right-click plants a free ghost to build later'),
   key('plan', ['KeyZ', 'Enter'], '{KeyZ}, {Enter}', 'In ghost mode: mark a box, then copy its machines as a blueprint'),
-  key('plan', ['KeyX'], '{KeyX}', 'Build the ghost you aim at, taking its item from anywhere in your pack (in strategy view: stop walking)'),
+  key('plan', ['KeyX'], '{KeyX}', 'Build the ghost you aim at, taking its item from anywhere in your pack'),
   key('plan', ['KeyY'], '{KeyY}', 'Personal drone: fetch, put away, store, or fetch the parts and craft'),
   key('plan', [...SHIFTS, 'KeyY'], '{ShiftLeft} + {KeyY}', 'Your personal drone fetches a stack more of what you hold'),
   key('plan', ['KeyU'], '{KeyU}', 'Point the scanner at the next deposit'),
   key('plan', [...SHIFTS, 'KeyX'], '{ShiftLeft} + {KeyX}', 'X-ray goggles on or off (worn in the Head slot): your belts, pipes and machines show through the ground'),
-
-  key('camera', ['KeyV'], '{KeyV}', 'First person, third person or strategy view'),
-  key('camera', ['KeyG', 'Home'], '{KeyG} / {Home}', 'Free or follow camera; {Home} returns to your character'),
-  mouse('camera', ['wheel', 'right'], 'Strategy view', '{KeyW}{KeyA}{KeyS}{KeyD} pans, wheel zooms, right-click walks there, {KeyX} stops', ['KeyX']),
-  mouse('camera', ['right'], '{ControlLeft} + right mouse', 'Use or place in strategy view (within reach)', CTRLS),
 
   key('other', ['KeyH'], '{KeyH}', 'Skip the tip on screen'),
   key('other', ['KeyK'], '{KeyK}', 'Mute or unmute all sound'),

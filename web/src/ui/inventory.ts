@@ -26,6 +26,7 @@ import { Pager } from './pager';
 import { type SlotContext, SlotControls } from './slot-controls';
 import { drawSlot, ICON_PX, type SlotView } from './slot-view';
 import { DroneSlots } from './drone-slots';
+import type { TodoList } from './todo';
 
 /** Backpack slots on a page: three rows of nine, so the equipment and hotbar never scroll out of view. */
 const PAGE_SLOTS = 27;
@@ -88,6 +89,7 @@ export class InventoryPanel {
   constructor(
     private readonly game: Game,
     private readonly icon: (item: number) => HTMLCanvasElement,
+    todo?: TodoList,
   ) {
     this.drag = new DragThrow(this.backdrop, game, () => this.isOpen);
     this.dialog.setAttribute('role', 'dialog');
@@ -166,7 +168,7 @@ export class InventoryPanel {
       h('h3', '', 'Equipment'), gearRow, this.packUpgrade.el, packHead, pack, h('h3', '', 'Hotbar'), bar, drone.bar,
     );
 
-    this.menu = new BuildMenu(game, icon);
+    this.menu = new BuildMenu(game, icon, todo);
     this.menu.onCraft = () => this.onCraft();
     // A creative world adds an "All items" tab beside the build menu.
     this.right = game.is_creative() ? withCreativeTabs(this.menu.el, new CreativeMenu(game, icon)) : this.menu.el;

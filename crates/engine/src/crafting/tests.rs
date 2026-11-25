@@ -86,7 +86,7 @@ fn crafts_take_time_one_after_another_and_deliver_when_done() {
     give(&mut sim, IRON_INGOT, 4);
     let plate = recipe(IRON_PLATE);
     let each = RECIPES[plate as usize].hand_ticks();
-    assert_eq!(each, 150, "2.5 seconds");
+    assert_eq!(each, 100, "1.67 seconds");
     sim.apply(P, Action::Craft { recipe: plate, times: 2 });
     assert_eq!((count(&sim, IRON_INGOT), queue(&sim).orders.len()), (0, 1), "paid for at once, queued");
     ticks(&mut sim, each - 1);
@@ -112,7 +112,7 @@ fn work_gloves_make_crafts_shorter() {
     give(&mut sim, IRON_INGOT, 2);
     let plate = recipe(IRON_PLATE);
     let each = craft_ticks(&RECIPES[plate as usize], 1250);
-    assert_eq!(each, 120, "2.5 seconds at 125% is 2 seconds");
+    assert_eq!(each, 80, "100 ticks at 125% is 80 ticks");
     sim.apply(P, Action::Craft { recipe: plate, times: 1 });
     assert_eq!(queue(&sim).orders[0].total, each);
     ticks(&mut sim, each - 1);

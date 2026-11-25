@@ -822,7 +822,7 @@ fn a_lab_needs_one_of_each_pack_and_power() {
     use lab::LabStatus;
     let mut f = Factory::default();
     f.research.open_ring(Ring::Green);
-    let tech = ids::UNDERPASSES; // Underpasses: red and green, 10 s a unit
+    let tech = ids::MECHANICS; // Mechanics: red and green, 10 s a unit
     f.research.set_current(Some(tech));
     powered(&mut f);
     lab_with(&mut f, IVec3::ZERO, 5);

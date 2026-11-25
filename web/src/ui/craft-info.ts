@@ -73,8 +73,8 @@ export class CraftInfo {
           ? `Research ${g.tech_name(lock)} to unlock it (T). Click for how to get it.`
           : 'Finish half of the previous ring and its parts to unlock this pack (T).'
         : t.state === 'ready'
-          ? `Click to queue it · Shift-click for up to ${BULK_CRAFT}`
-          : 'Click for where the missing materials come from.';
+          ? `Click to queue · Shift-click up to ${BULK_CRAFT} · Alt-click pins to To-do`
+          : 'Click for where missing materials come from · Alt-click pins to To-do';
     const facts = factsBlock(g, out);
     const apart = takeApartNote(g, t.id);
     const blurb = h('p', 'craft-blurb', g.recipe_blurb(t.id));

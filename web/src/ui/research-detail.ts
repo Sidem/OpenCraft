@@ -51,9 +51,9 @@ export class TechDetail {
 
   private intro(): HTMLElement[] {
     const rows: [string, string][] = [
-      ['🧪', 'Labs turn science packs into research.'],
-      ['👆', 'Pick a glowing tech, then press Research.'],
-      ['🔓', 'Finish a ring’s milestone to open the next ring and find new techs.'],
+      ['🧪', 'Labs turn science packs into research; deeds finish by doing the job in the world.'],
+      ['👆', 'Click any tech to inspect it, then press Research (or double-click) on a lab tech.'],
+      ['🔓', 'Finish half of a ring and craft the next science pack to open the next ring.'],
     ];
     const list = h('ul', 'rd-intro');
     for (const [icon, text] of rows) {

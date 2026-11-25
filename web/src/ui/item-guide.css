@@ -51,6 +51,14 @@
   gap: 10px;
 }
 
+.guide-todo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--accent);
+}
+
 .guide-head h3 {
   margin: 0;
   flex: 1;

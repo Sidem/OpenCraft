@@ -102,8 +102,8 @@ pub(super) const VIOLET: [Tech; 27] = [
     },
     Tech {
         name: "Construction Drones",
-        blurb: "Drone cells, guidance modules, drones and the drone port (3×3 pad): drones build your ghosts and \
-                tear down what you mark from storage boxes beside the pad. Also ghost mode (B) and blueprints.",
+        blurb: "Drone cells, guidance modules, drones and the drone port (3×3 pad): drones automatically build your \
+                ghosts and tear down what you mark from storage boxes beside the pad.",
         ring: Ring::Violet,
         wedge: Wedge::RobotsDrones,
         deed: None,
@@ -116,7 +116,6 @@ pub(super) const VIOLET: [Tech; 27] = [
             Unlock::MachineRecipe(DRONE_RECIPES[4]),
             Unlock::MachineRecipe(DRONE_RECIPES[5]),
             r(DRONE_PORT),
-            Unlock::Feature(Feature::GhostMode),
         ],
     },
     Tech {

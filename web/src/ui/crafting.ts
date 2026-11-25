@@ -22,6 +22,7 @@ import { h } from './dom';
 import { ItemGuide, wayWords } from './item-guide';
 import { Pager, tilesPerPage, type PageInfo } from './pager';
 import { takeApart } from './take-apart';
+import type { TodoList } from './todo';
 
 const ICON_PX = 64;
 /** A tile's height and the grid's gap, in px: the same numbers as `.craft-grid` in crafting.css. */
@@ -101,6 +102,7 @@ export class BuildMenu {
   constructor(
     private readonly game: Game,
     private readonly icon: (item: number) => HTMLCanvasElement,
+    private readonly todo?: TodoList,
   ) {
     this.search.type = 'search';
     this.search.placeholder = 'Search any item or material';
@@ -148,7 +150,7 @@ export class BuildMenu {
     // The page size follows the menu's size: lay the pages out again whenever the grid is resized.
     new ResizeObserver(() => this.applyFilter()).observe(this.grid);
     this.info = new CraftInfo(game, icon);
-    this.guide = new ItemGuide(game, icon);
+    this.guide = new ItemGuide(game, icon, todo);
     this.el.append(head, filters, this.tabs, list, this.pager.el, this.info.el, this.guide.el);
     this.families = new Families(this.el, () => this.hideInfo(), () => this.hideInfo());
   }
@@ -197,6 +199,11 @@ export class BuildMenu {
     const order = g.recipe_order(r);
     const tile: Tile = { id: r, item: out, root, group, order, name: names[0], words, state: 'short', score: 3 };
     root.addEventListener('click', (e) => {
+      if (e.altKey && this.todo) {
+        this.todo.add(out, e.shiftKey ? BULK_CRAFT : 1);
+        this.onCraft();
+        return;
+      }
       if (tile.state !== 'ready') this.openGuide(out);
       else if (g.craft(r, e.shiftKey ? BULK_CRAFT : 1) > 0) this.onCraft();
     });
@@ -216,7 +223,14 @@ export class BuildMenu {
     const words = `${name} ${wayWords(this.game, item)} ${relatedWords(name)}`.toLowerCase();
     const group = this.groupNames.length - 1;
     const tile: Tile = { id: -1, item, root, group, order: item, name, words, state: 'guide', score: 3 };
-    root.addEventListener('click', () => this.openGuide(item));
+    root.addEventListener('click', (e) => {
+      if (e.altKey && this.todo) {
+        this.todo.add(item, e.shiftKey ? BULK_CRAFT : 1);
+        this.onCraft();
+        return;
+      }
+      this.openGuide(item);
+    });
     this.hover(tile);
     return tile;
   }

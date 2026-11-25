@@ -44,16 +44,22 @@ export function wirePause(parts: PauseParts): () => void {
   menu.opened(opened.restored);
   if (opened.restored) play.textContent = 'Continue';
   document.getElementById('sound-panel')!.append(new SoundPanel(sound).el);
+  const resumeHint = document.getElementById('resume-hint')!;
   // Audio can only start inside a user gesture, so the same click that captures the mouse unlocks it.
+  // If the browser declines pointer lock, hide the menu and show the resume hint so the player isn't stuck.
   const start = () => {
     sound.unlock();
-    void input.lock();
+    menu.el.classList.add('hidden');
+    void input.lock().then(() => {
+      if (!input.locked && !document.pointerLockElement && !panelOpen()) {
+        resumeHint.classList.remove('hidden');
+      }
+    });
   };
   play.addEventListener('click', start);
   canvas.addEventListener('click', () => {
     if (!input.locked && !play.disabled && !soundLab.isOpen && !panelOpen()) start();
   });
-  const resumeHint = document.getElementById('resume-hint')!;
   const pause = () => {
     showWorldInfo();
     resumeHint.classList.add('hidden');

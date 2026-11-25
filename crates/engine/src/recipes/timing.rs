@@ -7,20 +7,22 @@
 //! To scale everything: the three constants. Crafting time is core state (a queued craft's progress is
 //! saved), so changing it never breaks a save, but it changes the golden hash if a scripted craft moves.
 
+use crate::block::{COAL_MINER, SMELTER, STORAGE};
 use crate::item::ItemId;
 use crate::TICK_RATE;
 
 use super::Recipe;
 
 /// Every craft takes this long, and this much more for each material it uses, in ticks.
-pub const BASE_TICKS: u32 = 90;
-pub const TICKS_PER_ITEM: u32 = 30;
+pub const BASE_TICKS: u32 = 60;
+pub const TICKS_PER_ITEM: u32 = 20;
 /// The longest a formula-timed craft takes (20 s).
 pub const MAX_TICKS: u32 = 1200;
 
-/// Exact times by output item, in tenths of a second (`(item, 25)` is 2.5 s). Empty: every recipe follows
-/// the formula. Examples: `(IRON_PLATE, 15)`, `(b(PLANKS), 10)`.
-const OVERRIDES: &[(ItemId, u32)] = &[];
+/// Exact times by output item, in tenths of a second (`(item, 45)` is 4.5 s), keeping early bootstrap buildings
+/// snappy while constructors and assemblers still save bulk hand work.
+const OVERRIDES: &[(ItemId, u32)] =
+    &[(ItemId::block(STORAGE), 35), (ItemId::block(COAL_MINER), 45), (ItemId::block(SMELTER), 50)];
 
 impl Recipe {
     /// How long one craft takes by hand, in ticks.

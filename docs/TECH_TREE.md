@@ -197,7 +197,7 @@ TREE-FIND (`docs/ROADMAP_ORDER.md` wave 3b). Concept page with the full map: cla
   the milestone. The sky ring opens with the first rocket launch. Inside a ring the wedges are independent.
 - **Every need is real:** a tech needs another only when its recipes, machines or packs use that tech's items (a
   content lint, section 8 rule 9). On 2026-11-23, 41 of 144 declared needs (in 38 techs) failed this.
-- **Three ways in:** lab research; **deeds**, done by doing (the red ring: Belt Routing, lay 40 belts; Belt Lifts,
+- **Three ways in:** lab research; **deeds**, done by doing (in the red ring alongside four Red-pack starter lab techs: Belt Routing, lay 40 belts; Belt Lifts,
   run a belt up 3 steps; and every ring milestone); **finds**, hidden until a discovery (a site reached, an ore
   scanned, a fishing ground sailed over), then researched with packs. Where finds go: `docs/TECH_ERAS.md` section 0.
 - **No planned ghosts** (dropped 2026-11-25 with discovery: nothing shows that can't be unlocked). The roadmap's
@@ -217,7 +217,7 @@ TREE-FIND (`docs/ROADMAP_ORDER.md` wave 3b). Concept page with the full map: cla
 | Ring | Opens with | The problem it poses |
 |---|---|---|
 | Camp | the start | hands only: dig, smelt, craft what you carry |
-| Red | the start (deeds) | carrying is slow: belts move things |
+| Red | the start (deeds + red packs) | carrying is slow: belts move things, the first lab opens logistics & prospecting |
 | Green | the first green pack | hand work does not scale: parts that make machines |
 | Blue | the first blue pack | power and bulk: one fire is not enough, the near ore thins |
 | Violet | the first violet pack | far and fluid: the good stuff lies far away or locked in liquids |

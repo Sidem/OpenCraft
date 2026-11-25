@@ -16,10 +16,11 @@ fn step(g: &Game) -> Step {
 fn putting_the_loose_belt_back_runs_the_line_and_pays_for_a_miner() {
     let mut g = Game::new_normal(2024, 2);
     let o = g.sim.opening.expect("a new normal world has an opening");
+    let first_miner = coal_miner_iron();
     assert_eq!(step(&g), Step::Pick);
     assert_eq!(g.sim.world.block_anywhere_or_generate(o.gap), AIR);
     g.skip_time(20.0);
-    assert_eq!(ingots(&g, &o), (0, 0), "nothing crosses the gap");
+    assert_eq!(ingots(&g, &o), (first_miner, 0), "first miner's ingots wait; nothing new crosses the gap");
 
     g.act(Action::BreakBlock { pos: o.loose });
     g.run_ticks(1);
@@ -27,6 +28,25 @@ fn putting_the_loose_belt_back_runs_the_line_and_pays_for_a_miner() {
     g.give(BELT, 1);
     g.run_ticks(1);
     assert_eq!(step(&g), Step::Place);
+    // Placing on the wrong cell triggers Step::Misplaced instead of regressing to Step::Collect.
+    let slot = g.inventory().slots.iter().position(|s| s.item == BELT.into()).unwrap() as u8;
+    g.act(Action::PlaceBlock { pos: o.loose, slot, facing: o.run(), against: o.loose - IVec3::new(0, 1, 0) });
+    g.run_ticks(1);
+    // Wait: o.loose itself triggers Step::Pick; test an adjacent brick outside gap and loose!
+    g.act(Action::BreakBlock { pos: o.loose });
+    g.run_ticks(1);
+    let wrong = o.loose + IVec3::new(0, 0, -1);
+    let against = wrong - IVec3::new(0, 1, 0);
+    g.give(BELT, 1);
+    g.run_ticks(1);
+    let slot = g.inventory().slots.iter().position(|s| s.item == BELT.into()).unwrap() as u8;
+    g.act(Action::PlaceBlock { pos: wrong, slot, facing: o.run(), against });
+    g.run_ticks(1);
+    assert_eq!(step(&g), Step::Misplaced, "misplaced belt asks to pick it back up");
+    g.act(Action::BreakBlock { pos: wrong });
+    g.run_ticks(1);
+    g.give(BELT, 1);
+    g.run_ticks(1);
     let slot = g.inventory().slots.iter().position(|s| s.item == BELT.into()).unwrap() as u8;
     // Placed facing away from the player, as a click from the spawn does: it keeps that facing.
     let away = (o.run() + 3) % 4;
@@ -35,13 +55,13 @@ fn putting_the_loose_belt_back_runs_the_line_and_pays_for_a_miner() {
     assert_eq!(step(&g), Step::Rotate);
     assert_eq!(o.marker(Step::Rotate, &g.sim.factory), Some((o.gap, PROMPT_KEY_R)));
     g.skip_time(10.0);
-    assert_eq!(ingots(&g, &o), (0, 0), "a belt facing the wrong way carries nothing to the furnace");
+    assert_eq!(ingots(&g, &o), (first_miner, 0), "a belt facing the wrong way carries nothing to the furnace");
     g.act(Action::Rotate { pos: o.gap });
     g.run_ticks(1);
     assert_eq!(step(&g), Step::Take, "one turn clockwise is the line's way");
 
     g.skip_time(SMELT_SECONDS);
-    assert_eq!(ingots(&g, &o), (2 * coal_miner_iron(), 0), "the whole load is smelted: no copper");
+    assert_eq!(ingots(&g, &o), (2 * first_miner, 0), "the whole load is smelted: no copper");
     assert!(g.sim.factory.box_slots(o.source).unwrap().iter().all(|s| s.count == 0));
     assert_eq!(step(&g), Step::Take);
     g.give(IRON_INGOT.0, 1);

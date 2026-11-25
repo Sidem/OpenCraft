@@ -47,6 +47,7 @@ import { wireHome } from './ui/home';
 import { ProspectPanel } from './ui/prospect';
 import { Hud } from './ui/hud';
 import { InventoryPanel } from './ui/inventory';
+import { TodoList } from './ui/todo';
 import { MachinePanel } from './ui/machine';
 import { TrainPanel } from './ui/train';
 import { Menu } from './ui/menu';
@@ -152,8 +153,8 @@ async function main(): Promise<void> {
   skyStore.subscribe(() => (renderer.skySettings = skyStore.settings));
   document.getElementById('sky-settings')!.append(new SkyPanel(skyStore).el);
   const input = new Input(canvas);
-  const views =new ViewControls(game, input, renderer, canvas, comfort);
-  document.getElementById('menu-camera')!.append(views.menu, comfortPanel.view);
+  const views = new ViewControls(game, input, renderer, comfort);
+  document.getElementById('menu-camera')!.append(comfortPanel.view);
   const sound = new SoundSystem();
   hud.setMuted(sound.silent);
   sound.subscribe(() => hud.setMuted(sound.silent));
@@ -164,7 +165,8 @@ async function main(): Promise<void> {
     material: game.block_sound(i + 1),
   }));
   const soundLab = new SoundLab(sound, blocks, (id) => hud.itemIcon(id));
-  const inventory = new InventoryPanel(game, (id) => hud.itemIcon(id));
+  const todo = new TodoList(game, (id) => hud.itemIcon(id));
+  const inventory = new InventoryPanel(game, (id) => hud.itemIcon(id), todo);
   inventory.onCraft = () => sound.ui();
   const machine = new MachinePanel(game, (id) => hud.itemIcon(id), inventory), trains = new TrainPanel(game, inventory);
   const research = new ResearchPanel(game, (id) => hud.itemIcon(id));
@@ -226,7 +228,7 @@ async function main(): Promise<void> {
   document.getElementById('quality-suggestion')!.append(qualityPanel.suggestion);
 
   const handles = {
-    frames, perf, quality, qualityPanel, game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, codex, analytics, blueprints, sites, drone, logbook, vault, signEditor, seismic, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
+    frames, perf, quality, qualityPanel, game, menu, renderer, wasm, sound, soundLab, inventory, todo, machine, research, codex, analytics, blueprints, sites, drone, logbook, vault, signEditor, seismic, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -258,6 +260,7 @@ async function main(): Promise<void> {
       else if (a.kind === 'fly') game.toggle_fly();
       else if (a.kind === 'drop') game.drop_selected();
       else if (a.kind === 'swap-hands') game.swap_offhand();
+      else if (a.kind === 'pipette') playerList.notice(game.pipette());
       else if (a.kind === 'rotate') game.rotate_target();
       else if (a.kind === 'bend') game.bend_target();
       else if (a.kind === 'ghost') playerList.notice(game.toggle_ghost_mode()); // "" unless research locks it
@@ -361,15 +364,13 @@ async function main(): Promise<void> {
 
     scope.update();
     const hasTarget = game.has_target();
-    const cursorBlock = game.view_mode() >= 2 ? game.strategy_hover() : [];
     signFaces.update();
     renderer.render({
       eye: [game.eye_x(), game.eye_y(), game.eye_z()],
       yaw: game.camera_yaw(),
       pitch: game.camera_pitch(),
-      target: cursorBlock.length === 3 ? [cursorBlock[0], cursorBlock[1], cursorBlock[2]]
-        : hasTarget ? [game.target_x(), game.target_y(), game.target_z()] : null,
-      targetFit: cursorBlock.length === 3 || !hasTarget ? [] : Array.from(game.target_fit()),
+      target: hasTarget ? [game.target_x(), game.target_y(), game.target_z()] : null,
+      targetFit: !hasTarget ? [] : Array.from(game.target_fit()),
       selectedItem: Array.from(game.selected_item_box()),
       mineProgress: game.mine_progress(),
       time: game.time_of_day(),
@@ -393,7 +394,6 @@ async function main(): Promise<void> {
       renderTime: game.render_time(),
     });
     vignette.update(dt, game.camera_yaw(), game.camera_pitch(), game.eye_x(), game.eye_y(), game.eye_z());
-    views.sync();
     xray.update();
     const labels = new Float32Array(wasm.memory.buffer, game.label_ptr(), game.label_count() * 4);
     nameTags.update(labels, game.label_count(), renderer, (id) => coop?.name(id));
@@ -406,6 +406,7 @@ async function main(): Promise<void> {
     codex.update();
     analytics.update(now);
     hints.update();
+    todo.update();
     craftQueue.update();
     prospect.update();
     minimap.update(now);

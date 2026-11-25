@@ -54,18 +54,18 @@ fn hints_follow_what_the_player_has_done() {
     place(&mut f, POLE, 8);
     assert_eq!(progress(&inv, &f), 5, "powered");
     assert!(HINTS[4].text.contains("dig straight down"), "where more stone is");
-    place(&mut f, QUARRY, 7);
-    assert_eq!(progress(&inv, &f), 6, "stone by machine");
     place(&mut f, BELT, 1);
-    assert_eq!(progress(&inv, &f), 6, "a belt but no box yet");
+    assert_eq!(progress(&inv, &f), 5, "a belt but no box yet");
     place(&mut f, STORAGE, 2);
-    assert_eq!(progress(&inv, &f), 7);
+    assert_eq!(progress(&inv, &f), 6);
     place(&mut f, SMELTER, 3);
-    assert_eq!(progress(&inv, &f), 8);
+    assert_eq!(progress(&inv, &f), 7);
     place(&mut f, CONSTRUCTOR, 4);
-    assert_eq!(progress(&inv, &f), 9);
-    f.research.add_unit(0);
-    assert_eq!(progress(&inv, &f), 10, "researching");
+    assert_eq!(progress(&inv, &f), 8);
+    place(&mut f, QUARRY, 7);
+    assert_eq!(progress(&inv, &f), 9, "stone by machine");
+    f.research.add_unit(crate::research::ids::UNDERPASSES);
+    assert_eq!(progress(&inv, &f), 10, "researching a lab tech");
     place(&mut f, PUMP, 6);
     assert_eq!(progress(&inv, &f), 11, "moved water");
     let mechanics = TECHS.iter().position(|t| t.name == "Mechanics").unwrap() as u8;
@@ -140,7 +140,7 @@ fn a_later_step_skips_the_earlier_hints() {
     assert_eq!(progress(&inv, &f), 2, "the opening's line (furnace, belts, boxes) leaves the miner tips");
     place(&mut f, MINER, 3);
     place(&mut f, GENERATOR, 4);
-    assert_eq!(progress(&inv, &f), 8, "a powered miner beside a belt line with a smelter");
+    assert_eq!(progress(&inv, &f), 7, "a powered miner beside a belt line with a smelter");
 }
 
 #[test]

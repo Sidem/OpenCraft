@@ -9,6 +9,7 @@ import './item-guide.css';
 import type { Game } from '../wasm/engine.js';
 import { button, h } from './dom';
 import { formatSeconds } from './recipe-rates';
+import type { TodoList } from './todo';
 
 const ICON_PX = 64;
 /** A page lists this many uses, then says how many more there are. */
@@ -80,7 +81,9 @@ export class ItemGuide {
   constructor(
     private readonly game: Game,
     private readonly icon: (item: number) => HTMLCanvasElement,
+    private readonly todo?: TodoList,
   ) {
+    todo?.subscribe(() => this.refresh());
     const close = button('guide-close', 'Build menu', () => this.close());
     close.title = 'Back to the build menu';
     const bar = h('div', 'guide-bar');
@@ -125,6 +128,20 @@ export class ItemGuide {
     this.back.textContent = this.trail.length > 1 ? `‹ ${g.item_name(this.trail[this.trail.length - 2])}` : '‹ Back';
     const head = h('div', 'guide-head');
     head.append(this.canvas(item, 'guide-icon'), h('h3', '', g.item_name(item)), h('span', 'guide-have', `You have ${g.item_total(item)}`));
+    if (this.todo) {
+      const pinned = this.todo.countOf(item);
+      if (pinned === 0) {
+        head.append(button('guide-back', '+ To-do', () => this.todo!.add(item, 1)));
+      } else {
+        const box = h('span', 'guide-todo');
+        box.append(
+          `To-do: ${pinned}`,
+          button('guide-back', '−', () => this.todo!.add(item, -1)),
+          button('guide-back', '+', () => this.todo!.add(item, 1)),
+        );
+        head.append(box);
+      }
+    }
 
     const ways = waysOf(g, item);
     const get = h('div', 'guide-ways');
@@ -161,7 +178,7 @@ export class ItemGuide {
     const foot = h('p', 'guide-foot');
     if (way.kind === 'hand') {
       label.textContent = 'By hand';
-      const n = g.recipe_output_count(way.recipe);
+      const n = g.tool_uses(item) > 0 ? 1 : g.recipe_output_count(way.recipe);
       const tech = g.recipe_locked_by(way.recipe);
       foot.textContent = `Makes ${n} · ${g.recipe_tenths(way.recipe) / 10} s`;
       if (tech !== -1) {

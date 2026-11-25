@@ -146,7 +146,9 @@ fn techs_lock_the_recipes_they_unlock() {
     assert_eq!(r.locked_by(Unlock::Recipe(BELT.into())), None, "not in the tree: available from the start");
     r.complete_deed(ids::BELT_ROUTING);
     assert_eq!(r.locked_by(Unlock::Recipe(SPLITTER.into())), None);
-    assert!(r.has(Unlock::Recipe(GREEN_PACK)), "1 of 2 red deeds unlocks the green pack recipe");
+    finish(&mut r, ids::UNDERPASSES);
+    finish(&mut r, ids::MASONRY);
+    assert!(r.has(Unlock::Recipe(GREEN_PACK)), "half of the red ring (3 of 6) unlocks the green pack recipe");
 }
 
 /// Every tech that has been done by the time `tech` is: it and its prerequisites, all the way back.
@@ -356,11 +358,11 @@ fn the_drone_is_the_end_of_a_violet_ladder() {
 }
 
 #[test]
-fn scanning_progression_spans_green_blue_violet_and_gold_tiers() {
+fn scanning_progression_spans_red_blue_violet_and_gold_tiers() {
     let t_scan = &TECHS[ids::ORE_SCANNING as usize];
     let t_adv = &TECHS[ids::ADVANCED_SCANNING as usize];
     let t_seis = &TECHS[ids::SEISMIC_PROSPECTING as usize];
-    assert_eq!(t_scan.packs, &[RED_PACK, GREEN_PACK]);
+    assert_eq!((t_scan.ring, t_scan.packs), (Ring::Red, &[RED_PACK][..]));
     assert!(t_scan.unlocks.contains(&Unlock::Recipe(crate::item::SCANNER)));
     assert_eq!(t_adv.packs, &[RED_PACK, GREEN_PACK, BLUE_PACK]);
     assert!(t_adv.needs.contains(&ids::ORE_SCANNING));
@@ -375,9 +377,12 @@ fn ring_pack_unlocks_at_half_the_previous_ring_and_opens_on_first_pack() {
     let mut r = Research::default();
     assert!(!r.ring_open(Ring::Green));
     assert!(!r.ring_pack_unlocked(Ring::Green));
-    // Completing 1 of 2 Red deeds unlocks the Green Pack recipe, but doesn't open the Green ring yet.
+    // Red has 6 entries (2 deeds + 4 Red-pack lab techs): finishing any 3 unlocks the Green Pack recipe.
     r.complete_deed(ids::BELT_ROUTING);
-    assert!(r.ring_pack_unlocked(Ring::Green));
+    finish(&mut r, ids::UNDERPASSES);
+    assert!(!r.ring_pack_unlocked(Ring::Green), "2 of 6 is below half");
+    finish(&mut r, ids::MASONRY);
+    assert!(r.ring_pack_unlocked(Ring::Green), "3 of 6 unlocks the Green Pack recipe");
     assert!(!r.ring_open(Ring::Green));
     // Crafting the first Green Pack opens the Green ring!
     r.note(&[crate::sim::SimEvent::Crafted { player: crate::sim::PlayerId(0), item: GREEN_PACK, count: 1 }], &[]);

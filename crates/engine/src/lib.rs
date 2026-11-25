@@ -91,6 +91,7 @@ mod orbit_fx;
 mod ore_guide;
 mod perks;
 mod physics;
+mod pipette;
 mod place_refusal;
 mod planner_lesson;
 mod player;

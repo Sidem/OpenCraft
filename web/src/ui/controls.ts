@@ -14,6 +14,7 @@ import { KeyboardView } from './keyboard-view';
 const MOUSE: { id: MouseInput; name: string }[] = [
   { id: 'move', name: 'Look' },
   { id: 'left', name: 'Left' },
+  { id: 'middle', name: 'Middle' },
   { id: 'right', name: 'Right' },
   { id: 'wheel', name: 'Wheel' },
 ];

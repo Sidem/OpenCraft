@@ -281,16 +281,7 @@ size.
   miner on coal next to a generator, a pole within reach of both, wired to each, and a log to start the
   fire; from then on the miner fuels its own power. Worlds saved before wiring by hand are wired once the
   old way, by range.
-- **Research.** Splitters, filters, lifts, underpasses and green science packs start locked (greyed
-  out in the build menu). A research lab uses science packs to unlock them: press T for the tech
-  tree (done techs are green, the ones you can start glow blue, the one being researched is orange; hover any
-  tech for its details), click one to choose it, and every powered lab with the right packs works on it, one unit at a time (5 or 10 s each, one of each of
-  the tech's packs). Red packs are an iron plate and 2 copper wire; green packs, unlocked by research, are
-  2 belts and 4 screws. Belt Routing (10 red) unlocks splitters, filters and mergers, then Belt Lifts (20 red),
-  Green Science (30 red), and with red and green packs Underpasses (15), Mechanics (30: gears, green kits
-  and Mk2 miners, smelters and constructors), Belt Mk2 (20) Assembly (40: the assembler, motors, concrete) Steelmaking (50, after Assembly and Masonry: the blast furnace, steel) and Blue Science (50: blue packs, from a motor, a steel plate and concrete in an assembler). With blue packs too: Mk3 Logistics (60: blue kits, Mk3 belts), Mk3 Machines (80) and Steel Tools (30), and after Blue Science Steam Power (60, also after Fluid Handling), Ore Crushing (60) and Bulk Storage (40). Fluid Handling (15 red, after Belt
-  Routing) unlocks pumps, pipes and outlets; Masonry (15 red) stone bricks and quicklime. A lab draws 10 kW
-  while it works.
+- **Research.** Press **T** for the discovery grid: eras run left to right as **rings** (Red, Green, Blue, Violet, Gold, Sky), disciplines run top to bottom as rows, and only discovered techs plus a faint one-step teaser appear. In the **Red ring**, **Belt Routing** (lay 40 belts) and **Belt Lifts** (climb 3 steps with a belt line) unlock automatically as **deeds**, while your first Research Lab (10 kW) spends **Red packs** (an iron plate and 2 copper wire) on **Underpasses** (15), **Fluid Handling** (15: pumps, pipes, outlets), **Masonry** (15: stone bricks, quicklime) and **Ore Scanning** (20: scanner, core drill). Finish any **half** of a ring (3 of 6 in Red) and know the next pack's parts to unlock its science pack recipe; crafting or assembling your first **Green**, **Blue**, **Violet** or **Gold** pack opens that ring (launching your first rocket opens **Sky**). In Green, **Mechanics** unlocks gears, green kits, Work Gloves and Mk2 machines/belts, and **Assembly** unlocks the assembler, motors, concrete, the upgrader, **Ghost mode (`B`)** and **Blueprints (`Z`)** for manual layout planning (`X` builds aimed ghosts from your pack; automated building arrives with **Construction Drones** in Violet). Double-click a tech to start it or Shift-click to queue up to 32.
 - **Pumps and pipes.** A pump lifts 2 blocks of still water a second out of the water it touches, the
   highest first (5 kW). Pipes join on every side; an outlet at the other end pours the water out in front
   of it (it faces the way you did when you placed it): down to where it lands, then filling that pool from
@@ -405,10 +396,7 @@ size.
   A full pad keeps the pod waiting and lands what fits, so nothing is lost. The launcher's status says what it waits for.
   On the maps, launchers (a square with an arrow) and pads (a square) are drawn in their channel's colour, and each has a
   mark in that colour on its front, so matching ones are easy to spot.
-- **Endless bonus techs.** AI Research opens **Mining Productivity** (miners draw 3% faster per level), **Machine Speed**
-  (smelters, assemblers and every other processing machine work 3% faster) and **Drone Speed** (drones fly 3% faster). They use
-  no packs, only an AI lab's time and compute; each level takes a quarter longer than the last, and you can keep going (the
-  screen shows the level, not a bar). Levels add up (10 levels: +30%), not compound.
+- **Endless discovery.** **Deep Survey** (after AI Labs) uses no packs, only an AI lab's time and compute; each level takes a quarter longer than the last, giving datacenters steady work.
 - **Quarries.** A quarry digs the ground in front of it for real: stone, rock, soil and sand, about 2 blocks
   a second at full power (10 kW), layer by layer from its own level down. While you hold one, its box shows
   in amber with how many blocks it would yield; R turns it. Its panel picks the size (5 to 11 wide) and the

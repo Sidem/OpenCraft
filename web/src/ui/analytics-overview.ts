@@ -123,7 +123,7 @@ export class OverviewTab implements Tab {
     const short_ = wanted > used + 0.5;
     const tiles: [string, string, string, boolean][] = [
       ['Power', kw(used), capacity > 0 ? `of ${kw(capacity)} · ${Math.round((used / capacity) * 100)}% in use` : 'no power made', short_],
-      ['Machines', `${working} working`, working > 0 ? `${full} at full speed · ${overall}% efficient` : 'all idle', working > 0 && overall < 60],
+      ['Machines', `${working} active`, working > 0 ? `${full} at full speed · ${overall}% efficient` : 'all idle', working > 0 && overall < 60],
       [
         'Materials',
         plural(stat.filter((s) => s.made > 0).length, 'kind', 'made now'),

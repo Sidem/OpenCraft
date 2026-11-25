@@ -1,5 +1,5 @@
-// The View and Comfort tabs of the menu's settings page: sliders and choices for field of view, mouse sensitivity, camera
-// distance and the hand (`view`), and the movement vignette (ui/vignette.ts) and the crosshair (`screen`), which this file also
+// The View and Comfort tabs of the menu's settings page: sliders and choices for field of view, mouse sensitivity
+// and the hand (`view`), and the movement vignette (ui/vignette.ts) and the crosshair (`screen`), which this file also
 // draws from the settings (comfort/settings.ts; they help against motion sickness). The menu's backdrop clears while its
 // settings page shows (ui/menu.ts `previewing`), so changes show on the game behind it.
 // To add a control: a row in `SLIDERS` or a choice in the constructor, on whichever of `view` and `screen` it belongs to.
@@ -11,7 +11,7 @@ import { button, h } from './dom';
 type NumberKey = keyof typeof RANGES;
 
 interface Slider {
-  key: Exclude<NumberKey, 'vignette'>;
+  key: Exclude<NumberKey, 'vignette' | 'thirdDistance'>;
   label: string;
   help: string;
   unit: string;
@@ -20,7 +20,6 @@ interface Slider {
 const SLIDERS: Slider[] = [
   { key: 'fov', label: 'Field of view', help: 'Try 90 to 110. Too wide stretches the edges; too narrow feels like a tunnel.', unit: '°' },
   { key: 'sensitivity', label: 'Mouse sensitivity', help: 'Slower turning is easier on the stomach.', unit: '%' },
-  { key: 'thirdDistance', label: 'Camera distance', help: 'How far behind the player the camera sits in third person.', unit: ' blocks' },
   { key: 'crosshairSize', label: 'Crosshair size', help: 'A fixed point to rest your eyes on.', unit: ' px' },
   { key: 'crosshairThickness', label: 'Crosshair thickness', help: '', unit: ' px' },
   { key: 'crosshairOpacity', label: 'Crosshair opacity', help: '', unit: '%' },
@@ -29,7 +28,7 @@ const VIGNETTE_LABELS = ['Off', 'Low', 'Medium', 'High'];
 const STYLE_LABELS = { cross: 'Cross', dot: 'Dot', both: 'Both' };
 
 export class ComfortPanel {
-  /** The Settings page's View tab: field of view, turning speed, camera distance, the hand. */
+  /** The Settings page's View tab: field of view, turning speed, the hand. */
   readonly view = h('div', 'comfort');
   /** The Comfort tab: the vignette, the crosshair, reset and tips. */
   readonly screen = h('div', 'comfort');
@@ -37,11 +36,9 @@ export class ComfortPanel {
 
   constructor(private readonly comfort: ComfortStore) {
     const crosshair = document.getElementById('crosshair')!;
-    const [look, third, aim] = [SLIDERS.slice(0, 2), SLIDERS[2], SLIDERS.slice(3)];
+    const [look, aim] = [SLIDERS.slice(0, 2), SLIDERS.slice(2)];
     this.view.append(
       ...look.map((s) => this.slider(s)),
-      this.slider(third),
-      h('p', 'comfort-help', 'Third person shows your character, a fixed shape on screen to anchor your eyes. The crosshair still marks where you aim.'),
       this.choices('Hand in first person', ['Shown', 'Hidden'], () => (comfort.settings.showHand ? 0 : 1), (i) => comfort.set('showHand', i === 0)),
       h('p', 'comfort-help', 'Your hand and what it holds, low on the right. It moves only when you dig or use something.'),
     );

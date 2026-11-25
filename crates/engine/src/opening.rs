@@ -89,10 +89,12 @@ pub enum Step {
     CraftIron,
     /// Give the lit coal miner on coal a box beside it (or a belt away) to fill.
     BoxCoal,
+    /// Placed the belt somewhere other than the gap: pick it back up and put it in the blue outline.
+    Misplaced,
 }
 
 /// The steps by number for the host (`api/opening.rs`): 0 is done. Append only.
-pub const STEPS: [Step; 13] = [
+pub const STEPS: [Step; 14] = [
     Step::Done,
     Step::Pick,
     Step::Collect,
@@ -106,6 +108,7 @@ pub const STEPS: [Step; 13] = [
     Step::FuelIron,
     Step::CraftIron,
     Step::BoxCoal,
+    Step::Misplaced,
 ];
 
 /// What a floating prompt over the scene shows (`Opening::marker`; drawn by `web/src/ui/key-prompt.ts`).
@@ -149,8 +152,9 @@ impl Step {
                  [Right-click] the ground right beside the miner, where the outline shows."
             }
             Step::CraftIron => {
-                "*Another coal miner, for iron:* press [E] and craft a second *Coal Miner* in the *Production* tab. \
-                 Your first one digs coal; this one will dig iron."
+                "*Another coal miner, for iron:* press [E] and craft a second *Coal Miner* in the *Production* tab \
+                 (take the rest of the ingots from the furnace's box if you need more). Your first one digs coal; \
+                 this one will dig iron."
             }
             Step::FuelCoal => {
                 "*Light it:* [Right-click] the coal miner and put coal ore in its fuel slot. On coal it keeps its \
@@ -163,6 +167,10 @@ impl Step {
             Step::FuelIron => {
                 "*Fuel it:* [Right-click] it and give it coal. It digs iron, not coal, so keep it fed: the box beside \
                  the miner on coal fills up with coal you can take."
+            }
+            Step::Misplaced => {
+                "*Missed the gap:* hold [Left mouse] on the belt you placed to pick it back up, then [Right-click] \
+                 the gap outlined in blue."
             }
             Step::Done => "",
         }
@@ -182,12 +190,12 @@ const LOOSE_D: i32 = 3;
 /// Cells cleared above the ground, and filled below it where the ground dips.
 const CLEAR: i32 = 12;
 const FILL: i32 = 4;
-/// The source box: the iron for two coal miners, and no copper, so nothing tempts a miner that needs power
-/// (`the_scene_pays_for_two_coal_miners` checks it against the recipe).
-const STOCK: [(BlockId, u32); 1] = [(IRON_ORE, 22)];
-/// Waiting in the box for the ingots: the stone for two coal miners and coal to light them and keep the one on iron
-/// going for a few minutes.
-const OUT_STOCK: [(BlockId, u32); 2] = [(STONE, 16), (COAL_ORE, 8)];
+/// The source box: the second coal miner's iron ore waiting behind the broken belt (`the_scene_pays_for_two_coal_miners`
+/// checks the combined load against the recipe), and no copper, so nothing tempts a miner that needs power.
+const STOCK: [(ItemId, u32); 1] = [(ItemId::block(IRON_ORE), 11)];
+/// Waiting in the box for the ingots: the first coal miner's ingots already smelted before the belt came loose (so the
+/// player can craft at once after mending the line), plus the stone and coal for both coal miners.
+const OUT_STOCK: [(ItemId, u32); 3] = [(IRON_INGOT, 11), (ItemId::block(STONE), 16), (ItemId::block(COAL_ORE), 8)];
 /// Coal in the furnace, more than the load needs; what is left is the player's.
 const COAL: u32 = 8;
 /// Looking down at the loose belt (the gap is straight ahead, the loose belt in line before it), so the first
@@ -208,6 +216,8 @@ impl Opening {
                     Step::Pick
                 } else if inv.count(BELT.into()) > 0 {
                     Step::Place
+                } else if f.count(Kind::Belt) >= 5 {
+                    Step::Misplaced
                 } else {
                     Step::Collect
                 };
@@ -230,7 +240,7 @@ impl Opening {
     pub fn marker(&self, step: Step, f: &Factory) -> Option<(IVec3, u8)> {
         match step {
             Step::Pick => Some((self.loose, PROMPT_HOLD_LEFT)),
-            Step::Place => Some((self.gap, PROMPT_RIGHT_CLICK)),
+            Step::Place | Step::Misplaced => Some((self.gap, PROMPT_RIGHT_CLICK)),
             Step::Rotate => Some((self.gap, PROMPT_KEY_R)),
             Step::Take => Some((self.out, PROMPT_OPEN)),
             Step::PlaceCoal | Step::FuelCoal | Step::PlaceIron | Step::FuelIron | Step::BoxCoal => {
@@ -352,7 +362,7 @@ impl Sim {
         for (pos, stock) in [(line(0), &STOCK[..]), (last, &OUT_STOCK[..])] {
             if let Some(slots) = self.factory.box_slots_mut(pos) {
                 for &(item, n) in stock {
-                    add_to_slots(slots, item.into(), n);
+                    add_to_slots(slots, item, n);
                 }
             }
         }
