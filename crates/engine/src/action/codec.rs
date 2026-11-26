@@ -15,11 +15,12 @@ mod read;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 85;
+pub const TAG_COUNT: u8 = 87;
 /// Tags only read, never written: 4, the filter's old one item straight on, now a `FilterPick` (tag 73); 38, the
-/// personal drone's old fetch, now an `Action::Drone` (tag 72).
+/// personal drone's old fetch, now an `Action::Drone` (tag 72); 53 and 84, the old pack and gloves upgrades, now an
+/// `UpgradeGear` (tag 85).
 #[cfg(test)]
-pub const READ_ONLY: [u8; 2] = [4, 38];
+pub const READ_ONLY: [u8; 4] = [4, 38, 53, 84];
 
 impl Action {
     pub fn write(&self, w: &mut ByteWriter) {
@@ -337,7 +338,6 @@ impl Action {
                 w.u8(63);
                 w.u8(bit);
             }
-            Action::UpgradePack => w.u8(53),
             Action::QueueResearch { tech } => {
                 w.u8(51);
                 w.u8(tech);
@@ -406,7 +406,15 @@ impl Action {
                 w.u8(face);
                 w.u8(colour);
             }
-            Action::UpgradeGloves => w.u8(84),
+            Action::UpgradeGear { slot } => {
+                w.u8(85);
+                w.u8(slot);
+            }
+            Action::MineWide { pos, face } => {
+                w.u8(86);
+                w.ivec3(pos);
+                w.u8(face);
+            }
         }
     }
 

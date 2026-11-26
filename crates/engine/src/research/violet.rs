@@ -8,7 +8,7 @@ use crate::block::{
 };
 use crate::item::{
     BLUE_PACK, EMPTY_BARREL, EXO_FRAME, FLAMETHROWER, GREEN_PACK, HAULER_PACK_MK4, HOVER_PACK, JETPACK, LOCOMOTIVE,
-    PERSONAL_DRONE, PLANNER, RAIL_SIGNAL, RED_PACK, SERVO_BOOTS, VIOLET_PACK, WAGON, WORK_GLOVES_MK4,
+    PERSONAL_DRONE, PLANNER, RAIL_SIGNAL, RED_PACK, SERVO_BOOTS, TOOL_BELT_MK4, VIOLET_PACK, WAGON, WORK_GLOVES_MK4,
 };
 use crate::recipes::{
     ACID_RECIPE, BARREL_MACHINE_RECIPE, BAUXITE_RECIPES, CARGO_RECIPE, CRACK_RECIPE, DISTIL_RECIPE, DRONE_RECIPES,
@@ -48,12 +48,12 @@ pub(super) const VIOLET: [Tech; 27] = [
     Tech {
         name: "Mk4 Kits",
         blurb: "Violet kits, made in an assembler, raise belts, underpasses, substations, boxes, miners, smelters, \
-                constructors, assemblers, blast furnaces, labs, seismic thumpers, hauler packs and work gloves to \
-                Mk4: five times as fast, 81 pack slots and +100% hand crafting.",
+                constructors, assemblers, blast furnaces, labs, seismic thumpers, hauler packs, work gloves and \
+                the Tool Belt to Mk4: five times as fast, 81 pack slots, +100% hand crafting and a rock drill.",
         ring: Ring::Violet,
         wedge: Wedge::Workshop,
         deed: None,
-        needs: &[ELECTRONICS, MK3_KITS],
+        needs: &[ELECTRONICS, MK3_KITS, STEEL_TOOLS],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 140,
         seconds: 30.0,
@@ -61,6 +61,7 @@ pub(super) const VIOLET: [Tech; 27] = [
             Unlock::MachineRecipe(VIOLET_RECIPES[1]),
             Unlock::Recipe(HAULER_PACK_MK4),
             Unlock::Recipe(WORK_GLOVES_MK4),
+            Unlock::Recipe(TOOL_BELT_MK4),
             Unlock::Upgrade(BELT, 3),
             Unlock::Upgrade(UNDERPASS_IN, 3),
             Unlock::Upgrade(POLE, 3),

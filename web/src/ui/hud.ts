@@ -293,7 +293,7 @@ export class Hud {
     renderHudControls(this.targetControls, controls);
   }
 
-  /** A toast per item, adding up; a tool shows no amount, a count of 0 means it wore out, and `LAUNCHED` that a
+  /** A toast per item, adding up; a tool shows no amount, and `LAUNCHED` that a
    * satellite went into orbit (`next_launch`). */
   private pushToast(item: number, count: number, now: number): void {
     const tool = this.game.tool_uses(item) > 0;
@@ -304,8 +304,8 @@ export class Hud {
       else this.addToast(key, item, 'in orbit', 0, now);
       return;
     }
-    const key = count === 0 ? -1 - item : item;
-    const text = (n: number) => (!tool ? `+${n}` : n === 0 ? 'wore out' : '');
+    const key = item;
+    const text = (n: number) => (!tool ? `+${n}` : '');
     const existing = this.toasts.get(key);
     if (existing) {
       existing.count += count;

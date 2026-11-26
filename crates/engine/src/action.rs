@@ -16,11 +16,16 @@ use crate::math::{IVec3, Vec3};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Action {
-    /// Breaks the block at `pos` by hand, with whatever the player holds: ore keeps `HAND_YIELD`
-    /// (more with a good pickaxe: tools.rs) and costs its deposit a block; a tool for the block loses a
-    /// use; machines drop their contents.
+    /// Breaks the block at `pos` by hand: ore keeps `HAND_YIELD` (more with a better Tool Belt: `tool_belt/`) and
+    /// costs its deposit a block; machines drop their contents.
     BreakBlock {
         pos: IVec3,
+    },
+    /// Crouch-mining with a Tool Belt Mk3 or better (`tool_belt/`): breaks the block at `pos` and the cells its
+    /// tier takes with it, hit through face `face` (`tool_belt::FACES`). Never another kind of block or a machine.
+    MineWide {
+        pos: IVec3,
+        face: u8,
     },
     /// Places one item from `slot` at `pos`. `facing` is the belt direction (`factory::dir_from_yaw`;
     /// a multi-block machine's turn); `against` is the clicked block, which gives a miner its drill face
@@ -299,10 +304,11 @@ pub enum Action {
         slot: u8,
         shift: bool,
     },
-    /// Raises the worn hauler pack one tier with kits from the inventory (`equipment.rs`).
-    UpgradePack,
-    /// Raises the worn work gloves one tier with kits from the inventory (`equipment.rs`).
-    UpgradeGloves,
+    /// Raises the gear worn in equipment `slot` (the pack, gloves or Tool Belt) one tier in place, for what that step
+    /// takes from the inventory (`equipment::next_tier`).
+    UpgradeGear {
+        slot: u8,
+    },
     /// The left hand (`offhand.rs`): `swap` trades the selected hotbar stack with it; otherwise the cursor clicks it.
     Offhand {
         swap: bool,

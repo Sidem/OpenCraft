@@ -47,31 +47,19 @@ impl Game {
         equipment::gear(ItemId(item)).map_or_else(String::new, |g| g.blurb.to_string())
     }
 
-    /// The upgrade of the worn hauler pack: `[next pack, kit, kits needed, kits held, unlocked (0 or 1)]`, or empty
-    /// when no pack is worn or it is the last tier.
-    pub fn pack_upgrade(&self) -> Vec<u32> {
+    /// The in-place upgrade of what is worn in equipment `slot` (a pack, gloves or a Tool Belt): `[next tier, item it
+    /// takes, how many, how many held, unlocked (0 or 1)]`, or empty when nothing there has a tier above.
+    pub fn gear_upgrade(&self, slot: u32) -> Vec<u32> {
         let inv = self.inventory();
-        let Some((next, kit, kits)) = equipment::next_pack(inv.worn[0]) else { return Vec::new() };
+        let Some(&worn) = inv.worn.get(slot as usize) else { return Vec::new() };
+        let Some((next, cost, n)) = equipment::next_tier(worn) else { return Vec::new() };
         let unlocked = self.sim.factory.research.has(Unlock::Recipe(next));
-        vec![u32::from(next.0), u32::from(kit.0), kits, inv.count(kit), u32::from(unlocked)]
+        vec![u32::from(next.0), u32::from(cost.0), n, inv.count(cost), u32::from(unlocked)]
     }
 
-    /// Raises the worn hauler pack one tier with kits from the inventory (next tick).
-    pub fn upgrade_pack(&mut self) {
-        self.act(Action::UpgradePack);
-    }
-
-    /// The upgrade of the worn work gloves: `[next gloves, kit, kits needed, kits held, unlocked (0 or 1)]`, or empty.
-    pub fn gloves_upgrade(&self) -> Vec<u32> {
-        let inv = self.inventory();
-        let Some((next, kit, kits)) = equipment::next_gloves(inv.worn[5]) else { return Vec::new() };
-        let unlocked = self.sim.factory.research.has(Unlock::Recipe(next));
-        vec![u32::from(next.0), u32::from(kit.0), kits, inv.count(kit), u32::from(unlocked)]
-    }
-
-    /// Raises the worn work gloves one tier with kits from the inventory (next tick).
-    pub fn upgrade_gloves(&mut self) {
-        self.act(Action::UpgradeGloves);
+    /// Raises what is worn in equipment `slot` one tier in place (next tick).
+    pub fn upgrade_gear(&mut self, slot: u32) {
+        self.act(Action::UpgradeGear { slot: slot.min(u8::MAX as u32) as u8 });
     }
 
     /// Equipment-panel click (next tick): swaps the cursor stack with the gear in `slot`; `shift` takes it off.

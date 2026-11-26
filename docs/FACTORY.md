@@ -13,14 +13,15 @@ size.
 | Vein    | long seams 8–70 blocks down, by ore          | 1,000           | 240 per minute    |
 | Lode    | rare, huge bodies deep down (y 12–25)        | 2,000           | 1,200 per minute  |
 
-- **By hand** you keep 3 ore per block (4 with an iron pickaxe). The rest of that block's share of the pool
+- **By hand** you keep 3 ore per block (4 with a Mk2 Tool Belt, 5 from Mk3). The rest of that block's share of the pool
   is lost. Each block broken by hand shows what you kept and lost under the crosshair, and after a few blocks a
   warning tip adds it up.
-- **Tools.** Hold a pickaxe (stone and ore), an axe (wood) or a shovel (dirt, grass, sand) in the hotbar to
-  break those blocks faster: stone tools twice as fast, iron tools four times. Each block broken with the
-  right tool uses it up a little (stone tools last 150 blocks, iron 600); the bar under its slot shows
-  what's left. Stone tools cost 3 stone (1 for a shovel) and 2 sticks; iron tools 3 iron plates (1 for a
-  shovel) and 2 iron rods. Bare hands still break everything, only slower.
+- **Tool Belt.** Worn in the belt slot, it breaks stone and ore, wood and soil faster whatever the hand holds,
+  and never wears out; the swinging hand shows the head it uses. Mk1 is 6 stone and 4 sticks; Mk2 adds 6 iron
+  plates, Mk3 (Steel Tools) 6 steel plates, Mk4 and Mk5 four violet or gold kits, raised in place from the
+  inventory. Crouching widens the swing from Mk3: a 1×2 column, Mk4 a 3×3 face of one kind, Mk5 up to 32
+  connected blocks of one kind; never a machine or a town plot. Speeds and reach: `tool_belt/mod.rs` `BELTS`.
+  Bare hands still break everything, only slower.
 - **Saplings.** Leaves now and then leave a sapling behind, whether you break them or they fall off a
   felled tree. Plant it on dirt or grass and it grows into a tree after a few minutes, as long as
   nothing blocks its trunk.
@@ -131,8 +132,8 @@ size.
   quicklime in at the hatches on its back and left (2 ore, a coal and a quicklime make a steel ingot in 4 s);
   steel leaves by the amber hatch at its front and slag by the violet hatch on its right. Slag has to be
   taken away (or piled: 16 wait inside) or the furnace stops and says so. Constructors press steel ingots
-  into plates and beams; steel pickaxes, axes and shovels last 1,500 blocks, dig six times as fast as bare
-  hands and keep 5 ore per block by hand.
+  into plates and beams; the steel Tool Belt (Mk3) digs six times as fast as bare hands and
+  keeps 5 ore per block by hand.
 - **Steam power** (Steam Power research, with blue packs) is a boiler (2×2×2) and steam turbines (3×2×2)
   joined by pipes. Each of the boiler's back, left and right faces has two inlets, one per cell: a dark **coal
   chute** for a belt (a coal makes 540 kJ of steam, twice a generator's 270) and a **blue banded pipe** for water.

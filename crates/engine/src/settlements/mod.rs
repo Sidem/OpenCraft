@@ -288,6 +288,11 @@ impl Settlements {
     /// Block `id` at `pos` was broken: a town whose finished plot held it rebuilds from that plot on. Whether it was a
     /// town's own block, which drops nothing (so rebuilt blocks can't be farmed): its plan's block there, from the
     /// floor up (below the floor a foundation cell may be the natural ground).
+    /// Whether `pos` lies on any town's plot (a crouched wide swing leaves those cells alone: `tool_belt/`).
+    pub fn in_plot(&self, pos: IVec3) -> bool {
+        self.towns.iter().any(|t| t.plots.iter().any(|p| p.holds(t.pos, pos)))
+    }
+
     pub fn broken(&mut self, pos: IVec3, id: BlockId) -> bool {
         let mut owned = false;
         for t in &mut self.towns {

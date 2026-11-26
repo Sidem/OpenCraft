@@ -6,7 +6,9 @@ use crate::block::{
     LAUNCH_SITE, MINER, OPTIMIZER, POD_LAUNCHER, PUMPJACK, RECTENNA, RESEARCH_CENTER, SMELTER, STORAGE, SWARM_HUB,
     THUMPER,
 };
-use crate::item::{BLUE_PACK, CRAFT_GLOVES, GOLD_PACK, GREEN_PACK, HAULER_PACK_MK5, RED_PACK, VIOLET_PACK};
+use crate::item::{
+    BLUE_PACK, CRAFT_GLOVES, GOLD_PACK, GREEN_PACK, HAULER_PACK_MK5, RED_PACK, TOOL_BELT_MK5, VIOLET_PACK,
+};
 use crate::recipes::{
     ACCELERATOR_RECIPE, COMMS_SATELLITE_RECIPES, DROP_POD_RECIPE, GOLD_RECIPES, POWER_SATELLITE_RECIPES,
     PURE_WATER_RECIPE, ROCKET_FUEL_RECIPE, ROCKET_PART_RECIPES, ROCKET_RECIPE, SCIENCE_SATELLITE_RECIPES,
@@ -23,8 +25,9 @@ pub(super) const GOLD_SKY: [Tech; 16] = [
     Tech {
         name: "Mk5 Kits",
         blurb: "Gold kits raise miners, smelters, constructors, assemblers, blast furnaces, drone ports, research \
-                centers, storage boxes, pumpjacks, thumpers, hauler packs and work gloves to their top tier: eight \
-                times as fast, 99 pack slots and Fabricator Gloves (+125% hand crafting).",
+                centers, storage boxes, pumpjacks, thumpers, hauler packs, work gloves and the Tool \
+                Belt to their top tier: eight times as fast, 99 pack slots, Fabricator Gloves (+125% hand crafting) \
+                and a laser cutter.",
         ring: Ring::Gold,
         wedge: Wedge::Workshop,
         deed: None,
@@ -36,6 +39,7 @@ pub(super) const GOLD_SKY: [Tech; 16] = [
             Unlock::MachineRecipe(GOLD_RECIPES[1]),
             Unlock::Recipe(HAULER_PACK_MK5),
             Unlock::Recipe(CRAFT_GLOVES),
+            Unlock::Recipe(TOOL_BELT_MK5),
             Unlock::Upgrade(MINER, 4),
             Unlock::Upgrade(SMELTER, 4),
             Unlock::Upgrade(CONSTRUCTOR, 4),

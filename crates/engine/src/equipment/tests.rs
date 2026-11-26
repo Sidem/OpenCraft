@@ -85,37 +85,38 @@ fn a_full_pack_is_raised_in_place_with_kits_and_only_when_unlocked() {
     fill(&mut inv, INVENTORY_SLOTS + 27);
     // Not even a free slot for the kits: take stacks out first, as a player would.
     inv.slots[0] = Stack { item: GREEN_KIT, count: PACK_KITS };
-    assert!(!inv.upgrade_pack(|_| false), "the tech has not unlocked it");
+    assert!(!inv.upgrade_worn(0, |_| false), "the tech has not unlocked it");
     assert_eq!(inv.worn[0], HAULER_PACK);
-    assert!(inv.upgrade_pack(|_| true));
+    assert!(inv.upgrade_worn(0, |_| true));
     assert_eq!((inv.worn[0], inv.capacity(), inv.slots[0].is_empty()), (HAULER_PACK_MK2, INVENTORY_SLOTS + 45, true));
     assert!(inv.slots[INVENTORY_SLOTS..INVENTORY_SLOTS + 27].iter().all(|s| !s.is_empty()), "nothing moved");
 
     // The next step wants kits of the next colour, and as many as the recipe says.
     inv.slots[0] = Stack { item: GREEN_KIT, count: PACK_KITS };
-    assert!(!inv.upgrade_pack(|_| true), "green kits do not make a Mk3");
+    assert!(!inv.upgrade_worn(0, |_| true), "green kits do not make a Mk3");
     inv.slots[0] = Stack { item: BLUE_KIT, count: PACK_KITS - 1 };
-    assert!(!inv.upgrade_pack(|_| true), "one kit short");
+    assert!(!inv.upgrade_worn(0, |_| true), "one kit short");
     inv.slots[0].count = PACK_KITS;
-    assert!(inv.upgrade_pack(|_| true));
+    assert!(inv.upgrade_worn(0, |_| true));
     assert_eq!(inv.worn[0], HAULER_PACK_MK3);
 
     // The last tier, and no pack at all, have nothing to raise.
     inv.worn[0] = HAULER_PACK_MK5;
-    assert!(!inv.upgrade_pack(|_| true));
+    assert!(!inv.upgrade_worn(0, |_| true));
     inv.worn[0] = ItemId::NONE;
-    assert!(!inv.upgrade_pack(|_| true));
+    assert!(!inv.upgrade_worn(0, |_| true));
 }
 
 #[test]
-fn pack_recipes_are_the_pack_below_plus_the_kits_of_the_upgrade() {
-    for w in PACKS.windows(2) {
-        let (next, kit, kits) = next_pack(w[0]).unwrap();
+fn every_ladders_recipes_are_the_tier_below_plus_its_upgrade_step() {
+    let belts = crate::tool_belt::BELTS.map(|t| t.item);
+    for w in PACKS.windows(2).chain(GLOVES_TIERS.windows(2)).chain(belts.windows(2)) {
+        let (next, kit, kits) = next_tier(w[0]).unwrap();
         assert_eq!(next, w[1]);
-        let recipe = crate::recipes::RECIPES.iter().find(|r| r.output == next).expect("every pack is craftable");
+        let recipe = crate::recipes::RECIPES.iter().find(|r| r.output == next).expect("every tier is craftable");
         assert_eq!((recipe.count, recipe.inputs), (1, &[(w[0], 1), (kit, kits)][..]), "{}", crate::item::name(next));
     }
-    assert_eq!(next_pack(PACKS[4]), None);
+    assert_eq!((next_tier(PACKS[4]), next_tier(GLOVES_TIERS[4]), next_tier(belts[4])), (None, None, None));
 }
 
 #[test]
@@ -239,13 +240,13 @@ fn a_version_77_inventory_has_six_slots_and_loads_with_the_head_slot_empty() {
 
 #[test]
 fn the_cursor_swaps_gear_and_only_the_right_gear_fits() {
-    let mut inv = Inventory { cursor: Stack { item: MINING_RIG, count: 1 }, ..Default::default() };
+    let mut inv = Inventory { cursor: Stack { item: TOOL_BELT, count: 1 }, ..Default::default() };
     inv.click_gear(1, false);
-    assert_eq!((inv.worn[1], inv.cursor.item), (ItemId::NONE, MINING_RIG), "a mining rig is not boots");
+    assert_eq!((inv.worn[1], inv.cursor.item), (ItemId::NONE, TOOL_BELT), "a tool belt is not boots");
     inv.click_gear(3, false);
-    assert_eq!((inv.worn[3], inv.cursor.is_empty()), (MINING_RIG, true));
+    assert_eq!((inv.worn[3], inv.cursor.is_empty()), (TOOL_BELT, true));
     inv.click_gear(3, false);
-    assert_eq!((inv.worn[3], inv.cursor.item), (ItemId::NONE, MINING_RIG), "an empty cursor takes it off");
+    assert_eq!((inv.worn[3], inv.cursor.item), (ItemId::NONE, TOOL_BELT), "an empty cursor takes it off");
 
     inv.cursor = Stack { item: SPRING_BOOTS, count: 1 };
     inv.click_gear(1, false);
@@ -276,8 +277,8 @@ fn gear_rides_the_actions_and_the_save() {
     assert_eq!(back.worn, inv(&sim).worn);
     assert_eq!(back.slots, inv(&sim).slots);
     assert_eq!(
-        SAVE_VERSION, 86,
-        "the layout above is unchanged since version 29 (86 only updated the research tree table, open_rings and belts_laid)"
+        SAVE_VERSION, 87,
+        "the layout above is unchanged since version 29 (87 only turned old tools into a worn belt on reading)"
     );
 
     // A save with a pack's rows full but no pack on is refused.
@@ -303,13 +304,12 @@ fn old_saves_read_without_gear() {
 }
 
 #[test]
-fn boots_and_frames_scale_the_body_and_a_rig_the_hands() {
+fn boots_and_frames_scale_the_body() {
     let mut inv = Inventory::default();
-    assert_eq!((inv.boost(), inv.mining_speed()), (Default::default(), 1.0));
-    inv.worn = [ItemId::NONE, SERVO_BOOTS, EXO_FRAME, MINING_RIG, ItemId::NONE, ItemId::NONE, ItemId::NONE];
+    assert_eq!(inv.boost(), Default::default());
+    inv.worn = [ItemId::NONE, SERVO_BOOTS, EXO_FRAME, TOOL_BELT, ItemId::NONE, ItemId::NONE, ItemId::NONE];
     let b = inv.boost();
     assert!((b.walk - 1.15).abs() < 1e-9 && (b.sprint - 1.15 * 1.1).abs() < 1e-9 && b.jump == 1.0);
-    assert_eq!(inv.mining_speed(), 1.5);
 }
 
 #[test]
@@ -346,11 +346,11 @@ fn spring_boots_jump_two_blocks_and_servo_boots_walk_faster() {
 }
 
 #[test]
-fn worn_gear_reaches_the_body_and_the_hands_in_a_running_game() {
+fn worn_gear_reaches_the_body_in_a_running_game() {
     let mut g = crate::Game::new(2024, 3);
     crate::tests::run_until_ready(&mut g);
     g.act(Action::Give { item: SERVO_BOOTS, count: 1 });
-    g.act(Action::Give { item: MINING_RIG, count: 1 });
+    g.act(Action::Give { item: TOOL_BELT, count: 1 });
     for slot in 0..2 {
         g.act(Action::ClickSlot { slot, shift: true });
     }
@@ -359,5 +359,5 @@ fn worn_gear_reaches_the_body_and_the_hands_in_a_running_game() {
     }
     assert_eq!(g.inventory().worn[1], SERVO_BOOTS);
     assert!((g.body().boost.walk - 1.15).abs() < 1e-9, "the body walks faster");
-    assert_eq!(g.inventory().mining_speed(), 1.5);
+    assert_eq!(g.inventory().belt(), TOOL_BELT);
 }

@@ -113,6 +113,9 @@ fn lint_items(hand: &[Recipe], machine: &[MachineRecipe]) -> Vec<String> {
     for each in items() {
         // Every wood serves where the oak's does (wood.rs): a pine floor is made and used as the oak floor is.
         let it = crate::wood::standard(each);
+        if crate::tool_belt::RETIRED.contains(&it) {
+            continue;
+        }
         let made = hand.iter().any(|r| r.output == it) || machine.iter().any(|r| r.outputs.iter().any(|o| o.0 == it));
         let gathered = GATHERED.contains(&it) || WORLD_BLOCKS.iter().any(|&w| ItemId::block(block::def(w).drop) == it);
         if !made && !gathered {

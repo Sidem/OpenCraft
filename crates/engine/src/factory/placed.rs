@@ -1,5 +1,5 @@
 //! How a machine was placed, read back: the facing and tier a blueprint copies (`blueprint/`), and whether
-//! it is a working machine, and how much working machinery is near a point. Read-only; `Factory::place` is the inverse.
+//! it is a working machine or any part of the factory, and how much working machinery is near a point. Read-only; `Factory::place` is the inverse.
 
 use crate::math::{IVec3, Vec3};
 
@@ -38,6 +38,11 @@ impl Factory {
             | Slot::Node(_) => 0,
         };
         Some((facing % 4, self.tiered_at(pos).map_or(0, |(_, tier)| tier)))
+    }
+
+    /// Whether any part of the factory (a machine, belt, pipe, pole, rail or a cell of a multi-block machine) is at `pos`.
+    pub fn occupies(&self, pos: IVec3) -> bool {
+        self.at.contains_key(&pos) || self.footprint_at(pos).is_some()
     }
 
     /// Whether a working machine (a processor, miner, generator or lab, not logistics, storage or poles) is

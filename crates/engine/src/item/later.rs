@@ -152,3 +152,9 @@ pub const TERRACOTTA_ITEM: ItemId = ItemId(454);
 pub const PORCELAIN_ITEM: ItemId = ItemId(455);
 pub const TURQUOISE_TILES_ITEM: ItemId = ItemId(456);
 pub const AMBER_TILES_ITEM: ItemId = ItemId(457);
+/// The Tool Belt Mk1–Mk5 (GEAR-BELT, `tool_belt/`): worn in the Tool belt slot, it replaced the nine hand tools.
+pub const TOOL_BELT: ItemId = ItemId(458);
+pub const TOOL_BELT_MK2: ItemId = ItemId(459);
+pub const TOOL_BELT_MK3: ItemId = ItemId(460);
+pub const TOOL_BELT_MK4: ItemId = ItemId(461);
+pub const TOOL_BELT_MK5: ItemId = ItemId(462);

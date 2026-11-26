@@ -4,6 +4,13 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-25 · v0.17.0 · The Tool Belt
+- **One Tool Belt instead of nine tools.** Pickaxes, axes, shovels and the Mining Rig are gone. Wear a **Tool Belt** (6 stone, 4 sticks) and every swing uses the right head for stone, wood or soil, with an empty hand or anything else in it. It never wears out.
+- **Five tiers.** Mk1 digs twice as fast as bare hands and keeps 3 ore a block; Mk2 (6 iron plates) four times and 4 ore; Mk3 (Steel Tools, 6 steel plates) six times and 5 ore; Mk4 (4 violet kits) eight; Mk5 (4 gold kits) ten. Raise the worn belt in place from the button in the inventory, like packs and gloves.
+- **Crouch to dig wide.** From Mk3, a crouched swing takes a 1×2 column (a walkable tunnel); Mk4 a 3×3 face of the same block; Mk5 cuts up to 32 connected blocks of one kind, a whole vein. It never takes a machine, a town plot or another kind of block.
+- **Your old tools move over.** Loading a save wears your best pickaxe, axe or shovel tier (or a worn Mining Rig) as a belt; the old tools stay in your pack for the recycler. The highland workshop no longer mends tools, and tool belts join its half-price gear.
+- **Field Gear** now unlocks Spring Boots only.
+
 ## 2026-11-25 · v0.16.0 · First-person pipette, To-do list, earlier blueprints & smoother start
 - **Middle-click / `V` pipette.** Point at any placed block, machine or ghost and press **Middle mouse** or **`V`** to pull it straight into your hand — matching its direction, tier (or the closest tier you carry) and slab/stair/roof shape. With a **Paint Sprayer** in hand, pipette copies the surface paint under your crosshair.
 - **Pinned To-do shopping list.** **Alt-click** any recipe in the build menu (`E`), or click **+ To-do** in the item guide, to pin targets to your HUD (`−` / `+` / `×`). The card tracks how many you hold and sums the missing parts or raw materials across your list.

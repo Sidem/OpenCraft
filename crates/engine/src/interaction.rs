@@ -12,7 +12,7 @@ use crate::math::{IVec3, Vec3};
 use crate::player;
 use crate::raycast::RayHit;
 use crate::sound;
-use crate::tools;
+use crate::tool_belt;
 use crate::Game;
 
 pub(crate) const REACH: f64 = 5.0;
@@ -192,13 +192,18 @@ impl Game {
         if def.break_time < 0.0 {
             return;
         }
-        let inv = self.inventory();
-        let speed = tools::break_speed(inv.in_hand(inv.tool_hand(hit.id)).item, hit.id) * inv.mining_speed();
-        self.mine_progress += if def.break_time == 0.0 { 1.0 } else { dt * speed / def.break_time };
+        // A crouched swing with a Mk3+ belt takes more blocks and as much longer as the root of their count.
+        let wide = self.wide_swing(hit);
+        let time = def.break_time * wide.map_or(1.0, |w| (w.1 as f32).sqrt());
+        let speed = tool_belt::speed(self.inventory().belt(), hit.id);
+        self.mine_progress += if time == 0.0 { 1.0 } else { dt * speed / time };
         if self.mine_progress < 1.0 {
             return;
         }
-        self.act(Action::BreakBlock { pos: hit.block });
+        self.act(match wide {
+            Some((face, _)) => Action::MineWide { pos: hit.block, face },
+            None => Action::BreakBlock { pos: hit.block },
+        });
         self.dig_timer = 0.0;
         self.mine_block = None;
         self.mine_progress = 0.0;

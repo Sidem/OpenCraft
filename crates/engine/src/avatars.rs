@@ -7,6 +7,7 @@ use std::f64::consts::{PI, TAU};
 use crate::held_light;
 use crate::item::ItemId;
 use crate::math::Vec3;
+use crate::tool_belt::hand_item;
 use crate::Game;
 use motion::Motion;
 
@@ -61,7 +62,8 @@ impl Game {
         let k = 1.0 - (-GLIDE_RATE * dt).exp();
         let local = self.local.0 as usize;
         let inv = self.inventory();
-        let (hands, reach) = ([inv.selected_stack().item, inv.offhand.item], held_light::reach_of(inv));
+        let right = hand_item(&self.sim.world, self.body(), inv, inv.selected_stack().item);
+        let (hands, reach) = ([right, inv.offhand.item], held_light::reach_of(inv));
         let focus = self.avatar_focus() - eye;
         // The first-person hand: not from behind or above, nor while looking through the telescope.
         let view_hand =
@@ -119,7 +121,9 @@ impl Game {
             s.motion.advance(body, dt);
             let at = s.pos - eye;
             let inv = self.sim.players.get(slot).and_then(Option::as_ref).map(|p| &p.inventory);
-            let hands = inv.map_or([ItemId::NONE; 2], |i| [i.selected_stack().item, i.offhand.item]);
+            let world = &self.sim.world;
+            let hands =
+                inv.map_or([ItemId::NONE; 2], |i| [hand_item(world, body, i, i.selected_stack().item), i.offhand.item]);
             add_light(&mut a.lights, at + CHEST, inv.map_or(0.0, held_light::reach_of));
             let mut muzzle = None;
             let shown =

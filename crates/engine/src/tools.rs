@@ -1,21 +1,17 @@
-//! Hand tools: pickaxe, axe and shovel in tiers (stone, iron, steel). A tool held in the
-//! selected hotbar slot breaks its class of blocks faster, and a pickaxe of a good tier keeps a little
-//! more ore by hand (still far below a miner's recovery).
+//! Hand-held tools and devices, and which tool class a block wants ([`kind_for`]: what the worn Tool Belt,
+//! `tool_belt/`, mines it with).
 //!
-//! Wear is the stack count: a tool's stack size is its uses, a fresh one is a full stack, and breaking a
-//! block of its class takes one away (the core does it in `Sim::break_block`), so a tool at zero is gone.
-//! Everything that moves items (boxes, drops, pickups, shift-clicks) therefore carries wear as it is, and
-//! two worn tools of one kind simply pool their uses. The break speed is the hands' business
-//! (`interaction.rs`, presentation), the uses and the ore kept are the core's.
+//! The pickaxes, axes and shovels (stone, iron, steel) are legacy since the Tool Belt (save 87): no recipe makes them
+//! and they break nothing faster, but old saves still hold them and the belt's heads borrow their models. Their stack
+//! count was their wear, so everything that moves items (boxes, belts, the recycler) still moves one as a whole
+//! ([`lot`]) and the recycler pays per use.
 //!
 //! The prospecting devices (scanner, core drill: `prospect.rs`) are tools too, of [`DEVICE_TIER`]: one
 //! per slot, and no block wants them, so they never wear.
 //!
-//! To add a tier: a `Tier` constant, three item ids and rows in `item.rs`, three rows in `TOOLS` and hand
-//! recipes in `recipes.rs`.
+//! To add a device: an item id and row in `item.rs`, a `ToolKind` and a row in `TOOLS` (no wear: `DEVICE_TIER`).
 
 use crate::block::{self, sound, BlockId};
-use crate::deposits::HAND_YIELD;
 use crate::item::{
     ItemId, CORE_DRILL, FLAMETHROWER, HOVER_PACK, IRON_AXE, IRON_PICKAXE, IRON_SHOVEL, JETPACK, PAINT_SPRAYER,
     PERSONAL_DRONE, PLANNER, SCANNER, SCANNER_MK2, SICKLE, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL, STONE_AXE,
@@ -48,18 +44,13 @@ pub enum ToolKind {
 pub struct Tier {
     /// Blocks it breaks before it wears out (its stack size).
     pub uses: u32,
-    /// Break speed on its class of blocks, as a multiple of bare hands.
-    pub speed: f32,
-    /// Ore a pickaxe of this tier keeps per block mined by hand.
-    pub ore_yield: u32,
 }
 
-pub const STONE_TIER: Tier = Tier { uses: 150, speed: 2.0, ore_yield: HAND_YIELD };
-pub const IRON_TIER: Tier = Tier { uses: 600, speed: 4.0, ore_yield: HAND_YIELD + 1 };
-/// Keeps 5 ore a block, still far below a machine (docs/TECH_ERAS.md).
-pub const STEEL_TIER: Tier = Tier { uses: 1500, speed: 6.0, ore_yield: HAND_YIELD + 2 };
+pub const STONE_TIER: Tier = Tier { uses: 150 };
+pub const IRON_TIER: Tier = Tier { uses: 600 };
+pub const STEEL_TIER: Tier = Tier { uses: 1500 };
 /// Prospecting devices: a stack of one that no block wears down.
-pub const DEVICE_TIER: Tier = Tier { uses: 1, speed: 1.0, ore_yield: HAND_YIELD };
+pub const DEVICE_TIER: Tier = Tier { uses: 1 };
 
 pub struct ToolDef {
     pub item: ItemId,
@@ -109,24 +100,9 @@ pub fn lot(item: ItemId, count: u32) -> u32 {
     }
 }
 
-/// The tool `item` if it is the right one for breaking `block`.
-pub fn tool_for(item: ItemId, block: BlockId) -> Option<&'static ToolDef> {
-    tool(item).filter(|t| Some(t.kind) == kind_for(block))
-}
-
-/// How much faster `item` breaks `block` than bare hands (1 for anything else).
-pub fn break_speed(item: ItemId, block: BlockId) -> f32 {
-    tool_for(item, block).map_or(1.0, |t| t.tier.speed)
-}
-
-/// Ore kept by hand from one ore block while holding `item`.
-pub fn ore_yield(item: ItemId) -> u32 {
-    tool(item).filter(|t| t.kind == ToolKind::Pickaxe).map_or(HAND_YIELD, |t| t.tier.ore_yield)
-}
-
 /// Which tool a block wants, by what it is made of (its sound material): stone and ore take a pickaxe,
 /// wood an axe, soil a shovel; leaves and metal none.
-fn kind_for(b: BlockId) -> Option<ToolKind> {
+pub(crate) fn kind_for(b: BlockId) -> Option<ToolKind> {
     match block::def(b).sound {
         sound::STONE => Some(ToolKind::Pickaxe),
         sound::WOOD => Some(ToolKind::Axe),

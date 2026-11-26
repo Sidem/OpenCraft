@@ -25,8 +25,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `action.rs`: the `Action` enum. `action/`: `apply.rs` (one arm each), `clicks.rs`, `blocks.rs`, `docks.rs`, `multiblock.rs`,
   `codec.rs` + `codec/read.rs` (bytes; tags append only).
 - `bytes.rs`: canonical encoding (a block id is one byte below 255, else 255 and a `u16`). `save.rs`: the file, `SAVE_VERSION`. `join.rs`: const-table joins. `math.rs`: vectors, hashes, `Rng`.
-- `doors.rs`, `deposits.rs` (pools, tiers, `HAND_YIELD`), `daytime.rs`, `crafting.rs`, `take_apart.rs`, `perks.rs`, `mode.rs`, `tools.rs`.
-- `inventory.rs` + `inventory/stacks.rs` + `inventory/kinds.rs`; `equipment.rs` (worn gear, packs); `offhand.rs`.
+- `doors.rs`, `deposits.rs` (pools, tiers, `HAND_YIELD`), `daytime.rs`, `crafting.rs`, `take_apart.rs`, `perks.rs`, `mode.rs`, `tools.rs` (tool classes, retired tools).
+- `inventory.rs` + `inventory/stacks.rs` + `inventory/kinds.rs`; `equipment.rs` (worn gear, packs, upgrades); `tool_belt/` (the worn Tool Belt: speeds, crouch reach, the hand's head, migration); `offhand.rs`.
 - `research.rs`; `research/`: `techs.rs` (`TECHS`), `ids.rs`, `rings.rs` (rings, wedges, thresholds, red deeds), `red_green.rs`, `blue.rs`, `violet.rs`, `gold_sky.rs`, `later.rs` (techs added since, at the open end), `migrate.rs` (save < 86 migration), `queue.rs`, `bonus.rs`.
 - `codex/`: world-wide obtained-items bitset (save 83), `data.rs` (periodic table forms/facts), `achievements.rs`.
 - `ghosts.rs` (planned blocks). `drones/` (construction drones, `earthworks.rs`, `cargo/`).
@@ -136,7 +136,7 @@ local player's hands, presentation, then the **deterministic core**, which never
     `key-prompt.ts`, `ghost-panel.ts` (ghost mode's controls card), `xray-badge.ts` (the goggles' icon and rim; keeps the on/off choice), `led-panel.ts` (an LED lamp's brightness and colour), `prospect.ts`, `nametags.ts`, `scope.ts`, `vignette.ts`, `minimap.ts`, `compass.ts`, `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`), `craft-family.ts`,
     `craft-tiers.ts`, `craft-card.ts`, `craft-info.ts`, `item-guide.ts`, `take-apart.ts`, `offhand.ts`, `held-name.ts`,
-    `drag-throw.ts`, `craft-terms.ts`, `creative.ts`, `pack-upgrade.ts`, `box-label.ts`, `drone.ts`, `drone-slots.ts`, `slot-view.ts`.
+    `drag-throw.ts`, `craft-terms.ts`, `creative.ts`, `gear-upgrade.ts`, `box-label.ts`, `drone.ts`, `drone-slots.ts`, `slot-view.ts`.
   - Machines: `machine.ts`, `machine-upgrade.ts`, `machine-recipes.ts` (+ `recipe-rates.ts`), `rate-table.ts`, `filter-panel.ts`,
     `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`, `sign.ts` (`colour-wheel.ts`,
     `colour.ts`), `seismic.ts` + `seismic-controls.ts` + `seismic-render.ts` + `seismic-volume.ts` + `seismic-data.ts`, `train.ts`.
@@ -168,7 +168,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 
 Balance numbers are named constants atop their module; grep the name for the value.
 - Ticks and co-op: `TICK_RATE` (`lib.rs`), `INPUT_DELAY`, `CHECKSUM_TICKS` (`net/mod.rs`), `MAX_PLAYERS` (`authority.rs`).
-- Mining: `HAND_YIELD`, taper (`deposits.rs`), tool tiers (`tools.rs`), `MINER_TIERS` (`factory/miner.rs`).
+- Mining: `HAND_YIELD`, taper (`deposits.rs`), belt tiers (`tool_belt/mod.rs` `BELTS`), `MINER_TIERS` (`factory/miner.rs`).
 - Machines: `MACHINES` (`factory/table.rs`), `SPECS` (`factory/process/basic.rs`, machine files), `MACHINE_RECIPES`,
   `FUELS` (`recipes/machine.rs`), `BELT_TIERS` (`factory/belt.rs`), `POLE_TIERS`, `GENERATOR_TIERS`, `LAB_TIERS`,
   `BOX_SLOTS`, `QUARRY_TIERS`, `PUMP_TIERS` (their `factory/` files).

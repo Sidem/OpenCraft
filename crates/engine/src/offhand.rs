@@ -2,21 +2,11 @@
 //! as backpack room). The selected hotbar slot is the right hand; the key swaps the two stacks (`Action::Offhand`),
 //! and the inventory screen clicks the left hand like any slot.
 //!
-//! What the left hand does: a light in it shines (`held_light.rs`) and the avatar holds it; a tool in it breaks the
-//! blocks it is made for when the right hand's tool is not (`Inventory::tool_hand`), wearing as it would there.
-//! Everything else works from the right hand only. To give the left hand another job: read `Inventory::offhand`
-//! where it matters, as `tool_hand` does.
+//! What the left hand does: a light in it shines (`held_light.rs`) and the avatar holds it. Everything else works
+//! from the right hand only (mining is the worn Tool Belt's: `tool_belt/`). To give the left hand another job: read
+//! `Inventory::offhand` where it matters (GEAR-LEFT: it informs, never queues a core `Action`).
 
-use crate::block::BlockId;
-use crate::inventory::{click_stack, Inventory, Stack};
-use crate::tools;
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Hand {
-    /// The selected hotbar slot.
-    Right,
-    Left,
-}
+use crate::inventory::{click_stack, Inventory};
 
 impl Inventory {
     /// Swaps the selected hotbar stack with the left hand's.
@@ -35,47 +25,6 @@ impl Inventory {
             self.version += 1;
         }
     }
-
-    pub fn in_hand(&self, hand: Hand) -> Stack {
-        match hand {
-            Hand::Right => self.selected_stack(),
-            Hand::Left => self.offhand,
-        }
-    }
-
-    /// The hand whose tool breaks `block`: the right hand's when it holds the tool for it, else the left's, else the right.
-    pub fn tool_hand(&self, block: BlockId) -> Hand {
-        let made_for = |h| tools::tool_for(self.in_hand(h).item, block).is_some();
-        if !made_for(Hand::Right) && made_for(Hand::Left) {
-            Hand::Left
-        } else {
-            Hand::Right
-        }
-    }
-
-    /// Takes one use from the tool in `hand`; true when that was its last.
-    pub fn wear_hand(&mut self, hand: Hand) -> bool {
-        match hand {
-            Hand::Right => {
-                let Some((item, _)) = self.take_slot(self.selected, 1) else {
-                    return true;
-                };
-                let broken = self.slots[self.selected].is_empty();
-                if broken {
-                    self.refill_hotbar(self.selected, item);
-                }
-                broken
-            }
-            Hand::Left => {
-                self.offhand.count = self.offhand.count.saturating_sub(1);
-                if self.offhand.is_empty() {
-                    self.offhand = Stack::default();
-                }
-                self.version += 1;
-                self.offhand.is_empty()
-            }
-        }
-    }
 }
 
 /// Test helper: the bytes of `sim` as a save before version 60 wrote them, with the (empty) left-hand stack taken out
@@ -85,7 +34,7 @@ pub(crate) fn before_offhand(sim: &crate::sim::Sim, stream: &[u8]) -> Vec<u8> {
     use crate::bytes::ByteWriter;
     let mut out = crate::helpers::before_drone_orders(sim, stream);
     let mut empty = ByteWriter::default();
-    Stack::default().write_state(&mut empty);
+    crate::inventory::Stack::default().write_state(&mut empty);
     for p in sim.players.iter().flatten() {
         assert!(p.inventory.offhand.is_empty(), "a save before 60 had no left hand");
         // `before_drone_orders` already cut the head slot out of the inventory.

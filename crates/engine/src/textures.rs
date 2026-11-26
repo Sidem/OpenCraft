@@ -243,7 +243,8 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         | tex::HAULER_PACK_MK3..=tex::HAULER_PACK_MK5
         | tex::CRAFT_GLOVES
         | tex::XRAY_GOGGLES
-        | tex::WORK_GLOVES..=tex::WORK_GLOVES_MK4 => gear::pixel(layer, x, y),
+        | tex::WORK_GLOVES..=tex::WORK_GLOVES_MK4
+        | tex::TOOL_BELT..=tex::TOOL_BELT_MK5 => gear::pixel(layer, x, y),
         tex::CRUSHED_BAUXITE..=tex::CELL_TOP | tex::HOVER_PACK | tex::CARGO_DRONE => aluminium::pixel(layer, x, y),
         tex::RAIL..=tex::SIGNAL => transport::pixel(layer, x, y),
         tex::EMPTY_BARREL..=tex::ELECTROLYSER_TOP => chemistry::pixel(layer, x, y),

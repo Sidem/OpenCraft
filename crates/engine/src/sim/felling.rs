@@ -18,7 +18,7 @@ use crate::block::{self, BlockId};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::item::{ItemId, STICK};
 use crate::math::{hash3, IVec3, Vec3};
-use crate::tools;
+use crate::tool_belt;
 use crate::wood::{self, Form};
 use crate::TICK_RATE;
 
@@ -168,8 +168,7 @@ impl Sim {
         }
         let log = self.world.block_anywhere_or_generate(trunk.foot);
         let Some(core) = self.player(player) else { return };
-        let inv = &core.inventory;
-        let speed = tools::break_speed(inv.in_hand(inv.tool_hand(log)).item, log) * inv.mining_speed();
+        let speed = tool_belt::speed(core.inventory.belt(), log);
         let seed = self.world.generator().seed();
         let at_ = self.chops_at(trunk.foot);
         let struck = match self.felling.chops.get(at_).filter(|c| c.foot == trunk.foot) {
@@ -184,7 +183,6 @@ impl Sim {
         chop.work = chop.work.saturating_add(work);
         chop.marks += u16::from(struck);
         let done = chop.work >= work_needed(&trunk, log);
-        self.wear_tool(player, log);
         self.events.push(SimEvent::Chopped { player, pos: at, struck, felled: done });
         if done {
             self.felling.chops.remove(at_);

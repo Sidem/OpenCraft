@@ -45,6 +45,7 @@ impl Sim {
         match action {
             Action::Join { .. } | Action::Leave { .. } => {}
             Action::BreakBlock { pos } => self.break_block(player, pos),
+            Action::MineWide { pos, face } => self.mine_wide(player, pos, face),
             Action::ChopTree { pos, at, from } => self.chop_tree(player, pos, at, from),
             Action::PlaceBlock { pos, slot, facing, against } => self.place_block(player, pos, slot, facing, against),
             Action::PlaceShaped { pos, slot, shape } => self.place_shaped(player, pos, slot, shape),
@@ -162,13 +163,9 @@ impl Sim {
                 self.factory.upgrade(pos);
                 self.events.push(SimEvent::BlockPlaced { player, pos, block: step.block });
             }
-            Action::UpgradePack => {
+            Action::UpgradeGear { slot } => {
                 let research = &self.factory.research;
-                inv.upgrade_pack(|pack| research.has(Unlock::Recipe(pack)));
-            }
-            Action::UpgradeGloves => {
-                let research = &self.factory.research;
-                inv.upgrade_gloves(|gloves| research.has(Unlock::Recipe(gloves)));
+                inv.upgrade_worn(usize::from(slot), |next| research.has(Unlock::Recipe(next)));
             }
             Action::SetResearch { tech } => self.factory.research.set_current((tech != u8::MAX).then_some(tech)),
             Action::QueueResearch { tech } => self.factory.research.enqueue(tech),

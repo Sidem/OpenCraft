@@ -76,11 +76,6 @@ pub enum SimEvent {
     PodLanded {
         pos: IVec3,
     },
-    /// A player's tool broke a block with its last use and is gone.
-    ToolWornOut {
-        player: PlayerId,
-        item: ItemId,
-    },
     /// A leaf decayed (block timers): it is gone (a sapling it left comes as a `Dropped`).
     LeafDecayed {
         pos: IVec3,

@@ -9,8 +9,9 @@ use super::{part, turned, Part};
 use crate::block::tex;
 use crate::item::{
     ItemId, CRAFT_GLOVES, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5,
-    HOVER_PACK, JETPACK, MINING_RIG, PLANNER, SERVO_BOOTS, SICKLE, SPRING_BOOTS, TELESCOPE, WORK_GLOVES,
-    WORK_GLOVES_MK2, WORK_GLOVES_MK3, WORK_GLOVES_MK4, XRAY_GOGGLES,
+    HOVER_PACK, JETPACK, MINING_RIG, PLANNER, SERVO_BOOTS, SICKLE, SPRING_BOOTS, TELESCOPE, TOOL_BELT, TOOL_BELT_MK2,
+    TOOL_BELT_MK3, TOOL_BELT_MK4, TOOL_BELT_MK5, WORK_GLOVES, WORK_GLOVES_MK2, WORK_GLOVES_MK3, WORK_GLOVES_MK4,
+    XRAY_GOGGLES,
 };
 
 const METAL: u16 = tex::MAT_METAL;
@@ -34,6 +35,11 @@ pub(super) fn parts(item: ItemId) -> &'static [Part] {
         SERVO_BOOTS => &SERVO_PAIR,
         EXO_FRAME => &EXO,
         MINING_RIG => &RIG,
+        TOOL_BELT => &BELT_1,
+        TOOL_BELT_MK2 => &BELT_2,
+        TOOL_BELT_MK3 => &BELT_3,
+        TOOL_BELT_MK4 => &BELT_4,
+        TOOL_BELT_MK5 => &BELT_5,
         WORK_GLOVES => &GLOVES_1,
         WORK_GLOVES_MK2 => &GLOVES_2,
         WORK_GLOVES_MK3 => &GLOVES_3,
@@ -190,6 +196,34 @@ const RIG: [Part; 10] = Build::new()
     .with(turned([0.26, -0.22, 0.08], [0.08, 0.07, 0.08], 0.4, METAL))
     .with(turned([0.26, -0.28, 0.08], [0.04, 0.06, 0.04], 0.8, METAL))
     .done();
+
+/// A Tool Belt (`tier` 0..=4) facing the viewer: a webbing belt banded in its tier's colour with a brass buckle, and
+/// three heads hanging from it on wooden handles: a pick, an axe (an ember drill on Mk4, a cyan lens on Mk5) and a spade.
+const fn tool_belt(tier: u8) -> [Part; 10] {
+    let head = if tier == 0 { GUNMETAL } else { METAL };
+    let middle = match tier {
+        3 => part([0.0, -0.22, 0.04], [0.08, 0.16, 0.08], EMBER),
+        4 => part([0.0, -0.17, 0.06], [0.1, 0.1, 0.04], tex::LAMP_BLUE),
+        _ => part([0.05, -0.2, 0.04], [0.1, 0.14, 0.03], head),
+    };
+    [
+        part([0.0, 0.12, 0.0], [0.9, 0.12, 0.08], WEBBING),
+        part([0.0, 0.12, 0.01], [0.6, 0.06, 0.08], tex::stripe(tier)),
+        part([0.0, 0.12, 0.05], [0.12, 0.14, 0.02], BRASS),
+        part([-0.28, -0.08, 0.04], [0.04, 0.3, 0.04], tex::HANDLE),
+        part([-0.28, 0.0, 0.04], [0.26, 0.05, 0.05], head),
+        part([0.0, -0.1, 0.0], [0.04, 0.3, 0.04], tex::HANDLE),
+        middle,
+        part([0.28, -0.04, 0.04], [0.04, 0.2, 0.04], tex::HANDLE),
+        part([0.28, -0.22, 0.04], [0.14, 0.16, 0.03], head),
+        part([0.0, 0.12, -0.05], [0.88, 0.1, 0.02], RUBBER),
+    ]
+}
+const BELT_1: [Part; 10] = tool_belt(0);
+const BELT_2: [Part; 10] = tool_belt(1);
+const BELT_3: [Part; 10] = tool_belt(2);
+const BELT_4: [Part; 10] = tool_belt(3);
+const BELT_5: [Part; 10] = tool_belt(4);
 
 /// A work glove at `x` lying palm down, its thumb toward `inner` (-1 or 1): a cuff in its tier colour, the back of the
 /// hand (with a glowing node on Mk5), four fingers and the thumb.

@@ -3,19 +3,20 @@
 //!
 //! - **Back** (hauler packs) opens more backpack rows: [`Inventory::capacity`] is the base 36 slots plus the
 //!   pack's. A pack comes off only while the rows it opens are empty, so no stack is ever stranded. The packs are
-//!   five tiers ([`PACKS`]: 27 slots, then 18 more each); `Action::UpgradePack` raises the worn one a tier with
-//!   kits in place ([`next_pack`], [`Inventory::upgrade_pack`]), so a full pack never has to come off.
+//!   five tiers ([`PACKS`]: 27 slots, then 18 more each).
 //! - **Boots** and **Torso** scale the body's walking, sprinting and jumping ([`Inventory::boost`], read by
 //!   `authority.rs` into the body each tick). Bodies are not core state, so this never reaches the hash.
-//! - **Tool belt** (the mining rig) speeds hand-breaking ([`Inventory::mining_speed`], read by `interaction.rs`).
+//! - **Tool belt** (the Tool Belt Mk1–Mk5, `tool_belt/`) breaks stone, wood and soil by hand and keeps ore.
 //! - **Jetpack** (the coal jetpack) and **hover pack** share one slot, so only one can be worn: each works only while worn
 //!   ([`Inventory::has_jetpack`], [`Inventory::has_hover_pack`]), and putting one on sends the other to the backpack.
-//! - **Gloves** (the fabricator gloves) speed hand crafting: [`Effect::crafting`] joins `perks::player_bonus`.
+//! - **Gloves** (the work gloves) speed hand crafting: [`Effect::crafting`] joins `perks::player_bonus`.
 //! - **Head** (the X-ray goggles) shows buried builds ([`Inventory::has_xray_goggles`]); only the host draws it, and
 //!   whether it is switched on is a local setting (`xray.rs`), never core state.
 //!
-//! Gear is one item per slot and never stacks. Actions: `ClickGear` (the equipment panel: swap with the cursor, or
-//! with Shift take off) and shift-click on a gear item in the inventory (`Inventory::wear_from`).
+//! Packs, gloves and belts are ladders of five: `Action::UpgradeGear` raises the worn one a tier in place
+//! ([`next_tier`], [`Inventory::upgrade_worn`]) for the same step its hand recipe takes, so a full pack never has to
+//! come off. Gear is one item per slot and never stacks. Actions: `ClickGear` (the equipment panel: swap with the
+//! cursor, or with Shift take off) and shift-click on a gear item in the inventory (`Inventory::wear_from`).
 //! To add gear: an item id and row (`item.rs`), a texture (`textures/gear.rs`), a row in [`GEAR`], a recipe
 //! (`recipes/gear.rs`) and a tech (`research/personal.rs`).
 
@@ -26,8 +27,8 @@ use crate::factory::upgrades;
 use crate::inventory::{Inventory, Stack, INVENTORY_SLOTS};
 use crate::item::{
     ItemId, CRAFT_GLOVES, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5,
-    HOVER_PACK, JETPACK, MINING_RIG, SERVO_BOOTS, SPRING_BOOTS, WORK_GLOVES, WORK_GLOVES_MK2, WORK_GLOVES_MK3,
-    WORK_GLOVES_MK4, XRAY_GOGGLES,
+    HOVER_PACK, JETPACK, SERVO_BOOTS, SPRING_BOOTS, TOOL_BELT, TOOL_BELT_MK2, TOOL_BELT_MK3, TOOL_BELT_MK4,
+    TOOL_BELT_MK5, WORK_GLOVES, WORK_GLOVES_MK2, WORK_GLOVES_MK3, WORK_GLOVES_MK4, XRAY_GOGGLES,
 };
 use crate::player::Boost;
 
@@ -36,7 +37,7 @@ pub const SLOT_NAMES: [&str; SLOTS] = ["Back", "Boots", "Torso", "Tool belt", "F
 const BACK: usize = 0;
 const BOOTS: usize = 1;
 const TORSO: usize = 2;
-const BELT: usize = 3;
+pub(crate) const BELT: usize = 3;
 const JET: usize = 4;
 const GLOVES: usize = 5;
 const HEAD: usize = 6;
@@ -57,10 +58,9 @@ pub struct Effect {
     pub walk: f64,
     pub sprint: f64,
     pub jump: f64,
-    pub mining: f64,
 }
 
-const NONE: Effect = Effect { pack: 0, crafting: 0, walk: 1.0, sprint: 1.0, jump: 1.0, mining: 1.0 };
+const NONE: Effect = Effect { pack: 0, crafting: 0, walk: 1.0, sprint: 1.0, jump: 1.0 };
 
 pub struct Gear {
     pub item: ItemId,
@@ -81,7 +81,7 @@ pub const GLOVES_TIERS: [ItemId; 5] = [WORK_GLOVES, WORK_GLOVES_MK2, WORK_GLOVES
 /// Kits one pack or glove upgrade takes (of the kind of the tier it reaches, `upgrades::kit`).
 pub const PACK_KITS: u32 = 4;
 
-pub const GEAR: [Gear; 17] = [
+pub const GEAR: [Gear; 21] = [
     Gear { item: HAULER_PACK, slot: BACK, effect: Effect { pack: 27, ..NONE }, blurb: "+27 backpack slots" },
     Gear { item: HAULER_PACK_MK2, slot: BACK, effect: Effect { pack: 45, ..NONE }, blurb: "+45 backpack slots" },
     Gear { item: HAULER_PACK_MK3, slot: BACK, effect: Effect { pack: 63, ..NONE }, blurb: "+63 backpack slots" },
@@ -90,11 +90,18 @@ pub const GEAR: [Gear; 17] = [
     Gear { item: SPRING_BOOTS, slot: BOOTS, effect: Effect { jump: SPRING_JUMP, ..NONE }, blurb: "Jump 2 blocks high" },
     Gear { item: SERVO_BOOTS, slot: BOOTS, effect: Effect { walk: 1.15, ..NONE }, blurb: "Walk and sprint 15% faster" },
     Gear { item: EXO_FRAME, slot: TORSO, effect: Effect { sprint: 1.1, ..NONE }, blurb: "Sprint 10% faster" },
+    // What a belt does lives in `tool_belt/` (speed, ore kept, crouch-mining), which reads the worn one.
+    Gear { item: TOOL_BELT, slot: BELT, effect: NONE, blurb: "Mine stone, wood and soil 2× as fast · 3 ore a block" },
+    Gear { item: TOOL_BELT_MK2, slot: BELT, effect: NONE, blurb: "Mine 4× as fast · 4 ore a block" },
+    Gear { item: TOOL_BELT_MK3, slot: BELT, effect: NONE, blurb: "Mine 6× as fast · 5 ore · crouch: a 1×2 tunnel" },
     Gear {
-        item: MINING_RIG,
+        item: TOOL_BELT_MK4, slot: BELT, effect: NONE, blurb: "Mine 8× as fast · crouch: a 3×3 face of one kind"
+    },
+    Gear {
+        item: TOOL_BELT_MK5,
         slot: BELT,
-        effect: Effect { mining: 1.5, ..NONE },
-        blurb: "Break blocks by hand 50% faster",
+        effect: NONE,
+        blurb: "Mine 10× as fast · crouch: 32 joined blocks of a kind",
     },
     // Its thrust and fuel live in `helpers/`, which asks `Inventory::has_jetpack`.
     Gear { item: JETPACK, slot: JET, effect: NONE, blurb: "Hold jump in the air to fly, burning coal from the pack" },
@@ -143,17 +150,16 @@ pub fn gear(item: ItemId) -> Option<&'static Gear> {
     GEAR.iter().find(|g| g.item == item)
 }
 
-/// The pack above `item` with the kit and number of kits that make it (the same step as its hand recipe in
-/// `recipes/gear.rs`), or `None` for anything but a pack below Mk5.
-pub fn next_pack(item: ItemId) -> Option<(ItemId, ItemId, u32)> {
-    let i = PACKS.iter().position(|&p| p == item)?;
-    Some((*PACKS.get(i + 1)?, upgrades::kit(i as u8 + 1)?, PACK_KITS))
-}
-
-/// The gloves above `item` with the kit and number of kits that make them, or `None` for anything but gloves below Mk5.
-pub fn next_gloves(item: ItemId) -> Option<(ItemId, ItemId, u32)> {
-    let i = GLOVES_TIERS.iter().position(|&g| g == item)?;
-    Some((*GLOVES_TIERS.get(i + 1)?, upgrades::kit(i as u8 + 1)?, PACK_KITS))
+/// The tier above `item` with what that step takes (an item and how many; the same step as its hand recipe in
+/// `recipes/gear.rs`): packs and gloves take `PACK_KITS` kits of the tier they reach, belts `tool_belt::STEPS`.
+/// `None` for anything but a pack, gloves or belt below Mk5.
+pub fn next_tier(item: ItemId) -> Option<(ItemId, ItemId, u32)> {
+    for ladder in [&PACKS, &GLOVES_TIERS] {
+        if let Some(i) = ladder.iter().position(|&p| p == item) {
+            return Some((*ladder.get(i + 1)?, upgrades::kit(i as u8 + 1)?, PACK_KITS));
+        }
+    }
+    crate::tool_belt::next_belt(item)
 }
 
 /// Test helper: `stream` (core bytes, with every player's inventory as the current format writes it) with each
@@ -186,7 +192,6 @@ pub fn effect(worn: &[ItemId; SLOTS]) -> Effect {
         e.walk *= g.effect.walk;
         e.sprint *= g.effect.sprint;
         e.jump *= g.effect.jump;
-        e.mining *= g.effect.mining;
     }
     e
 }
@@ -226,11 +231,6 @@ impl Inventory {
     pub fn boost(&self) -> Boost {
         let e = effect(&self.worn);
         Boost { walk: e.walk, sprint: e.walk * e.sprint, jump: e.jump }
-    }
-
-    /// How much faster the worn gear breaks blocks by hand.
-    pub fn mining_speed(&self) -> f32 {
-        effect(&self.worn).mining as f32
     }
 
     /// Whether any slot past [`Inventory::capacity`] holds something (an invalid state: a pack came off full).
@@ -282,27 +282,17 @@ impl Inventory {
         done
     }
 
-    /// `Action::UpgradePack`: raises the worn pack a tier for its kits from the inventory, if `unlocked(next pack)`.
-    /// The room only grows, so nothing can be stranded. Returns whether it did.
-    pub fn upgrade_pack(&mut self, unlocked: impl Fn(ItemId) -> bool) -> bool {
-        let Some((next, kit, kits)) = next_pack(self.worn[BACK]) else { return false };
-        if !unlocked(next) || self.count(kit) < kits {
+    /// `Action::UpgradeGear`: raises what is worn in `slot` a tier ([`next_tier`]) for that step's items from the
+    /// inventory, if `unlocked(next tier)`. Only a pack changes the room, and only upward, so nothing is stranded.
+    /// Returns whether it did.
+    pub fn upgrade_worn(&mut self, slot: usize, unlocked: impl Fn(ItemId) -> bool) -> bool {
+        let Some(&worn) = self.worn.get(slot) else { return false };
+        let Some((next, cost, n)) = next_tier(worn) else { return false };
+        if !unlocked(next) || self.count(cost) < n {
             return false;
         }
-        self.remove(kit, kits);
-        self.worn[BACK] = next;
-        self.version += 1;
-        true
-    }
-
-    /// `Action::UpgradeGloves`: raises the worn work gloves a tier for kits from the inventory.
-    pub fn upgrade_gloves(&mut self, unlocked: impl Fn(ItemId) -> bool) -> bool {
-        let Some((next, kit, kits)) = next_gloves(self.worn[GLOVES]) else { return false };
-        if !unlocked(next) || self.count(kit) < kits {
-            return false;
-        }
-        self.remove(kit, kits);
-        self.worn[GLOVES] = next;
+        self.remove(cost, n);
+        self.worn[slot] = next;
         self.version += 1;
         true
     }

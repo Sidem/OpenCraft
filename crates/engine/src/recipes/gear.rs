@@ -1,9 +1,10 @@
 //! Hand recipes of the worn gear (`equipment.rs`), one per item; each is a tech's unlock (`research/personal.rs`).
 //! To add one: a `pub const` here, and its name in `RECIPES`.
 
+use crate::block::STONE;
 use crate::item::*;
 
-use super::{Group, Recipe};
+use super::{b, Group, Recipe};
 
 pub const HAULER_PACK_RECIPE: Recipe = Recipe {
     output: HAULER_PACK,
@@ -13,7 +14,7 @@ pub const HAULER_PACK_RECIPE: Recipe = Recipe {
     blurb: "Wear it on your back (open the inventory and Shift-click it): 27 more backpack slots.",
 };
 
-// Mk2 to Mk5 are the pack below plus `PACK_KITS` kits of the tier (`equipment::next_pack`; a test checks it). A worn
+// Mk2 to Mk5 are the pack below plus `PACK_KITS` kits of the tier (`equipment::next_tier`; a test checks it). A worn
 // pack is raised in place from the equipment panel with the same kits, so it never has to come off.
 pub const HAULER_PACK_MK2_RECIPE: Recipe = Recipe {
     output: HAULER_PACK_MK2,
@@ -120,10 +121,45 @@ pub const XRAY_GOGGLES_RECIPE: Recipe = Recipe {
     blurb: "Goggles that see the machines you built through solid ground, worn in the Head slot.",
 };
 
-pub const MINING_RIG_RECIPE: Recipe = Recipe {
-    output: MINING_RIG,
+// The Tool Belt replaced the nine hand tools (`tool_belt/`). Mk2 and Mk3 are the belt below plus plates (as the iron
+// and steel tools took), Mk4 and Mk5 plus kits (`tool_belt::STEPS`; a test checks they match).
+pub const TOOL_BELT_RECIPE: Recipe = Recipe {
+    output: TOOL_BELT,
     group: Group::Tools,
     count: 1,
-    inputs: &[(STEEL_PLATE, 3), (MOTOR, 2), (GEAR, 3)],
-    blurb: "A tool belt with a motor-driven drill: you break blocks by hand 50% faster.",
+    inputs: &[(b(STONE), 6), (STICK, 4)],
+    blurb: "Wear it in the Tool belt slot (Shift-click it): stone, wood and soil break twice as fast by hand, with no \
+            tool held, and it never wears out. Raise it in the inventory.",
+};
+
+pub const TOOL_BELT_MK2_RECIPE: Recipe = Recipe {
+    output: TOOL_BELT_MK2,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(TOOL_BELT, 1), (IRON_PLATE, 6)],
+    blurb: "Iron heads: 4× as fast, and 4 ore kept from each ore block instead of 3.",
+};
+
+pub const TOOL_BELT_MK3_RECIPE: Recipe = Recipe {
+    output: TOOL_BELT_MK3,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(TOOL_BELT_MK2, 1), (STEEL_PLATE, 6)],
+    blurb: "Steel heads: 6×, 5 ore a block. Crouch while mining to dig a 1×2 tunnel.",
+};
+
+pub const TOOL_BELT_MK4_RECIPE: Recipe = Recipe {
+    output: TOOL_BELT_MK4,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(TOOL_BELT_MK3, 1), (VIOLET_KIT, 4)],
+    blurb: "A rock drill: 8×. Crouch while mining to take the 3×3 face around the block, only blocks of its kind.",
+};
+
+pub const TOOL_BELT_MK5_RECIPE: Recipe = Recipe {
+    output: TOOL_BELT_MK5,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(TOOL_BELT_MK4, 1), (GOLD_KIT, 4)],
+    blurb: "A laser cutter: 10×. Crouch while mining to cut up to 32 joined blocks of the same kind.",
 };

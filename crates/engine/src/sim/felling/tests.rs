@@ -2,7 +2,7 @@ use super::*;
 use crate::action::Action;
 use crate::block::{is_leaves, is_log, is_tree_wood, AIR, GRASS, LOG, SAND, STONE};
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::item::{IRON_AXE, STEEL_AXE, STONE_AXE};
+use crate::item::{TOOL_BELT, TOOL_BELT_MK2, TOOL_BELT_MK3, TOOL_BELT_MK5};
 use crate::worldgen::{grow, height_of, KINDS};
 
 /// The bamboo clump's row in `KINDS`.
@@ -37,10 +37,9 @@ fn with_tree(kinds: &[(usize, IVec3)]) -> Sim {
     sim
 }
 
-fn give(sim: &mut Sim, item: ItemId, n: u32) {
-    let inv = &mut sim.players[0].as_mut().unwrap().inventory;
-    inv.add(item, n);
-    inv.selected = inv.slots.iter().position(|s| s.item == item).unwrap_or(0);
+/// Puts Tool Belt `belt` on the player.
+fn wear(sim: &mut Sim, belt: ItemId) {
+    sim.players[0].as_mut().unwrap().inventory.worn[crate::equipment::BELT] = belt;
 }
 
 /// The trunk standing at `at` (the tree's foot cell is one above the ground block).
@@ -73,11 +72,12 @@ fn swings_to_fell(sim: &mut Sim, t: &Trunk, on_mark: bool) -> u32 {
 #[test]
 fn every_kind_falls_in_about_the_time_its_trunk_takes_to_mine() {
     for kind in 0..KINDS.len() {
-        for (tool, speed) in [(None, 1.0), (Some(STONE_AXE), 2.0), (Some(IRON_AXE), 4.0), (Some(STEEL_AXE), 6.0)] {
+        let belts = [(None, 1.0), (Some(TOOL_BELT), 2.0), (Some(TOOL_BELT_MK2), 4.0), (Some(TOOL_BELT_MK3), 6.0)];
+        for (tool, speed) in belts.into_iter().chain((kind == 0).then_some((Some(TOOL_BELT_MK5), 10.0))) {
             let at = IVec3::new(0, Y, 0);
             let mut sim = with_tree(&[(kind, at)]);
             if let Some(t) = tool {
-                give(&mut sim, t, 1000);
+                wear(&mut sim, t);
             }
             let t = trunk_at(&mut sim, at);
             let log = sim.world.block_anywhere_or_generate(t.foot);

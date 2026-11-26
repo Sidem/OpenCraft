@@ -6,8 +6,8 @@ use crate::block::{
     UNDERPASS_IN, WASHER, WINCH,
 };
 use crate::item::{
-    BLUE_PACK, GREEN_PACK, HAULER_PACK_MK3, MINING_RIG, RED_PACK, SCANNER_MK2, SPRING_BOOTS, STEEL_AXE, STEEL_PICKAXE,
-    STEEL_SHOVEL, WORK_GLOVES_MK3, XRAY_GOGGLES,
+    BLUE_PACK, GREEN_PACK, HAULER_PACK_MK3, RED_PACK, SCANNER_MK2, SPRING_BOOTS, TOOL_BELT_MK3, WORK_GLOVES_MK3,
+    XRAY_GOGGLES,
 };
 use crate::recipes::{
     ACCUMULATOR_ROW, BLAST_CRUSHED_RECIPE, BLAST_WASHED_RECIPE, BLUE_RECIPES, CRUSH_RECIPES, ELECTRONICS_RECIPES,
@@ -52,8 +52,8 @@ pub(super) const BLUE: [Tech; 16] = [
     },
     Tech {
         name: "Steel Tools",
-        blurb: "Steel pickaxes, axes and shovels: they last 1,500 blocks, dig six times as fast as bare hands and \
-                keep 5 ore a block.",
+        blurb: "The Tool Belt Mk3: steel heads dig six times as fast as bare hands and keep 5 ore a block; crouch \
+                while mining to dig a 1×2 tunnel.",
         ring: Ring::Blue,
         wedge: Wedge::YourGear,
         deed: None,
@@ -61,7 +61,7 @@ pub(super) const BLUE: [Tech; 16] = [
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
         units: 30,
         seconds: 15.0,
-        unlocks: &[Unlock::Recipe(STEEL_PICKAXE), Unlock::Recipe(STEEL_AXE), Unlock::Recipe(STEEL_SHOVEL)],
+        unlocks: &[Unlock::Recipe(TOOL_BELT_MK3)],
     },
     Tech {
         name: "Steam Power",
@@ -172,16 +172,15 @@ pub(super) const BLUE: [Tech; 16] = [
     },
     Tech {
         name: "Field Gear",
-        blurb: "Spring boots to jump 2 blocks high, and a mining rig for your tool belt that breaks blocks by hand \
-                50% faster.",
+        blurb: "Spring boots: you jump 2 blocks high.",
         ring: Ring::Blue,
         wedge: Wedge::YourGear,
         deed: None,
-        needs: &[STEELMAKING, ASSEMBLY],
+        needs: &[STEELMAKING],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
         units: 60,
         seconds: 20.0,
-        unlocks: &[Unlock::Recipe(SPRING_BOOTS), Unlock::Recipe(MINING_RIG)],
+        unlocks: &[Unlock::Recipe(SPRING_BOOTS)],
     },
     Tech {
         name: "Ore Washing",

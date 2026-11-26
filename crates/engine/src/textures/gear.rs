@@ -1,7 +1,7 @@
 //! Worn gear icons (`equipment.rs`): the hauler packs (a satchel; Mk2 to Mk5 with side pouches and a flap in the tier's kit colour),
 //! spring boots (boots on a coil), servo boots (boots with an orange joint), the exo frame (steel ribs round a
 //! cyan core), the mining rig (a belt with a drill bit and a gauge) and the fabricator gloves (a dark glove with a
-//! gold cuff and a cyan pad). Placeholder looks until the art pass
+//! gold cuff and a cyan pad) and the Tool Belt (three heads on a belt). Placeholder looks until the art pass
 //! (`docs/ART_HANDOVER.md`).
 
 use crate::block::tex;
@@ -24,6 +24,7 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::WORK_GLOVES_MK4 => gloves(x, y, 3),
         tex::CRAFT_GLOVES => gloves(x, y, 4),
         tex::XRAY_GOGGLES => goggles(x, y),
+        tex::TOOL_BELT..=tex::TOOL_BELT_MK5 => tool_belt(x, y, usize::from(layer - tex::TOOL_BELT)),
         _ => mining_rig(x, y),
     }
 }
@@ -151,6 +152,48 @@ fn goggles(x: i32, y: i32) -> [u8; 4] {
     }
     if (7..10).contains(&y) && !(1..=14).contains(&x) {
         return rgb([44.0, 48.0, 60.0], 1.0);
+    }
+    dark()
+}
+
+/// The Tool Belt (`tier` 0..=4): a belt with a brass buckle across the top, its band in leather (Mk1) or the tier's kit
+/// colour, and three heads hanging from it: a pick, an axe and a spade, stone grey on Mk1 and steel above, the middle
+/// one a drill bit on Mk4 and a cyan lens on Mk5.
+fn tool_belt(x: i32, y: i32, tier: usize) -> [u8; 4] {
+    if (2..5).contains(&y) {
+        if (7..10).contains(&x) {
+            return rgb([226.0, 200.0, 90.0], 1.1);
+        }
+        let band = if tier > 0 { FLAPS[tier - 1] } else { [120.0, 86.0, 54.0] };
+        return rgb(band, 0.9 + 0.15 * n(430, x, y));
+    }
+    let head = if tier == 0 { [128.0, 128.0, 132.0] } else { [196.0, 200.0, 210.0] };
+    let wood = [110.0, 80.0, 50.0];
+    let shade = 0.85 + 0.2 * n(431, x, y);
+    // The pick: a crossbar head on a handle, at the left.
+    if y == 6 && (1..6).contains(&x) {
+        return rgb(head, shade);
+    }
+    if x == 3 && (5..13).contains(&y) {
+        return rgb(wood, 1.0);
+    }
+    // The middle head: an axe blade, a drill bit on Mk4, a lens on Mk5.
+    if (6..11).contains(&x) && (5..13).contains(&y) {
+        return match tier {
+            3 if (x - 8).abs() <= (12 - y) / 3 => rgb(head, if (x + y) % 3 == 0 { 0.7 } else { 1.0 }),
+            4 if (7..10).contains(&x) && (7..10).contains(&y) => rgb([90.0, 226.0, 255.0], 1.15),
+            4 if x == 8 => rgb(head, shade),
+            0..=2 if y < 9 && x < 9 => rgb(head, shade),
+            0..=2 if x == 9 => rgb(wood, 1.0),
+            _ => dark(),
+        };
+    }
+    // The spade: a handle and a square blade, at the right.
+    if x == 13 && (5..9).contains(&y) {
+        return rgb(wood, 1.0);
+    }
+    if (11..16).contains(&x) && (9..14).contains(&y) {
+        return rgb(head, shade);
     }
     dark()
 }

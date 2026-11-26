@@ -1,6 +1,6 @@
 // The upgrade button, drawn rather than written: an up arrow and the next Mk, the kit's icon and "held/needed" (red while
 // short; a padlock instead of the arrow while research is missing). The long explanation is the tooltip. `UpgradeButton`
-// is the drawing, shared with the hauler pack's button (`pack-upgrade.ts`); `MachineUpgrade` is the one on a machine's
+// is the drawing, shared with the worn gear's buttons (`gear-upgrade.ts`); `MachineUpgrade` is the one on a machine's
 // panel and a storage box's screen (`machine_upgrade`, `upgrade_machine`; the same action as a kit in hand). Hidden for a
 // building with no higher Mk. Read from the engine on every update.
 

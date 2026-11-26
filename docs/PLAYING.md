@@ -28,7 +28,7 @@ the in-game tips (`crates/engine/src/hints.rs`). Keep this file in sync for anyt
 | Y | With a Personal Drone in your pack: its panel. Fetch anything in boxes or machine outputs within 64 blocks, fetch the parts for a hand craft and craft it, put the backpack away into boxes holding the same items, store one stack; orders queue. It never fills a box on a belt line (fed by a belt or miner, or feeding a belt) nor an empty labelled box; a box labelled "Misc (drone fills)" takes, last, anything that has no other box. In the inventory, Drone (or Alt-click) picks slots to send to storage or fill; slots it serves show a ring, an arrow and seconds left, on the hotbar too. It also tops up the hand stack when it drops to a quarter (a panel switch) |
 | Shift+Y | The drone fetches a stack more of the item in your hand |
 | Jump (in the air) | With a Coal Jetpack in your pack: keep holding it to climb on a plume of fire, burning a coal from your pack every 10 seconds; with a charged Hover Pack, hold it to hover until you land (jump rises, crouch sinks) |
-| Shift-click gear (inventory) | Wears it: back (hauler pack: 27 more backpack slots, 18 more for each Mk up to Mk5 with 99; four kits of the tier raise the worn pack in place from a button in the inventory, no need to take it off), boots (spring: jump 2 blocks; servo: walk 15% faster), torso (exo frame: sprint 10% faster), tool belt (mining rig: break blocks by hand 50% faster). Researched under Hauler Gear, Field Gear and Exosuit |
+| Shift-click gear (inventory) | Wears it: back (hauler pack: 27 more backpack slots, 18 more for each Mk up to Mk5 with 99; four kits of the tier raise the worn pack in place from a button in the inventory, no need to take it off), boots (spring: jump 2 blocks; servo: walk 15% faster), torso (exo frame: sprint 10% faster), belt (Tool Belt Mk1–Mk5: digs stone, wood and soil 2× to 10× as fast whatever you hold; from Mk3, crouch to dig wide; plates then kits raise it in place). Researched under Hauler Gear, Field Gear and Exosuit |
 | Right mouse on a box | Open it like a chest: click moves stacks with the cursor, Shift-click moves a whole stack between box and inventory. Hold C to place against it instead |
 | Right mouse on a miner | Take everything it holds |
 | Right mouse on a smelter, constructor, assembler, filter, generator, lab or quarry | Open its panel. Hold C to place against it instead |
@@ -64,8 +64,8 @@ Shift-right-click outside the window throws one item out; **drag a stack out of 
 to throw the whole stack. With an empty hand, Shift-right-click moves every
 stack of that item (between hotbar and backpack, or box and inventory). Tools always move whole. These work
 on a box's slots too. **Sort** (beside "Backpack", and beside a box's slots when you have one open)
-merges partial stacks and orders everything by item; the hotbar keeps the layout you made, and tools never
-merge, so each keeps its own wear. A storage box shows on its lid what it holds most of, turned to face you; the
+merges partial stacks and orders everything by item; the hotbar keeps the layout you made, and old tools never
+merge. A storage box shows on its lid what it holds most of, turned to face you; the
 **Label** menu in its screen (type to search) shows a category's icon instead (Ores, Metals, Tools...), or
 **Contents** to go back.
 

@@ -108,12 +108,8 @@ fn a_river_town_doubles_the_reach_of_drone_ports_near_it_while_supplied() {
 }
 
 #[test]
-fn a_workshop_mends_worn_tools_and_halves_its_gear_while_supplied() {
+fn a_workshop_halves_its_gear_while_supplied() {
     let mut sim = camp(WORKSHOP);
-    assert_eq!(sim.factory.insert(AT, IRON_PICKAXE, 30), 30, "a worn pickaxe");
-    steps(&mut sim, period(1));
-    assert_eq!(held(&mut sim, IRON_PICKAXE), (0, 600), "comes out whole");
-
     sim.factory.research.complete_all();
     let pack = RECIPES.iter().position(|r| r.output == HAULER_PACK).unwrap() as u16;
     let give = |sim: &mut Sim| {

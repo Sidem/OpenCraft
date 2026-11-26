@@ -319,7 +319,13 @@ pub const TERRACOTTA: u16 = CLAY + 3;
 pub const PORCELAIN: u16 = CLAY + 4;
 pub const TURQUOISE_TILES: u16 = CLAY + 5;
 pub const AMBER_TILES: u16 = CLAY + 6;
-pub const COUNT: usize = AMBER_TILES as usize + 1;
+/// The Tool Belt Mk1–Mk5 (GEAR-BELT, `textures/gear.rs`; placeholders until the art pass).
+pub const TOOL_BELT: u16 = AMBER_TILES + 1;
+pub const TOOL_BELT_MK2: u16 = TOOL_BELT + 1;
+pub const TOOL_BELT_MK3: u16 = TOOL_BELT + 2;
+pub const TOOL_BELT_MK4: u16 = TOOL_BELT + 3;
+pub const TOOL_BELT_MK5: u16 = TOOL_BELT + 4;
+pub const COUNT: usize = TOOL_BELT_MK5 as usize + 1;
 
 /// The case layer of the kit of tier `tier` (1 is Mk2, the green kit).
 pub const fn kit_paint(tier: u8) -> u16 {

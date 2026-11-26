@@ -64,9 +64,8 @@ Each perk works from the camp on, while the town is supplied. Goods a town gives
 
 - **Basalt forge:** iron and copper ore in, half again a smelter's yield out: 4 iron ore make 3 iron plates, 4
   copper ore 6 copper ingots. It works through its upkeep's number of ore a minute (20 at a camp, 600 at a city).
-- **Highland workshop:** hauler packs, jetpacks and fabricator gloves cost **half their inputs** to craft by
-  hand anywhere; worn pickaxes, axes and shovels put into the depot come back whole, a quarter of its upkeep rate
-  a minute (5 at a camp).
+- **Highland workshop:** hauler packs, tool belts, jetpacks and work gloves cost **half their inputs** to
+  craft by hand anywhere.
 - **River town:** drone ports within 128 blocks reach and fly **twice as far** (construction and cargo drones).
 - **Harbour (contract work):** pick a product your machines have made in the depot's panel; the harbour takes
   **three times its raw materials** (ore, stone, sand, logs and the like) at its upkeep's rate and sends the product

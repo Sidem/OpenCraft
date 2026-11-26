@@ -10,7 +10,7 @@ use std::time::Instant;
 use super::run_until_ready;
 use crate::action::Action;
 use crate::block::{self, AIR, DIRT, GRASS, STONE};
-use crate::item::STEEL_AXE;
+use crate::item::TOOL_BELT_MK3;
 use crate::math::IVec3;
 use crate::worldgen::{grow, height_of, KINDS};
 use crate::Game;
@@ -103,10 +103,8 @@ fn bench_tree_spikes() {
         clearing(&mut g, at, 22);
     }
 
-    // Felling: a grown tree of each kind, swung at with a steel axe until it falls.
-    let inv = &mut g.sim.players[0].as_mut().unwrap().inventory;
-    inv.add(STEEL_AXE, 64);
-    inv.selected = inv.slots.iter().position(|s| s.item == STEEL_AXE).unwrap();
+    // Felling: a grown tree of each kind, swung at with a Mk3 belt (steel heads) until it falls.
+    g.sim.players[0].as_mut().unwrap().inventory.worn[crate::equipment::BELT] = TOOL_BELT_MK3;
     for (kind, k) in KINDS.iter().enumerate() {
         let world = &mut g.sim.world;
         grow(kind, at, height_of(kind, 3), 1337, |p, b, replace| {
@@ -167,9 +165,7 @@ fn growing_and_felling_leave_remeshing_to_the_budget() {
     assert_eq!(g.sim.world.events.len(), meshes, "growing remeshed in its tick");
     assert!(g.sim.world.dirty_count() > 0, "and left its chunks to remesh");
 
-    let inv = &mut g.sim.players[0].as_mut().unwrap().inventory;
-    inv.add(STEEL_AXE, 64);
-    inv.selected = inv.slots.iter().position(|s| s.item == STEEL_AXE).unwrap();
+    g.sim.players[0].as_mut().unwrap().inventory.worn[crate::equipment::BELT] = TOOL_BELT_MK3;
     let trunk = crate::sim::trunk(|p| g.sim.world.block_anywhere_or_generate(p), foot).expect("a trunk");
     for _ in 0..2000 {
         g.sim.apply(crate::sim::PlayerId(0), Action::ChopTree { pos: trunk.foot, at: foot.as_vec3(), from: 0 });

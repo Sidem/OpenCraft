@@ -567,7 +567,6 @@ fn samples() -> Vec<Action> {
         Action::ThrowCursor,
         Action::QueueResearch { tech: 9 },
         Action::UnqueueResearch { tech: 9 },
-        Action::UpgradePack,
         Action::TakeOneSlot { slot: 12 },
         Action::TakeOneBox { pos, slot: 5 },
         Action::TakeMachineSlot { pos, slot: 6 },
@@ -598,7 +597,8 @@ fn samples() -> Vec<Action> {
         Action::Flame { origin: crate::math::Vec3::new(1.5, 65.0, -2.25), dir: crate::math::Vec3::new(0.0, 0.0, 1.0) },
         Action::PlaceShaped { pos, slot: 2, shape: crate::shape::SLAB_B2 },
         Action::PaintFace { pos, face: 1, colour: 2 },
-        Action::UpgradeGloves,
+        Action::UpgradeGear { slot: 3 },
+        Action::MineWide { pos: IVec3::new(-4, 70, 9), face: 5 },
     ]
 }
 

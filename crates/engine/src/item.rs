@@ -254,7 +254,7 @@ pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 14] = [
 /// How many item ids there are: the table is `0..ITEM_COUNT`, blocks then `EXTRA`.
 pub const ITEM_COUNT: usize = 256 + EXTRA.len();
 
-const EXTRA: [ItemDef; 202] = [
+const EXTRA: [ItemDef; 207] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -461,6 +461,11 @@ const EXTRA: [ItemDef; 202] = [
     wide_block("Porcelain Tiles", tex::PORCELAIN, block::PORCELAIN),
     wide_block("Turquoise Tiles", tex::TURQUOISE_TILES, block::TURQUOISE_TILES),
     wide_block("Amber Tiles", tex::AMBER_TILES, block::AMBER_TILES),
+    device("Tool Belt", tex::TOOL_BELT, [0.9, 0.6, 0.2]),
+    device("Tool Belt Mk2", tex::TOOL_BELT_MK2, [0.9, 0.6, 0.2]),
+    device("Tool Belt Mk3", tex::TOOL_BELT_MK3, [0.9, 0.6, 0.2]),
+    device("Tool Belt Mk4", tex::TOOL_BELT_MK4, [0.9, 0.6, 0.2]),
+    device("Tool Belt Mk5", tex::TOOL_BELT_MK5, [0.9, 0.6, 0.2]),
 ];
 
 /// A wood's log: bark round, the oak's rings at the ends; it places nothing.

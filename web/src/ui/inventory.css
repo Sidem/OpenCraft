@@ -135,7 +135,9 @@
 }
 
 /* The look is machine-upgrade.css's; here only where it sits under the equipment row. */
-.inv-items .pack-upgrade {
+.inv-items .gear-upgrades {
+  display: flex;
+  gap: 8px;
   margin: -6px 0 14px;
 }
 

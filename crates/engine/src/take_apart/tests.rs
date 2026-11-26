@@ -127,7 +127,7 @@ fn workshop_gear_gives_back_from_its_half_price() {
 
 #[test]
 fn tools_never_come_apart() {
-    for t in tools::TOOLS {
+    for t in tools::TOOLS.iter().filter(|t| RECIPES.iter().any(|r| r.output == t.item)) {
         assert!(parts(row(t.item)).is_none(), "{}", item::name(t.item));
     }
 }

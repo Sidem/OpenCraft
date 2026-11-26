@@ -65,14 +65,6 @@ impl Game {
                         self.play(sound::PLACE, block::sound::LEAVES, at, 0.6);
                     }
                 }
-                SimEvent::ToolWornOut { player, item } => {
-                    if let Some(body) = self.bodies.get(player.0 as usize).and_then(Option::as_ref) {
-                        self.play(sound::BREAK, block::sound::WOOD, body.eye(), 0.8);
-                    }
-                    if player == local {
-                        self.pickups.push_back((item, 0)); // a count of 0 tells the HUD it wore out
-                    }
-                }
                 SimEvent::Gained { player, item, count } if player == local => {
                     self.toast(item, count);
                     picked_up = true;

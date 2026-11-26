@@ -226,7 +226,7 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   Hauler packs Mk2 to Mk5 (2026-10-09): `tex::HAULER_PACK_MK2` (181) and `HAULER_PACK_MK3..MK5` (273–275) are one
   generated satchel with a flap in the tier's kit colour and a pip per tier (`textures/gear.rs`); icons only.
   Fabricator gloves (2026-10-11): `tex::CRAFT_GLOVES` (285, `textures/gear.rs`) is an icon only: a dark glove with a gold cuff and a
-  cyan servo pad, worn in the new Gloves slot. It should read as "hands, faster" next to the mining rig and exo frame.
+  cyan servo pad, worn in the new Gloves slot. It should read as "hands, faster" next to the tool belt and exo frame.
   X-ray goggles (XRAY1, 2026-11-17): `tex::XRAY_GOGGLES` (`textures/gear.rs`): cyan lenses in brass rims, worn in Head; model `GOGGLES` (`wear.rs`).
   Mixed-hue concretes (2026-11-18): `tex::tint_layer(0..11)` (`textures/decor.rs` `tint`, colours in `recipes/dye.rs` `HUES`), the same poured-concrete look as the five decor concretes in blue, orange, purple, cyan, lime, pink, sky, grey, brown, maroon, navy; their pigment heaps reuse these layers (no layer of their own).
   Ground pigments (2026-11-18): `tex::PIGMENT_RED` to `PIGMENT_YELLOW` (`textures/decor.rs` `pigment`), a heap of powder in the matching concrete's colour; the item model is a `pile`.
@@ -306,10 +306,10 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
 - [ ] (5.7, landed) Pump, pipe and outlet models (`factory/pipes.rs` `model`): placeholders built from
   `STEEL`, `FRAME` and `GENERATOR_SIDE` boxes; pipes join on every face (`arms`); the outlet shows a short
   `WATER` stream while pouring. Their item icons are plain cubes of the block faces (`block/mod.rs`).
-- [x] (P5, landed; models done, held models open) Pickaxe, axe and shovel in stone and iron tiers (steel later), each tier readable
-  at a glance: icons, loose-item models and held models. Placeholders: layers `tex::STONE_PICKAXE`..`IRON_SHOVEL`
-  (51–56) drawn by `textures/tools.rs` on flat plates (`item.rs` `tool()` size). The hotbar wear bar is
-  `.slot.tool::after` in `hud.css`.
+- [x] (P5, landed) Pickaxe, axe and shovel, stone, iron and steel (`tex::STONE_PICKAXE`.., `textures/tools.rs`): retired items
+  since GEAR-BELT; their held models are the heads the belt's swinging hand shows (`tool_belt::head`).
+- [ ] (GEAR-BELT, landed) Tool Belt Mk1–Mk5 (items 458–462): placeholder icons `tool_belt()` (`textures/gear.rs`), worn
+  model `tool_belt(tier)` (`item_models/wear.rs`).
 - [x] (Saplings, landed) A sapling: layer `tex::SAPLING` (57) by `textures/plants.rs`, drawn on two
   crossed quads (`Render::Plant`), so keep the background transparent. Also its icon and loose item.
 - [x] (4.2, landed) Rocks and minerals for Milestone 4's biomes: granite, sandstone, basalt (building

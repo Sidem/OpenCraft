@@ -2,7 +2,7 @@
 //! curated (production, logistics, power, science, tools) in the order a player meets them, grouped by what they
 //! do; `menu_order` sorts by it. Every tier of a building (Mk2, Mk3, ...) takes the place of its Mk1, right behind it,
 //! so all Mks of one building stand together (the build menu folds them into one tile: `ui/craft-family.ts`; the
-//! unplaced items with Mks, scanners and hauler packs, are listed in `ITEM_TIERS` to do the same). A recipe not listed comes after the listed ones, in recipe order, so a
+//! unplaced items with Mks, scanners, hauler packs, gloves and belts, are listed in `ITEM_TIERS` to do the same). A recipe not listed comes after the listed ones, in recipe order, so a
 //! section that is not curated (materials, computing, space, building) simply keeps the recipe order.
 //! To place a new recipe: add its item (the Mk1 for a tiered building) to `MENU` where it belongs.
 
@@ -11,10 +11,10 @@ use crate::block::*;
 use crate::factory::tiers;
 use crate::item::{
     ItemId, CORE_DRILL, CRAFT_GLOVES, EXO_FRAME, FLAMETHROWER, GREEN_PACK, HAULER_PACK, HAULER_PACK_MK2,
-    HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5, HOVER_PACK, IRON_AXE, IRON_PICKAXE, IRON_SHOVEL, JETPACK,
-    LOCOMOTIVE, MINING_RIG, PAINT_SPRAYER, PERSONAL_DRONE, PLANNER, RAIL_SIGNAL, RED_PACK, SCANNER, SCANNER_MK2,
-    SERVO_BOOTS, SICKLE, SPRING_BOOTS, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
-    TELESCOPE, WAGON, WORK_GLOVES, WORK_GLOVES_MK2, WORK_GLOVES_MK3, WORK_GLOVES_MK4, XRAY_GOGGLES,
+    HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5, HOVER_PACK, JETPACK, LOCOMOTIVE, PAINT_SPRAYER, PERSONAL_DRONE,
+    PLANNER, RAIL_SIGNAL, RED_PACK, SCANNER, SCANNER_MK2, SERVO_BOOTS, SICKLE, SPRING_BOOTS, TELESCOPE, TOOL_BELT,
+    TOOL_BELT_MK2, TOOL_BELT_MK3, TOOL_BELT_MK4, TOOL_BELT_MK5, WAGON, WORK_GLOVES, WORK_GLOVES_MK2, WORK_GLOVES_MK3,
+    WORK_GLOVES_MK4, XRAY_GOGGLES,
 };
 
 const fn b(id: BlockId) -> ItemId {
@@ -91,16 +91,8 @@ const MENU: &[ItemId] = &[
     b(RESEARCH_CENTER),
     RED_PACK,
     GREEN_PACK,
-    // Tools: hand tools, finding things, helpers, flight, then what is worn.
-    STONE_PICKAXE,
-    STONE_AXE,
-    STONE_SHOVEL,
-    IRON_PICKAXE,
-    IRON_AXE,
-    IRON_SHOVEL,
-    STEEL_PICKAXE,
-    STEEL_AXE,
-    STEEL_SHOVEL,
+    // Tools: the Tool Belt, hand tools, finding things, helpers, flight, then what is worn.
+    TOOL_BELT,
     SICKLE,
     PAINT_SPRAYER,
     FLAMETHROWER,
@@ -115,7 +107,6 @@ const MENU: &[ItemId] = &[
     SPRING_BOOTS,
     SERVO_BOOTS,
     EXO_FRAME,
-    MINING_RIG,
     WORK_GLOVES,
     XRAY_GOGGLES,
 ];
@@ -125,6 +116,7 @@ const ITEM_TIERS: &[&[ItemId]] = &[
     &[SCANNER, SCANNER_MK2],
     &[HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5],
     &[WORK_GLOVES, WORK_GLOVES_MK2, WORK_GLOVES_MK3, WORK_GLOVES_MK4, CRAFT_GLOVES],
+    &[TOOL_BELT, TOOL_BELT_MK2, TOOL_BELT_MK3, TOOL_BELT_MK4, TOOL_BELT_MK5],
 ];
 
 /// Where recipe `r` sorts inside its section (see the module header).

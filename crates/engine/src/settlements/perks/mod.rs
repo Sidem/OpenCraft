@@ -3,7 +3,7 @@
 //! town pauses it until its upkeep is back.
 //!
 //! - **Basalt forge** (`forge.rs`): ore in, plates and ingots out, half again what a smelter gives.
-//! - **Highland workshop** (`workshop.rs`): worn tools in, whole tools out; gear costs half in hand crafting anywhere.
+//! - **Highland workshop** (`workshop.rs`): gear costs half in hand crafting anywhere.
 //! - **River town** (`relay.rs`): drone ports near it reach and fly twice as far.
 //! - The harbour's contract work comes in step 13.4b.
 //!
@@ -56,7 +56,6 @@ impl Town {
         }
         let lines = match self.kind {
             FORGE => forge::wants(self.built),
-            WORKSHOP => workshop::wants(),
             HARBOUR => harbour::wants(self),
             _ => Vec::new(),
         };
@@ -70,11 +69,7 @@ impl Town {
             FORGE => {
                 format!("{rate} iron or copper ore a minute in, half again a smelter's plates and ingots out the front")
             }
-            WORKSHOP => format!(
-                "hauler packs, jetpacks and gloves cost half to craft · worn tools in, {} whole ones a minute out the \
-                 front",
-                rate / BATCH
-            ),
+            WORKSHOP => "hauler packs, tool belts, jetpacks and gloves cost half to craft".to_string(),
             RIVER_TOWN => format!("drone ports within {} blocks reach and fly twice as far", relay::RELAY_RANGE),
             HARBOUR if self.product == crate::item::ItemId::NONE => format!(
                 "pick a product your machines have made below: it comes out the front for {} times its raw \
@@ -104,7 +99,6 @@ impl Town {
         }
         match self.kind {
             FORGE => forge::batch(input, out, tick / period, events),
-            WORKSHOP => workshop::repair(input, out),
             HARBOUR => harbour::batch(self, input, out, events),
             _ => {}
         }

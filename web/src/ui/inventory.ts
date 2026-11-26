@@ -1,6 +1,6 @@
 // Inventory and build screen (E): every slot (36, up to 135 with a hauler pack) with a held stack on the cursor, the
-// backpack in pages of 27 (never scrolled: the equipment and hotbar stay in view), the equipment slots (Shift-click gear in the pack to wear it; a button raises the worn pack with kits,
-// `pack-upgrade.ts`), and the build menu
+// backpack in pages of 27 (never scrolled: the equipment and hotbar stay in view), the equipment slots (Shift-click gear in the pack to wear it; buttons raise the worn pack, belt or gloves a tier,
+// `gear-upgrade.ts`), and the build menu
 // (`crafting.ts`; creative worlds add the item picker, `creative.ts`). Opened on a storage box (right-click), it shows the box's slots above the inventory
 // instead of the build menu, like a chest: clicks move stacks with the cursor, shift-clicks move whole
 // stacks between the box and the inventory. Right-click takes half of a stack (again: half of what is left, added to
@@ -21,7 +21,7 @@ import { DragThrow } from './drag-throw';
 import { BoxLabel } from './box-label';
 import { MachineUpgrade } from './machine-upgrade';
 import { button, h } from './dom';
-import { PackUpgrade } from './pack-upgrade';
+import { GearUpgrades } from './gear-upgrade';
 import { Pager } from './pager';
 import { type SlotContext, SlotControls } from './slot-controls';
 import { drawSlot, ICON_PX, type SlotView } from './slot-view';
@@ -57,7 +57,7 @@ export class InventoryPanel {
   private readonly gear: SlotView[] = [];
   /** The left hand's slot (`offhand.ts` shows the same stack in the HUD). */
   private readonly offhand: SlotView;
-  private readonly packUpgrade: PackUpgrade;
+  private readonly gearUpgrades: GearUpgrades;
   private readonly packPager = new Pager();
   private readonly cursor: SlotView;
   private version = -1;
@@ -163,9 +163,9 @@ export class InventoryPanel {
     packHead.append(h('h3', '', 'Backpack'), this.packPager.el, drone.button, sortPack);
     this.packPager.onChange = () => this.showPackPage();
     this.packPager.wheel(pack);
-    this.packUpgrade = new PackUpgrade(game, icon);
+    this.gearUpgrades = new GearUpgrades(game, icon);
     items.append(
-      h('h3', '', 'Equipment'), gearRow, this.packUpgrade.el, packHead, pack, h('h3', '', 'Hotbar'), bar, drone.bar,
+      h('h3', '', 'Equipment'), gearRow, this.gearUpgrades.el, packHead, pack, h('h3', '', 'Hotbar'), bar, drone.bar,
     );
 
     this.menu = new BuildMenu(game, icon, todo);
@@ -306,7 +306,7 @@ export class InventoryPanel {
       if (!item) s.root.title = `${g.gear_slot_name(i)}: nothing worn`;
     });
     this.drawSlot(this.offhand, g.offhand_item(), g.offhand_count());
-    this.packUpgrade.update();
+    this.gearUpgrades.update();
     this.drawSlot(this.cursor, g.cursor_item(), g.cursor_count());
     this.cursor.root.classList.toggle('hidden', g.cursor_count() === 0);
 

@@ -1,15 +1,15 @@
 //! What breaking and placing a block do to the core (`Action::BreakBlock`, `Action::PlaceBlock`): the
-//! world edit, tool wear, drops, deposits, factory machines and the events that follow. Split out of
+//! world edit, drops, deposits, factory machines and the events that follow. Split out of
 //! `action.rs` to keep it small; the arms there just call these. Drones (`drones/`) build and break
 //! through `put_block` and `dismantle`, which take nothing from any inventory.
 
-use crate::block::{self, BlockId, AIR};
+use crate::block::{self, AIR};
 use crate::factory;
 use crate::inventory::Stack;
 use crate::item::{ItemId, LOCOMOTIVE, RAIL_SIGNAL, WAGON};
 use crate::math::{IVec3, Vec3};
 use crate::sim::{PlayerId, Sim, SimEvent};
-use crate::tools;
+use crate::tool_belt;
 
 impl Sim {
     /// Puts the locomotive in `slot` on the rail node at `pos`, or couples the wagon there to the train beside it
@@ -55,15 +55,15 @@ impl Sim {
         }
     }
 
-    pub(super) fn break_block(&mut self, player: PlayerId, pos: IVec3) {
+    pub(crate) fn break_block(&mut self, player: PlayerId, pos: IVec3) {
         if let Some((pos, drops)) = self.dismantle(player, pos, true) {
             self.drop_stacks(pos, drops);
         }
     }
 
     /// Breaks the block at `pos` (a multi-block machine whole, from any of its cells) and returns its anchor
-    /// and what it leaves: the block's drop and a machine's contents. `with_tool` wears the player's selected
-    /// tool and mines with it; without it the bare hands (a drone) do. `None` when nothing breakable is there.
+    /// and what it leaves: the block's drop and a machine's contents. `with_tool` mines with the player's worn Tool
+    /// Belt (`tool_belt/`: the ore it keeps); without it the bare hands (a drone) do. `None` when nothing breakable is there.
     pub(crate) fn dismantle(&mut self, player: PlayerId, pos: IVec3, with_tool: bool) -> Option<(IVec3, Vec<Stack>)> {
         // A multi-block machine breaks whole, from any of its cells, as its anchor (`multiblock.rs`).
         let pos = self.factory.footprint_at(pos).map_or(pos, |f| f.0);
@@ -86,9 +86,10 @@ impl Sim {
         }
         // A town's own block drops nothing: its drones put it back for free.
         let town_block = self.settlements.broken(pos, id);
-        let held = if with_tool { self.wear_tool(player, id) } else { ItemId::NONE };
+        let belt =
+            if with_tool { self.player(player).map_or(ItemId::NONE, |c| c.inventory.belt()) } else { ItemId::NONE };
         if let Some(share) = share.filter(|_| with_tool) {
-            let kept = tools::ore_yield(held);
+            let kept = tool_belt::ore_yield(belt);
             self.events.push(SimEvent::HandMined { player, ore: id, kept, lost: share.saturating_sub(kept) });
         }
         // A tiered machine drops its tier's item (`factory/tiers.rs`).
@@ -99,7 +100,7 @@ impl Sim {
         drops.extend(self.recall_cargo(pos));
         if def.drop != AIR && !town_block {
             let item = tiered.unwrap_or(ItemId::block(def.drop));
-            drops.insert(0, Stack { item, count: if ore { tools::ore_yield(held) } else { 1 } });
+            drops.insert(0, Stack { item, count: if ore { tool_belt::ore_yield(belt) } else { 1 } });
         }
         if block::is_leaves(id) && self.leaf_drops_sapling() {
             drops.push(Stack { item: block::sapling_of(id).into(), count: 1 });
@@ -115,19 +116,6 @@ impl Sim {
             let vel = Vec3::new(self.rng.range(-1.5, 1.5), 4.0, self.rng.range(-1.5, 1.5));
             self.events.push(SimEvent::Dropped { pos: center, vel, item: s.item, count: s.count });
         }
-    }
-
-    /// The item the player breaks `block` with: the tool for it in the right hand, else in the left (`offhand.rs`),
-    /// else the right hand's item. A tool for it loses a use (its stack count); one that wears out reports it.
-    pub(crate) fn wear_tool(&mut self, player: PlayerId, block: BlockId) -> ItemId {
-        let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return ItemId::NONE };
-        let inv = &mut core.inventory;
-        let hand = inv.tool_hand(block);
-        let held = inv.in_hand(hand).item;
-        if tools::tool_for(held, block).is_some() && inv.wear_hand(hand) {
-            self.events.push(SimEvent::ToolWornOut { player, item: held });
-        }
-        held
     }
 
     /// Builds the block in `slot` at `pos`. On a ghost of the same block it takes the ghost's facing and

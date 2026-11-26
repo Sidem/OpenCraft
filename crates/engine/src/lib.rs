@@ -127,6 +127,7 @@ mod take_apart;
 mod telescope;
 mod textures;
 mod tier_palette;
+mod tool_belt;
 mod tools;
 mod town_preview;
 mod train_tools;

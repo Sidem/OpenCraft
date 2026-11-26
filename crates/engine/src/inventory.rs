@@ -123,7 +123,9 @@ impl Inventory {
             };
             for (slot, item) in inv.worn.iter_mut().enumerate().take(worn) {
                 *item = r.item()?;
-                if *item != ItemId::NONE && !equipment::gear(*item).is_some_and(|g| g.slot == slot) {
+                // Before 87 the Tool belt slot held the Mining Rig, which `belt_from_tools` turns into a belt below.
+                let rig = r.version < 87 && slot == equipment::BELT && *item == crate::item::MINING_RIG;
+                if *item != ItemId::NONE && !rig && !equipment::gear(*item).is_some_and(|g| g.slot == slot) {
                     return None;
                 }
             }
@@ -133,6 +135,9 @@ impl Inventory {
         }
         if r.version >= 60 {
             inv.offhand = Stack::read_state(r)?;
+        }
+        if r.version < 87 {
+            inv.belt_from_tools();
         }
         (inv.selected < HOTBAR_SLOTS && !inv.stranded()).then_some(inv)
     }
