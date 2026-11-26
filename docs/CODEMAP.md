@@ -17,7 +17,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `input`, `view`, `render`, `inventory`, `machine`, `crafting`, `research`, `creative`, `content`, `hud`, `sites`, `save`,
   `net`, `minimap`, `prospect`, `analytics`, `towns`, `orbit`, `ruins`, `signs`, `opening`, `blueprint`, `hand_waste`,
   `lessons`, `guide`, `surroundings`, `xray`, `led`, `seismic`, `codex`, `static_boxes`, `debug` (give, teleport, run_ticks, scene building).
-- `events.rs`: `SimEvent`s → item spawns, sounds, toasts, analytics. `authority.rs`: bodies, loose items, join/leave.
+- `events.rs`: `SimEvent`s → item spawns, sounds, toasts, analytics. `authority.rs`: bodies, loose items, join/leave. `grass_sweep.rs`: seeds grass on bare dirt near bodies (`Action::GrowGrass`).
 
 ### Deterministic core (changes only through `Action`s at a tick)
 - `sim.rs`: `Sim`, `step`, `state_hash`, `PlayerId`. `sim/`: `event.rs`, `timers.rs` (leaf decay, grass, saplings), `water.rs`,
@@ -102,7 +102,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - Tools: `prospect.rs`, `seismic/` (`mod.rs`, `scan.rs`, `volume.rs`: 2D MRI slice + 48³ 3D volume query), `survey.rs` + `survey/orbit.rs`, `telescope.rs` + `telescope/` (`ground.rs`, `beacons.rs`), `sickle.rs`, `flame_hands.rs`.
 
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
-- `mesher.rs` + `mesher/` (`quad.rs`, `water.rs`, `blocks/` + `blocks/slope.rs` shaped slabs/stairs/roofs, `cover.rs` + `cover/shape.rs`); trees: `shaped.rs`, `tree_grid.rs`, `logs.rs` + `logs/`
+- `mesher.rs` + `mesher/` (`quad.rs`, `face_layer.rs` (alternates, turf's lit sides), `water.rs`, `blocks/` + `blocks/slope.rs` shaped slabs/stairs/roofs, `cover.rs` + `cover/shape.rs`); trees: `shaped.rs`, `tree_grid.rs`, `logs.rs` + `logs/`
   (`node.rs`, `ring.rs`), `foliage.rs` + `foliage/style.rs`.
 - `entities.rs` + `entities/merge.rs`, `avatars.rs` + `avatars/` (`grip.rs`, `hand.rs`, `tool_hold.rs`; first-person hand & character rig), `halos.rs`, `fire_view.rs` + `fire_view/torch.rs` (burning tree/ember emitters, ballistic torch plumes, flame lights & glow), `wire_props.rs`,
   `held_light.rs`, `drone_view.rs` + `companion_view.rs`, `orbit_fx.rs`, `sound.rs`.

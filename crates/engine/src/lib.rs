@@ -61,6 +61,7 @@ mod ghost_build;
 mod ghost_mode;
 mod ghost_models;
 mod ghosts;
+mod grass_sweep;
 mod halos;
 mod hand_waste;
 mod held_light;
@@ -414,7 +415,8 @@ impl Game {
 
 impl Game {
     /// Advances the game by one tick of exactly [`TICK`] seconds: every body, the local player's hands,
-    /// loose items, then the core (a co-op client only through the tick the host confirmed), then what
+    /// loose items, the grass sweep (`grass_sweep.rs`), then the core (a co-op client only through the tick the host
+    /// confirmed), then what
     /// co-op peers see of the bodies and items (`net_tick`).
     fn run_tick(&mut self) {
         self.prev_eye = self.body().eye();
@@ -435,6 +437,7 @@ impl Game {
         self.body_mut().gesture = u8::from(self.mining) | (u8::from(self.using) << 1);
 
         self.step_items();
+        self.sweep_grass();
         if self.role.may_step(self.sim.tick) {
             self.step_core();
         }

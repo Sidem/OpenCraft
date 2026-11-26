@@ -27,6 +27,11 @@ pub enum Action {
         pos: IVec3,
         face: u8,
     },
+    /// The authority's sweep saw dirt at `pos` that could green (`grass_sweep.rs`): the core checks again and starts
+    /// its grass timer (`Sim::check_grass`). The authority's to issue, like pickups.
+    GrowGrass {
+        pos: IVec3,
+    },
     /// Places one item from `slot` at `pos`. `facing` is the belt direction (`factory::dir_from_yaw`;
     /// a multi-block machine's turn); `against` is the clicked block, which gives a miner its drill face
     /// and deposit. A multi-block machine takes `pos` as its anchor and needs every cell free.

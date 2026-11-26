@@ -18,6 +18,21 @@ fn decode(v: u32) -> (u32, u32, u32, u32, u32) {
 }
 
 #[test]
+fn turf_sides_draw_green_in_daylight_and_soil_in_shade() {
+    use crate::block::{GRASS, RUSTY_SOIL};
+    use face_layer::GREEN_SKY;
+    let c = [3, 4, 5];
+    let (top, soil) = (face_layer(GRASS, 2, c, 15), face_layer(GRASS, 3, c, 0));
+    assert_ne!(top, soil);
+    assert_eq!(face_layer(GRASS, 0, c, 15), top, "a side in daylight is as green as the top");
+    assert_eq!(face_layer(GRASS, 3, c, GREEN_SKY), top, "so is an underside a little into shade");
+    assert_eq!(face_layer(GRASS, 4, c, GREEN_SKY - 1), soil, "deeper in shade: soil");
+    assert_eq!(face_layer(GRASS, 2, c, 0), top, "the top stays green under a canopy");
+    assert_eq!(face_layer(RUSTY_SOIL, 1, c, 15), face_layer(RUSTY_SOIL, 2, c, 15), "stained soils too");
+    assert_eq!(face_layer(STONE, 0, c, 0), FACE_TEX[STONE as usize][0], "other blocks keep their own faces");
+}
+
+#[test]
 fn single_block_has_six_unoccluded_faces() {
     let m = mesh_single(|c| c.set(5, 5, 5, STONE));
     assert_eq!(m.opaque_quads, 6);

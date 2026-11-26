@@ -46,6 +46,7 @@ impl Sim {
             Action::Join { .. } | Action::Leave { .. } => {}
             Action::BreakBlock { pos } => self.break_block(player, pos),
             Action::MineWide { pos, face } => self.mine_wide(player, pos, face),
+            Action::GrowGrass { pos } => self.check_grass(pos),
             Action::ChopTree { pos, at, from } => self.chop_tree(player, pos, at, from),
             Action::PlaceBlock { pos, slot, facing, against } => self.place_block(player, pos, slot, facing, against),
             Action::PlaceShaped { pos, slot, shape } => self.place_shaped(player, pos, slot, shape),

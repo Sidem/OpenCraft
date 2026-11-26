@@ -599,6 +599,7 @@ fn samples() -> Vec<Action> {
         Action::PaintFace { pos, face: 1, colour: 2 },
         Action::UpgradeGear { slot: 3 },
         Action::MineWide { pos: IVec3::new(-4, 70, 9), face: 5 },
+        Action::GrowGrass { pos: IVec3::new(-4, 70, 9) },
     ]
 }
 

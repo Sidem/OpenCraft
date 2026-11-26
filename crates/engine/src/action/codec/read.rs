@@ -114,6 +114,7 @@ impl Action {
             84 => Action::UpgradeGear { slot: 5 },
             85 => Action::UpgradeGear { slot: r.u8()? },
             86 => Action::MineWide { pos: r.ivec3()?, face: r.u8()? },
+            87 => Action::GrowGrass { pos: r.ivec3()? },
             35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })

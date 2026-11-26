@@ -1,9 +1,11 @@
 //! Block timers (core state): single-block changes due at a later tick. Leaves decay once no log
-//! holds them up; grass spreads onto bare dirt next to it and turns back to dirt under a solid block;
-//! saplings grow into trees (`sim/saplings.rs`).
+//! holds them up; grass spreads onto dirt beside it that has any face open (a hillside's bare step, a trench wall,
+//! not only a top) and turns back to dirt once every face is covered; saplings grow into trees (`sim/saplings.rs`).
+//! Which open faces draw green is the mesher's (lit ones: `mesher/face_layer.rs`).
 //!
 //! Invariants: timers start only from block changes (`Sim::block_changed`, called by the actions that
-//! break and place blocks and by the timers themselves), never from scanning chunks, and they read and
+//! break and place blocks and by the timers themselves) and from `Action::GrowGrass` (the authority's sweep for
+//! dirt no edit ever touched: `grass_sweep.rs`), never from scanning chunks, and they read and
 //! edit through the `*_anywhere` accessors, so they run the same in unloaded chunks and on every peer.
 //! `BlockTimers` keeps its entries sorted by (due tick, position, kind), at most one per position and
 //! kind and at most `MAX_TIMERS` (new ones beyond that are dropped). `Sim::step` runs the due ones after
@@ -122,11 +124,7 @@ impl Sim {
             self.schedule_growth(pos);
         }
         for p in cube(pos, 1) {
-            match self.block(p) {
-                DIRT if self.grass_can_grow(p) => self.schedule(p, TimerKind::GrassGrow, GRASS_GROW_HALF_LIFE),
-                GRASS if self.covered(p) => self.schedule(p, TimerKind::GrassDie, GRASS_DIE_HALF_LIFE),
-                _ => {}
-            }
+            self.check_grass(p);
         }
         self.factory.beam_cut_check(pos);
         self.torch_support_changed(pos);
@@ -134,6 +132,15 @@ impl Sim {
         self.led_cell_changed(pos);
         self.street_cell_changed(pos, old);
         self.water_changed(pos, old);
+    }
+
+    /// Starts the grass timer `p` calls for, if any: dirt that can green grows, grass with every face covered dies.
+    pub(crate) fn check_grass(&mut self, p: IVec3) {
+        match self.block(p) {
+            DIRT if self.grass_can_grow(p) => self.schedule(p, TimerKind::GrassGrow, GRASS_GROW_HALF_LIFE),
+            GRASS if self.buried(p) => self.schedule(p, TimerKind::GrassDie, GRASS_DIE_HALF_LIFE),
+            _ => {}
+        }
     }
 
     /// Runs the timers due by this tick, in order. Called by `step` after the tick's actions.
@@ -173,7 +180,7 @@ impl Sim {
         let holds = match t.kind {
             TimerKind::LeafDecay => is_leaves(block) && !self.leaf_supported(t.pos),
             TimerKind::GrassGrow => self.grass_can_grow(t.pos),
-            TimerKind::GrassDie => self.covered(t.pos),
+            TimerKind::GrassDie => self.buried(t.pos),
             TimerKind::SaplingGrow => false, // returned above
         };
         // The remesh waits for the streaming budget: many timers fire in a burst (a felled tree's leaves).
@@ -237,25 +244,26 @@ impl Sim {
         false
     }
 
-    /// Dirt with nothing solid on top and grass among its 8 horizontal neighbours, one up or down.
+    /// Whether the dirt at `p` can green (`can_green` on the core's blocks).
     fn grass_can_grow(&mut self, p: IVec3) -> bool {
-        if self.covered(p) {
-            return false;
-        }
-        for dy in -1..=1 {
-            for (dx, dz) in RING {
-                if self.block(p + IVec3::new(dx, dy, dz)) == GRASS {
-                    return true;
-                }
-            }
-        }
-        false
+        can_green(&mut |q| self.world.block_anywhere_or_generate(q), p)
     }
 
-    /// Whether a solid block sits on top of `p`.
-    fn covered(&mut self, p: IVec3) -> bool {
-        SOLID[self.block(p + IVec3::new(0, 1, 0)) as usize]
+    /// Whether every face of `p` is covered by a solid block.
+    fn buried(&mut self, p: IVec3) -> bool {
+        !open_face(&mut |q| self.world.block_anywhere_or_generate(q), p)
     }
+}
+
+/// Whether dirt at `p` can green: a face open (no solid block on it) and grass among the 26 cells round it. Shared
+/// with the authority's sweep, which asks it of the loaded world (`grass_sweep.rs`).
+pub(crate) fn can_green(block: &mut impl FnMut(IVec3) -> BlockId, p: IVec3) -> bool {
+    open_face(block, p) && cube(p, 1).any(|q| q != p && block(q) == GRASS)
+}
+
+/// Whether any of `p`'s six faces has no solid block on it.
+fn open_face(block: &mut impl FnMut(IVec3) -> BlockId, p: IVec3) -> bool {
+    FACES.iter().any(|&f| !SOLID[block(p + f) as usize])
 }
 
 /// The six face neighbours' offsets.
@@ -268,6 +276,7 @@ pub(super) const FACES: [IVec3; 6] = [
     IVec3::new(0, 0, -1),
 ];
 
+#[cfg(test)]
 const RING: [(i32, i32); 8] = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)];
 
 /// The cube of positions within `r` of `c` in each axis, in (y, z, x) order.

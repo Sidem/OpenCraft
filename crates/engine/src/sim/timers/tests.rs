@@ -199,6 +199,51 @@ fn covered_grass_turns_to_dirt_and_grows_back_when_uncovered() {
     assert_eq!(sim.block(at(0, SKY, 0)), GRASS);
 }
 
+/// A 7 × 7 sod on a stone slab in the sky: stone, dirt, grass. The dirt's rim faces open air.
+fn sod(sim: &mut Sim) {
+    for z in -3..=3 {
+        for x in -3..=3 {
+            sim.world.set_block_anywhere(at(x, SKY - 2, z), STONE);
+            sim.world.set_block_anywhere(at(x, SKY - 1, z), DIRT);
+            sim.world.set_block_anywhere(at(x, SKY, z), GRASS);
+        }
+    }
+}
+
+#[test]
+fn bare_sides_green_from_one_seed_and_buried_dirt_stays_dirt() {
+    let mut sim = Sim::new(SEED, 2);
+    sod(&mut sim);
+    assert!(can_green(&mut |q| sim.world.block_anywhere_or_generate(q), at(3, SKY - 1, 0)), "a rim face is open");
+    assert!(!sim.grass_can_grow(at(0, SKY - 1, 0)), "the middle is buried");
+    // No edit touched the rim, so nothing grows until the sweep's action seeds it.
+    run(&mut sim, 60);
+    assert_eq!(sim.block(at(3, SKY - 1, 0)), DIRT);
+    sim.apply(A, Action::GrowGrass { pos: at(3, SKY - 1, 0) });
+    sim.apply(A, Action::GrowGrass { pos: at(0, SKY - 1, 0) });
+    assert!(!sim.timers.pending(at(0, SKY - 1, 0), TimerKind::GrassGrow), "the core checks again");
+    run(&mut sim, 600);
+    let rim = (-3..=3).flat_map(|i| [at(i, SKY - 1, -3), at(i, SKY - 1, 3), at(-3, SKY - 1, i), at(3, SKY - 1, i)]);
+    assert!(rim.into_iter().all(|p| sim.block(p) == GRASS), "the whole rim greened from one seed");
+    assert!((-2..=2).all(|i| sim.block(at(i, SKY - 1, 0)) == DIRT), "buried dirt stays dirt");
+}
+
+#[test]
+fn grass_lives_while_any_face_is_open() {
+    let mut sim = Sim::new(SEED, 2);
+    sod(&mut sim);
+    let edge = at(3, SKY, 0);
+    place(&mut sim, edge + at(0, 1, 0), STONE);
+    run(&mut sim, 120);
+    assert_eq!(sim.block(edge), GRASS, "its top is covered, its outer side is open");
+    // Nothing to stand a placed block on out there: set the stone as a world edit would.
+    sim.world.set_block_anywhere(edge + at(1, 0, 0), STONE);
+    sim.block_changed(edge + at(1, 0, 0), AIR);
+    assert!(sim.timers.pending(edge, TimerKind::GrassDie));
+    run(&mut sim, 180);
+    assert_eq!(sim.block(edge), DIRT, "every face covered");
+}
+
 #[test]
 fn timers_are_capped_and_ordered() {
     let mut timers = BlockTimers::default();

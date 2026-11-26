@@ -22,8 +22,8 @@
 //!
 //! Quads are merged only where AO and light are constant along the merge direction, so greedy
 //! merging never changes how their gradients look. Layers with alternates (ores, leaves:
-//! `block::tex::alternates`) get one of four looks per block (`pick_layer`), so those faces merge
-//! less. Plants (`block::PLANT`) are two crossed quads, each emitted in both windings, into the
+//! `block::tex::alternates`) get one of four looks per block (`face_layer.rs`, which also greens turf's lit
+//! sides), so those faces merge less. Plants (`block::PLANT`) are two crossed quads, each emitted in both windings, into the
 //! cutout list and never merged (so is the ground cover on natural ground: `cover.rs`). Liquids (`block::LIQUID`) get faces only against cells that are neither
 //! opaque nor liquid, unshaded by AO, into a third list the host draws blended after the others. Their
 //! surface corners sit below the block's top by a height read from the cells around (`water::corner_drop`), so
@@ -33,14 +33,13 @@
 //! chunk (`tree_grid.rs`), go into a fourth, "shaped" list with its own vertex format (`shaped.rs`). Logs hide no
 //! faces beside them (`HIDES`).
 
-use crate::block::{
-    is_leaves, is_log, BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT, TRANSLUCENT,
-};
+use crate::block::{is_leaves, is_log, BlockId, AIR, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT, TRANSLUCENT};
 use crate::chunk::{index, Chunk};
 use shaped::{HIDES, SHAPED};
 
 mod blocks;
 mod cover;
+mod face_layer;
 mod foliage;
 mod logs;
 mod quad;
@@ -48,6 +47,7 @@ pub mod shaped;
 mod tree_grid;
 mod water;
 pub use cover::{bears_cover, Cover};
+use face_layer::face_layer;
 pub use quad::MeshOutput;
 use quad::{corner, corners_of, emit_quad, CORNER_BITS, KEY_CUTOUT, KEY_FLAG, KEY_LAYER, KEY_LIQUID, KEY_TRANSLUCENT};
 pub use tree_grid::REACH as TREE_REACH;
@@ -310,8 +310,11 @@ impl Mesher {
                                 }
                                 corners |= u64::from(k) << (i * CORNER_BITS);
                             }
-                            let layer =
-                                if liquid { u64::from(water::look(pad, p)) } else { u64::from(pick_layer(b, face, c)) };
+                            let layer = if liquid {
+                                u64::from(water::look(pad, p))
+                            } else {
+                                u64::from(face_layer(b, face, c, light[q] & 15))
+                            };
                             key = KEY_FLAG
                                 | (u64::from(CUTOUT[b as usize]) << KEY_CUTOUT)
                                 | (u64::from(liquid) << KEY_LIQUID)
@@ -381,25 +384,6 @@ impl Mesher {
                 }
             }
         }
-    }
-}
-
-/// The texture layer for face `face` of block `b` at padded position `c`: its own layer, or for a
-/// layer with alternates one of the four, the same for every face of the block. Chosen from the
-/// chunk-local position, so the pattern repeats only every chunk.
-#[inline]
-fn pick_layer(b: BlockId, face: usize, c: [usize; 3]) -> u16 {
-    let base = FACE_TEX[b as usize][face];
-    let alt = ALT_TEX[b as usize][face];
-    if alt == 0 {
-        return base;
-    }
-    let h = (c[0] as u32).wrapping_mul(0x9E37_79B1)
-        ^ (c[1] as u32).wrapping_mul(0x85EB_CA77)
-        ^ (c[2] as u32).wrapping_mul(0xC2B2_AE3D);
-    match ((h ^ (h >> 15)).wrapping_mul(0x2C1B_3C6D) >> 30) as u16 {
-        0 => base,
-        k => alt + k - 1,
     }
 }
 
