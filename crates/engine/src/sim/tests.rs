@@ -66,8 +66,9 @@ const B: PlayerId = PlayerId(1);
 // (11_647_145_183_151_009_783).
 // Save 89 (M14A): the core ends with the space elevator (none here) and the research table has the Space Elevator tech
 // (17_479_648_060_806_993_320).
-// Save 90 (sod): the core ends with the bare turf faces (`world/sod.rs`).
-const GOLDEN_HASH: u64 = 10_372_337_773_946_103_848;
+// Save 90 (sod): the core ends with the bare turf faces (`world/sod.rs`, 10_372_337_773_946_103_848).
+// Save 91 (WATER-LOG): the core ends with waterlogged cells (`world/waterlog.rs`).
+const GOLDEN_HASH: u64 = 4_611_326_991_443_829_416;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

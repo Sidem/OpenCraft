@@ -142,11 +142,11 @@ fn a_save_from_before_towns_loads_with_none_and_a_bad_kind_is_refused() {
     let mut world = ByteWriter::default();
     sim.world.write_state(&mut world);
     let world_at = w.bytes.windows(world.bytes.len()).position(|s| s == world.bytes).expect("the world's bytes");
-    // Save 47 ended with the opening scene: cut the empty town list, the tips' progress byte (57), the lessons taught (58), the signs' count (63), the LED colours' (79), the switched-off machines' (80), active fires (12, save 82), the empty codex bitset (1, save 83), chunk shapes (4, save 84), surface paint + charges (20, save 85) no elevator (1, save 89) and no bare turf faces (4, save 90) off the
+    // Save 47 ended with the opening scene: cut the empty town list, the tips' progress byte (57), the lessons taught (58), the signs' count (63), the LED colours' (79), the switched-off machines' (80), active fires (12, save 82), the empty codex bitset (1, save 83), chunk shapes (4, save 84), surface paint + charges (20, save 85), no elevator (1, save 89), no bare turf faces (4, save 90) and no waterlogged cells (4, save 91) off the
     // end, and the cleared cover (save 55, an empty count) off the end of the world's edited chunks.
     let cleared_at = world_at + world.bytes.len() - 4;
     let mut old = w.bytes[..cleared_at].to_vec();
-    old.extend_from_slice(&w.bytes[cleared_at + 4..w.bytes.len() - empty.bytes.len() - 59]);
+    old.extend_from_slice(&w.bytes[cleared_at + 4..w.bytes.len() - empty.bytes.len() - 63]);
     let mut back = Sim::new(SEED, 2);
     let mut r = ByteReader::new(&old);
     r.version = 47;

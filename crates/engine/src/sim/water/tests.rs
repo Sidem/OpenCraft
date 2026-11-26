@@ -271,3 +271,227 @@ fn bench_flood(sim: &mut Sim, loaded: bool) {
     }
     println!("loaded {loaded}: {ticks} ticks, mean {:.3} ms, worst {:.3} ms per tick", total / ticks as f64, worst);
 }
+
+#[test]
+fn belt_under_a_lake_stays_wet_lake_stays_level_and_items_still_move() {
+    use crate::block::{BELT, FAST_BELT, IRON_ORE, STORAGE, WET_SOURCE};
+    use crate::item::ItemId;
+    use crate::sim::PlayerId;
+
+    // Test both a sea-level lake and a high lake above SEA_LEVEL.
+    let mut sim = seaside();
+    // High lake at y = 100 (above SEA_LEVEL) walled in stone.
+    fill(&mut sim, at(1, 99, 1), at(6, 100, 6), STONE);
+    fill(&mut sim, at(2, 100, 2), at(5, 100, 5), WATER);
+    fill(&mut sim, at(1, 101, 1), at(6, 102, 6), AIR);
+
+    let sea_belt = at(5, SEA_LEVEL, 5);
+    let sea_fast = at(6, SEA_LEVEL, 5);
+    let lake_belt = at(3, 100, 3);
+    // Facing 1 = +X (East), so sea_belt feeds sea_fast.
+    assert!(sim.put_block(PlayerId(0), sea_belt, ItemId::block(BELT), 1, sea_belt - UP));
+    assert!(sim.put_block(PlayerId(0), sea_fast, ItemId::block(FAST_BELT), 1, sea_fast - UP));
+    assert!(sim.put_block(PlayerId(0), lake_belt, ItemId::block(BELT), 1, lake_belt - UP));
+
+    // Load chunks around the sea belt and settle: once settled, a standing scene remeshes nothing.
+    sim.world.update_streaming(sea_belt.as_vec3(), &[]);
+    while sim.world.work_step() {}
+    settle(&mut sim);
+    sim.world.advance_clock(1.0);
+    sim.world.begin_work();
+    while sim.world.work_step() {}
+    sim.world.events.clear();
+    for _ in 0..30 {
+        sim.step();
+        sim.world.advance_clock(1.0 / 60.0);
+        sim.world.begin_work();
+        assert!(!sim.world.work_step(), "standing scene must remesh nothing");
+    }
+    assert!(sim.world.events.is_empty(), "no remesh events in a standing waterlogged scene");
+
+    // Both belts stay BELT and full water source; surrounding water stays WATER.
+    for p in [sea_belt, sea_fast, lake_belt] {
+        assert_eq!(sim.block(p), BELT, "belt kept at {p:?}");
+        assert_eq!(sim.world.wet_anywhere(p), WET_SOURCE, "stays source-wet at {p:?}");
+    }
+    assert!(sim.world.is_water(sea_belt.x, sea_belt.y, sea_belt.z), "bodies still swim in wet belt");
+    for z in 1..=10 {
+        for x in 1..=10 {
+            let p = at(x, SEA_LEVEL, z);
+            if p != sea_belt && p != sea_fast {
+                assert_eq!(sim.block(p), WATER, "sea stayed level at ({x}, {z})");
+            }
+        }
+    }
+    for z in 2..=5 {
+        for x in 2..=5 {
+            let p = at(x, 100, z);
+            if p != lake_belt {
+                assert_eq!(sim.block(p), WATER, "high lake stayed level at ({x}, {z})");
+            }
+        }
+    }
+
+    // Items fed onto an underwater belt still move across both wet belts into a box normally.
+    let feeder = at(4, SEA_LEVEL, 5);
+    let receiver = at(7, SEA_LEVEL, 5);
+    assert!(sim.put_block(PlayerId(0), feeder, ItemId::block(STORAGE), 1, feeder - UP));
+    assert!(sim.put_block(PlayerId(0), receiver, ItemId::block(STORAGE), 1, receiver - UP));
+    sim.factory.stock(feeder, ItemId::block(IRON_ORE), 1);
+    for _ in 0..180 {
+        sim.step();
+    }
+    assert_eq!(
+        sim.factory.storage_count_at(receiver, ItemId::block(IRON_ORE)),
+        1,
+        "item crossed both underwater belts into the receiver box"
+    );
+}
+
+#[test]
+fn belt_in_a_flowing_stream_passes_flow_on_to_the_next_cell() {
+    use crate::block::BELT;
+    use crate::item::ItemId;
+    use crate::sim::PlayerId;
+
+    let mut sim = pond_above_a_pit();
+    change(&mut sim, DAM, AIR);
+    settle(&mut sim);
+    // Floor flow from x=6 (level 6) down to x=12 (level 1). Place a belt at x=8 (level 5).
+    let mid = at(8, 90, 15);
+    assert_eq!(sim.block(mid), flow(5));
+    assert!(sim.put_block(PlayerId(0), mid, ItemId::block(BELT), 0, mid - UP));
+    assert_eq!(sim.world.wet_anywhere(mid), 5, "placed in flow keeps its flow level");
+    settle(&mut sim);
+    assert_eq!(sim.block(mid), BELT);
+    assert_eq!(sim.world.wet_anywhere(mid), 5, "belt keeps level 5 after settling");
+    assert_eq!(sim.block(at(9, 90, 15)), flow(4), "next cell downstream still receives flow 4");
+    assert_eq!(sim.block(at(12, 90, 15)), FLOW_1, "stream reaches the full distance past the belt");
+
+    // Closing the dam dries both the stream and the wet belt.
+    change(&mut sim, DAM, STONE);
+    settle(&mut sim);
+    assert_eq!(sim.block(mid), BELT, "belt stays when stream dries");
+    assert_eq!(sim.world.wet_anywhere(mid), 0, "wet belt dries when its feed stops");
+    assert_eq!(sim.block(at(9, 90, 15)), AIR);
+}
+
+#[test]
+fn sea_level_trench_with_belts_fills_completely() {
+    use crate::block::{BELT, WET_SOURCE};
+    use crate::item::ItemId;
+    use crate::sim::PlayerId;
+
+    let mut sim = seaside();
+    // Dig a dry trench behind a stone plug at x=11, lay dry belts in x=12..=25, then replace the plug with a belt.
+    for x in 12..=25 {
+        let p = at(x, SEA_LEVEL, 5);
+        change(&mut sim, p, AIR);
+        assert!(sim.put_block(PlayerId(0), p, ItemId::block(BELT), 0, p - UP));
+        assert_eq!(sim.world.wet_anywhere(p), 0, "dry trench belt starts dry at x={x}");
+    }
+    let plug = at(11, SEA_LEVEL, 5);
+    change(&mut sim, plug, AIR);
+    assert!(sim.put_block(PlayerId(0), plug, ItemId::block(BELT), 0, plug - UP));
+    settle(&mut sim);
+    for x in 11..=25 {
+        let p = at(x, SEA_LEVEL, 5);
+        assert_eq!(sim.block(p), BELT, "belt preserved at x={x}");
+        assert_eq!(sim.world.wet_anywhere(p), WET_SOURCE, "sea filled belt at x={x}");
+    }
+}
+
+#[test]
+fn breaking_a_wet_belt_leaves_water_and_dry_placement_is_not_wet() {
+    use crate::block::{BELT, PIPE, WET_SOURCE};
+    use crate::item::ItemId;
+    use crate::sim::PlayerId;
+
+    let mut sim = pond_above_a_pit();
+    change(&mut sim, DAM, AIR);
+    settle(&mut sim);
+
+    // Dry placement stays dry and breaking it leaves AIR.
+    let dry = at(20, 90, 15);
+    assert_eq!(sim.block(dry), AIR);
+    assert!(sim.put_block(PlayerId(0), dry, ItemId::block(BELT), 0, dry - UP));
+    assert_eq!(sim.world.wet_anywhere(dry), 0, "dry ground belt is not wet");
+    assert!(sim.dismantle(PlayerId(0), dry, false).is_some());
+    assert_eq!(sim.block(dry), AIR);
+    assert_eq!(sim.world.wet_anywhere(dry), 0);
+
+    // Belt in source water: wet, and breaking leaves WATER.
+    let src = at(2, 100, 15);
+    assert_eq!(sim.block(src), WATER);
+    assert!(sim.put_block(PlayerId(0), src, ItemId::block(BELT), 0, src - UP));
+    assert_eq!(sim.world.wet_anywhere(src), WET_SOURCE);
+    assert!(sim.dismantle(PlayerId(0), src, false).is_some());
+    assert_eq!(sim.block(src), WATER, "breaking a source-wet belt leaves WATER");
+    assert_eq!(sim.world.wet_anywhere(src), 0);
+
+    // Belt in flowing water: wet with flow level, and breaking leaves that flow block.
+    let stream = at(8, 90, 15);
+    assert_eq!(sim.block(stream), flow(5));
+    assert!(sim.put_block(PlayerId(0), stream, ItemId::block(BELT), 0, stream - UP));
+    assert_eq!(sim.world.wet_anywhere(stream), 5);
+    assert!(sim.dismantle(PlayerId(0), stream, false).is_some());
+    assert_eq!(sim.block(stream), flow(5), "breaking a flow-wet belt leaves its flow");
+    assert_eq!(sim.world.wet_anywhere(stream), 0);
+
+    // Out-of-scope blocks (pipes, poles, etc.) are not waterlogged.
+    let pipe_at = at(3, 100, 15);
+    assert_eq!(sim.block(pipe_at), WATER);
+    assert!(sim.put_block(PlayerId(0), pipe_at, ItemId::block(PIPE), 0, pipe_at - UP));
+    assert_eq!(sim.world.wet_anywhere(pipe_at), 0, "pipes are not waterlogged");
+}
+
+#[test]
+fn waterlogged_save_reloads_mid_flow_and_cores_agree_whatever_is_loaded() {
+    use crate::block::BELT;
+    use crate::item::ItemId;
+    use crate::sim::PlayerId;
+
+    let setup = |loaded: bool| {
+        let mut sim = pond_above_a_pit();
+        if loaded {
+            sim.world.update_streaming(at(20, 95, 15).as_vec3(), &[]);
+            while sim.world.work_step() {}
+        }
+        // Lay dry belts across the pit floor so the stream must flood through them.
+        for x in 7..=11 {
+            let p = at(x, 90, 15);
+            assert!(sim.put_block(PlayerId(0), p, ItemId::block(BELT), 0, p - UP));
+        }
+        change(&mut sim, DAM, AIR);
+        sim
+    };
+
+    let mut a = setup(false);
+    let mut b = setup(true);
+    let mut mid_tick = 0;
+    for t in 0..120 {
+        a.step();
+        b.step();
+        assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
+        if a.world.wet_anywhere(at(7, 90, 15)) > 0 && a.water.pending_count() > 0 {
+            mid_tick = t + 1;
+            break;
+        }
+    }
+    assert!(mid_tick > 0 && a.water.pending_count() > 0, "stopped mid-flow with first belt wet");
+
+    let mut w = ByteWriter::default();
+    a.write_state(&mut w);
+    let mut c = Sim::new(SEED, 2);
+    c.read_state(&mut ByteReader::new(&w.bytes)).expect("reads back");
+    assert_eq!(a.state_hash(), c.state_hash(), "immediate hash equality on reload");
+
+    for t in mid_tick..400 {
+        a.step();
+        c.step();
+        assert_eq!(a.state_hash(), c.state_hash(), "tick {t}");
+    }
+    assert_eq!(c.world.wet_anywhere(at(8, 90, 15)), 5);
+    assert_eq!(c.world.wet_anywhere(at(11, 90, 15)), 2);
+    assert_eq!(c.block(at(12, 90, 15)), FLOW_1, "flow passed through all five belts");
+}

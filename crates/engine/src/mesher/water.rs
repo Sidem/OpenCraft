@@ -16,8 +16,9 @@
 //! Invariants: only reads the padded cells around `p` (one cell of border), so a chunk meshes alone.
 //! To add a kind of water look: a `KIND_*` below, its rule in `look`, its case in the shader.
 
-use super::{P, P2};
-use crate::block::{flow_level, BlockId, LIQUID, OPAQUE};
+use super::{pidx, N, P, P2};
+use crate::block::{block_of_wet, flow_level, BlockId, LIQUID, OPAQUE};
+use crate::chunk::Chunk;
 
 /// Still water: no slope, nothing falls in.
 pub const KIND_STILL: u32 = 0;
@@ -35,6 +36,44 @@ const DEEP: i32 = 13;
 const DEEP_WEIGHT: i32 = 8;
 /// A drop (the steepest slope across a cell) of at least this many sixteenths is rapids.
 const STEEP: i32 = 9;
+
+/// Overlays waterlogged cells (`Chunk::wets`, `world/waterlog.rs`) from the 3×3×3 neighbourhood onto
+/// the mesher's padded block grid so water faces, surface corners and flow looks draw seamlessly around them.
+/// Fast path: zero work when none of the 27 chunks holds any waterlogged cell.
+pub(super) fn overlay_wet(n: &[&Chunk; 27], pad: &mut [BlockId]) {
+    for dz in 0..3usize {
+        for dy in 0..3usize {
+            for dx in 0..3usize {
+                let wets = n[dx + dy * 3 + dz * 9].wets();
+                if wets.is_empty() {
+                    continue;
+                }
+                for &(idx, level) in wets {
+                    let (lx, lz, ly) = ((idx & 31) as usize, ((idx >> 5) & 31) as usize, (idx >> 10) as usize);
+                    let px = match dx {
+                        0 if lx == N - 1 => 0,
+                        1 => lx + 1,
+                        2 if lx == 0 => N + 1,
+                        _ => continue,
+                    };
+                    let py = match dy {
+                        0 if ly == N - 1 => 0,
+                        1 => ly + 1,
+                        2 if ly == 0 => N + 1,
+                        _ => continue,
+                    };
+                    let pz = match dz {
+                        0 if lz == N - 1 => 0,
+                        1 => lz + 1,
+                        2 if lz == 0 => N + 1,
+                        _ => continue,
+                    };
+                    pad[pidx(px, py, pz)] = block_of_wet(level);
+                }
+            }
+        }
+    }
+}
 
 /// The surface height of liquid block `b` in sixteenths of a block when open to the air above it.
 pub fn height(b: BlockId) -> u32 {

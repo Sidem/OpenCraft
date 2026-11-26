@@ -1,8 +1,8 @@
 //! Flowing water (core state): a Minecraft-like spread, event-driven and capped per tick. `WATER` is a
 //! source; `FLOW_1`..`FLOW_7` are flowing water, the number its level (`block::flow`).
 //!
-//! Rules, checked one cell at a time (`water_rule`) for air and flowing water only (every other block
-//! is a wall, and sources stay):
+//! Rules, checked one cell at a time (`water_rule`) for air, flowing water and `block::waterloggable`
+//! blocks (every other block is a wall, and sources stay):
 //! - At or below `SEA_LEVEL` (the sea's top water block) a cell next to a source, sideways or above,
 //!   becomes a source. The sea is endless: it refills holes and trenches, floods what connects to it,
 //!   and a pump can't lower it (nor the few cells of a deep pond that reach that low).
@@ -12,6 +12,8 @@
 //!   source feeds 8; flowing water feeds its level, or one more where falling water lands, but only while it
 //!   rests on a block that holds it (neither air nor water): water with air under it falls instead of
 //!   spreading, and water landing on water joins it.
+//! - A waterloggable block (`world/waterlog.rs`) follows the same rules using its sparse wet level
+//!   (`0` = air, `1..=7` = `FLOW_1..=FLOW_7`, `8` = `WATER`) and feeds neighbours like the water it holds.
 //!
 //! Invariants: checks start only from block changes (`Sim::water_changed`, from `block_changed`), never
 //! from scanning chunks. A change near water schedules its cell and the cells whose rule it touches
@@ -24,7 +26,7 @@ use std::collections::VecDeque;
 
 use rustc_hash::FxHashSet;
 
-use crate::block::{flow, flow_level, BlockId, AIR, FLOW_7, LIQUID, WATER};
+use crate::block::{block_of_wet, flow, flow_level, waterloggable, wet_of, BlockId, AIR, FLOW_7, LIQUID, WATER};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
 use crate::sim::timers::FACES;
@@ -83,13 +85,24 @@ impl WaterQueue {
 }
 
 impl Sim {
+    /// Effective water state at `pos`: the held liquid block for liquid or wet waterloggable cells,
+    /// `AIR` for dry waterloggable cells, or the block itself otherwise.
+    pub(crate) fn water_at(&mut self, pos: IVec3) -> BlockId {
+        let b = self.block(pos);
+        if waterloggable(b) {
+            block_of_wet(self.world.wet_anywhere(pos))
+        } else {
+            b
+        }
+    }
+
     /// Schedules the water checks a block change at `pos` (from `old`) calls for, if water is involved:
     /// the cell, its six neighbours, and the sideways neighbours of the cells above and below (whose
     /// feed depends on what they rest on and whether water falls onto them).
     pub(crate) fn water_changed(&mut self, pos: IVec3, old: BlockId) {
         let wet = LIQUID[old as usize]
-            || LIQUID[self.block(pos) as usize]
-            || FACES.iter().any(|&f| LIQUID[self.block(pos + f) as usize]);
+            || LIQUID[self.water_at(pos) as usize]
+            || FACES.iter().any(|&f| LIQUID[self.water_at(pos + f) as usize]);
         if !wet {
             return;
         }
@@ -117,7 +130,16 @@ impl Sim {
             self.water.list.pop_front();
             self.water.pending.remove(&pos);
             let old = self.block(pos);
-            if let Some(new) = self.water_rule(pos, old) {
+            if waterloggable(old) {
+                let old_wet = self.world.wet_anywhere(pos);
+                let old_water = block_of_wet(old_wet);
+                if let Some(new_water) = self.water_rule(pos, old_water) {
+                    let new_wet = wet_of(new_water);
+                    if new_wet != old_wet && self.world.set_wet_anywhere_later(pos, new_wet) {
+                        self.water_changed(pos, old_water);
+                    }
+                }
+            } else if let Some(new) = self.water_rule(pos, old) {
                 if new != old && self.world.set_block_anywhere_later(pos, new) {
                     self.block_changed(pos, old);
                 }
@@ -125,14 +147,14 @@ impl Sim {
         }
     }
 
-    /// What the cell at `pos` (holding `b`) should hold now; `None` for walls and sources.
+    /// What the cell at `pos` (holding effective water state `b`) should hold now; `None` for walls and sources.
     fn water_rule(&mut self, pos: IVec3, b: BlockId) -> Option<BlockId> {
         if b != AIR && flow_level(b).is_none() {
             return None;
         }
-        let above = self.block(pos + UP);
+        let above = self.water_at(pos + UP);
         let sides = SIDES.map(|s| pos + s);
-        if pos.y <= SEA_LEVEL && (above == WATER || sides.iter().any(|&s| self.block(s) == WATER)) {
+        if pos.y <= SEA_LEVEL && (above == WATER || sides.iter().any(|&s| self.water_at(s) == WATER)) {
             return Some(WATER);
         }
         if let Some(level) = self.factory.outlet_stream_level_at(pos, b) {
@@ -150,16 +172,16 @@ impl Sim {
 
     /// How strongly the cell at `pos` feeds its sideways neighbours (see the module header).
     fn feed(&mut self, pos: IVec3) -> u8 {
-        let b = self.block(pos);
+        let b = self.water_at(pos);
         if b == WATER {
             return 8;
         }
         let Some(level) = flow_level(b) else { return 0 };
-        let below = self.block(pos - UP);
+        let below = self.water_at(pos - UP);
         if below == AIR || LIQUID[below as usize] {
             return 0;
         }
-        if LIQUID[self.block(pos + UP) as usize] {
+        if LIQUID[self.water_at(pos + UP) as usize] {
             level + 1
         } else {
             level

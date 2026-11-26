@@ -75,7 +75,8 @@ impl Sim {
         }
         let ore = block::is_ore(id);
         let share = if ore { self.factory.deposits.hand_mined(&mut self.world, pos) } else { None };
-        if !self.world.set_block_anywhere(pos, AIR) {
+        let old_wet = if block::waterloggable(id) { self.world.wet_anywhere(pos) } else { 0 };
+        if !self.world.set_block_anywhere(pos, block::block_of_wet(old_wet)) {
             return None;
         }
         self.events.push(SimEvent::BlockBroken { player, pos, block: id });
@@ -187,6 +188,12 @@ impl Sim {
         let old = self.world.block_anywhere_or_generate(pos);
         if !crate::block::replaceable(old) || !self.world.set_block_anywhere(pos, placed) {
             return false;
+        }
+        if block::waterloggable(placed) {
+            let wet = block::wet_of(old);
+            if wet != 0 {
+                self.world.set_wet_anywhere(pos, wet);
+            }
         }
         if let Some(col) = legacy_col {
             self.world.set_paint_anywhere(pos, crate::colour::all_faces(col));

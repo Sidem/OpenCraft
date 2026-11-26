@@ -177,6 +177,8 @@ fn signs_are_saved_and_older_saves_have_none() {
         crate::elevator::write_state(&sim.elevator, &mut elevator);
         let mut bare = ByteWriter::default();
         sim.world.write_bare(&mut bare);
+        let mut wet = ByteWriter::default();
+        sim.world.write_wet(&mut wet);
         let tail = [
             bytes.as_slice(),
             &felling.bytes,
@@ -189,11 +191,12 @@ fn signs_are_saved_and_older_saves_have_none() {
             &charges.bytes,
             &elevator.bytes,
             &bare.bytes,
+            &wet.bytes,
         ]
         .concat();
         assert!(
             core.bytes.ends_with(&tail),
-            "the core ends with the signs, the trees being felled, the LED colours, the switched-off machines, active fires, the codex, chunk shapes, surface paint, the elevator and the bare turf faces"
+            "the core ends with the signs, the trees being felled, the LED colours, the switched-off machines, active fires, the codex, chunk shapes, surface paint, the elevator, the bare turf faces and the waterlogged cells"
         );
     }
     const { assert!(SAVE_VERSION >= 63, "signs came with save 63") };
@@ -202,8 +205,8 @@ fn signs_are_saved_and_older_saves_have_none() {
     let fresh = crate::sim::Sim::new(2024, 2);
     fresh.write_state(&mut w);
     let cut = crate::helpers::before_drone_orders(&fresh, &w.bytes);
-    // (Cut the signs' count, the LED colours', the switched-off machines', active fires, the empty codex, chunk shapes, surface paint + charges, the elevator and the bare turf faces, which a save 62 does not have either.)
-    let old = &cut[..cut.len() - 54];
+    // (Cut the signs' count, the LED colours', the switched-off machines', active fires, the empty codex, chunk shapes, surface paint + charges, the elevator, the bare turf faces and the waterlogged cells, which a save 62 does not have either.)
+    let old = &cut[..cut.len() - 58];
     let (mut r, mut sim) = (ByteReader::new(old), crate::sim::Sim::new(2024, 2));
     r.version = 62;
     assert!(sim.read_state(&mut r).is_some() && r.is_done(), "a version 62 core");

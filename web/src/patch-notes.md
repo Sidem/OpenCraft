@@ -4,6 +4,9 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-26 · v0.18.2 · Underwater belts
+- **Belts laid under water keep the water around them.** Water stays and flows around and through belts in lakes, streams and sea-level trenches, and breaking a wet belt leaves the water behind while items still move along it as usual.
+
 ## 2026-11-26 · v0.18.1 · Green on every side
 - **Grass grows on every side that sees daylight**, not only on top: hill steps, banks and the edges of a ditch turn green, and ground in deep shade shows bare soil. Bare dirt near you greens over a few minutes, even where nothing was dug.
 - **Fresh holes show soil.** Dig into a lawn and the sides of the hole are bare earth, as in a real garden; grass creeps back over them one side at a time over a few minutes.

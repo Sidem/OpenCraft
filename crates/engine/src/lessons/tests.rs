@@ -29,8 +29,8 @@ fn a_save_from_before_the_lessons_counts_every_stall_lesson_as_taught() {
     let sim = Sim::new(7, 2);
     sim.write_state(&mut w);
     let before = crate::offhand::before_offhand(&sim, &w.bytes);
-    // Save 57 ended before the lessons taught (4 bytes), the signs' count (4, save 63), the LED colours' (4, save 79), the switched-off machines' (4, save 80), active fires (12, save 82), the empty codex bitset (1, save 83), chunk shapes (4, save 84), surface paint + charges (20, save 85) no elevator (1, save 89) and no bare turf faces (4, save 90).
-    let mut old = ByteReader::new(&before[..before.len() - 58]);
+    // Save 57 ended before the lessons taught (4 bytes), the signs' count (4, save 63), the LED colours' (4, save 79), the switched-off machines' (4, save 80), active fires (12, save 82), the empty codex bitset (1, save 83), chunk shapes (4, save 84), surface paint + charges (20, save 85), no elevator (1, save 89), no bare turf faces (4, save 90) and no waterlogged cells (4, save 91).
+    let mut old = ByteReader::new(&before[..before.len() - 62]);
     old.version = 57;
     let mut back = Sim::new(7, 2);
     back.read_state(&mut old).expect("a save 57 loads");

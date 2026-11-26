@@ -268,3 +268,43 @@ fn cube_and_shaped_vertices_encode_layers_above_600_with_paint() {
         assert_eq!(w[2] >> 27, u32::from(paint));
     }
 }
+
+#[test]
+fn waterlogged_belt_draws_water_and_merges_across_neighbours_and_chunk_borders() {
+    use crate::block::{BELT, WET_SOURCE};
+
+    // Dry belt emits no liquid quads; wet belt emits all 6 faces (surface + sides + bottom).
+    let dry = mesh_single(|c| c.set(5, 5, 5, BELT));
+    assert_eq!(dry.liquid_quads, 0);
+
+    let wet = mesh_single(|c| {
+        c.set(5, 5, 5, BELT);
+        c.set_wet(5, 5, 5, WET_SOURCE);
+    });
+    assert_eq!(wet.liquid_quads, 6, "standalone wet belt has 6 liquid faces");
+
+    // A wet belt beside water culls the shared face and matches two adjacent water blocks.
+    let pair_water = mesh_single(|c| {
+        c.set(5, 5, 5, WATER);
+        c.set(6, 5, 5, WATER);
+    });
+    let pair_belt = mesh_single(|c| {
+        c.set(5, 5, 5, BELT);
+        c.set_wet(5, 5, 5, WET_SOURCE);
+        c.set(6, 5, 5, WATER);
+    });
+    assert_eq!(pair_belt.liquid_quads, pair_water.liquid_quads, "wet belt merges seamlessly with adjacent water");
+
+    // Across a chunk border: wet belt at x=31 next to WATER at x=0 in the +X chunk culls the +X face.
+    let air = Chunk::uniform(AIR);
+    let mut left = Chunk::uniform(AIR);
+    left.set(31, 5, 5, BELT);
+    left.set_wet(31, 5, 5, WET_SOURCE);
+    let mut right = Chunk::uniform(AIR);
+    right.set(0, 5, 5, WATER);
+    let mut refs = [&air; 27];
+    refs[neighbor_index(0, 0, 0)] = &left;
+    refs[neighbor_index(1, 0, 0)] = &right;
+    let border = Mesher::new().mesh(&refs, &DAYLIGHT, None);
+    assert_eq!(border.liquid_quads, 5, "+X liquid face culled by water in neighbour chunk");
+}

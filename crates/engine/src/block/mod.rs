@@ -339,6 +339,10 @@ pub fn replaceable(id: BlockId) -> bool {
     id == AIR || LIQUID[id as usize]
 }
 
+/// Which blocks can hold water in the same cell (`block/waterlog.rs`, `world/waterlog.rs`).
+mod waterlog;
+pub use waterlog::{block_of_wet, waterloggable, wet_of, WET_SOURCE};
+
 /// The flowing water block of `level` (1..=7).
 #[inline]
 pub fn flow(level: u8) -> BlockId {

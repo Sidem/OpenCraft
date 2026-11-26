@@ -34,13 +34,16 @@ pub struct Chunk {
     /// Sparse per-cell bare turf faces (`sim/sod.rs`: a bit per face grass hasn't grown over since an edit uncovered
     /// it), sorted by `index(x, y, z) as u16`; `None` when there are none (0 heap bytes).
     bare: Option<Vec<(u16, u8)>>,
+    /// Sparse per-cell waterlog level (`world/waterlog.rs`: `1..=7` for `FLOW_1..=FLOW_7`, `8` for `WATER`),
+    /// sorted by `index(x, y, z) as u16`; `None` when no cell in the chunk is waterlogged (0 heap bytes).
+    wet: Option<Vec<(u16, u8)>>,
     /// Edited by the player since generation; kept when the chunk is streamed out.
     pub modified: bool,
 }
 
 impl Chunk {
     pub fn uniform(b: BlockId) -> Self {
-        Self { data: Data::Uniform(b), shapes: None, paint: None, bare: None, modified: false }
+        Self { data: Data::Uniform(b), shapes: None, paint: None, bare: None, wet: None, modified: false }
     }
 
     /// Takes ownership of a dense buffer, collapsing it to a uniform chunk when possible.
@@ -50,7 +53,14 @@ impl Chunk {
         if blocks.iter().all(|&b| b == first) {
             return Self::uniform(first);
         }
-        Self { data: Data::Dense(blocks.into_boxed_slice()), shapes: None, paint: None, bare: None, modified: false }
+        Self {
+            data: Data::Dense(blocks.into_boxed_slice()),
+            shapes: None,
+            paint: None,
+            bare: None,
+            wet: None,
+            modified: false,
+        }
     }
 
     #[inline]
@@ -70,6 +80,9 @@ impl Chunk {
         }
         if self.bare.is_some() {
             self.set_bare(x, y, z, 0);
+        }
+        if self.wet.is_some() {
+            self.set_wet(x, y, z, 0);
         }
         if let Data::Uniform(u) = self.data {
             if u == b {
@@ -117,6 +130,37 @@ impl Chunk {
     /// Replaces the chunk's bare-face table from a validated, sorted save list.
     pub fn set_bare_sorted(&mut self, list: Vec<(u16, u8)>) {
         self.bare = (!list.is_empty()).then_some(list);
+    }
+
+    /// Waterlog level at `(x, y, z)` (`0` = dry, `1..=7` = `FLOW_1..=FLOW_7`, `8` = `WATER`). O(1) fast path when dry.
+    #[inline]
+    pub fn get_wet(&self, x: usize, y: usize, z: usize) -> u8 {
+        get_sparse(self.wet.as_deref(), index(x, y, z))
+    }
+
+    /// Sets the waterlog level at `(x, y, z)` (`0` clears it), returning the previous level.
+    /// Promotes a uniform chunk to dense when adding a wet cell so `as_uniform` stays exact.
+    pub fn set_wet(&mut self, x: usize, y: usize, z: usize, level: u8) -> u8 {
+        if level != 0 {
+            self.make_dense();
+        }
+        set_sparse(&mut self.wet, index(x, y, z), level)
+    }
+
+    /// Every waterlogged cell in the chunk, sorted by cell index.
+    #[inline]
+    pub fn wets(&self) -> &[(u16, u8)] {
+        self.wet.as_deref().unwrap_or(&[])
+    }
+
+    /// Replaces the chunk's waterlog table from a validated, sorted save list.
+    pub fn set_wet_sorted(&mut self, list: Vec<(u16, u8)>) {
+        if !list.is_empty() {
+            self.make_dense();
+            self.wet = Some(list);
+        } else {
+            self.wet = None;
+        }
     }
 
     fn make_dense(&mut self) {
@@ -211,9 +255,13 @@ impl Chunk {
         }
     }
 
-    /// Whether both hold the same blocks, shapes, paint and bare turf faces, however each is stored.
+    /// Whether both hold the same blocks, shapes, paint, bare turf faces and waterlog levels, however each is stored.
     pub fn same_blocks(&self, other: &Chunk) -> bool {
-        if self.shapes() != other.shapes() || self.paints() != other.paints() || self.bares() != other.bares() {
+        if self.shapes() != other.shapes()
+            || self.paints() != other.paints()
+            || self.bares() != other.bares()
+            || self.wets() != other.wets()
+        {
             return false;
         }
         match (&self.data, &other.data) {

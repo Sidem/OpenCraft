@@ -18,6 +18,7 @@ mod shapes;
 mod sod;
 mod streaming;
 mod upgrade;
+mod waterlog;
 
 pub use boxlight::DAYLIGHT;
 pub use cover_clear::PATCH_RADIUS;
@@ -309,12 +310,6 @@ impl World {
     #[inline]
     pub fn is_solid(&self, x: i32, y: i32, z: i32) -> bool {
         self.get_block(IVec3::new(x, y, z)).is_none_or(|b| SOLID[b as usize])
-    }
-
-    /// Whether a loaded cell holds a liquid (bodies swim and items float in it).
-    #[inline]
-    pub fn is_water(&self, x: i32, y: i32, z: i32) -> bool {
-        self.get_block(IVec3::new(x, y, z)).is_some_and(|b| LIQUID[b as usize])
     }
 
     pub fn is_loaded(&self, p: Vec3) -> bool {

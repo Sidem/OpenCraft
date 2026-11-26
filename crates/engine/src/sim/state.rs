@@ -69,6 +69,7 @@ impl Sim {
         self.paint.write_state(w);
         crate::elevator::write_state(&self.elevator, w);
         self.world.write_bare(w);
+        self.world.write_wet(w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed (`save.rs` lists the versions).
@@ -149,6 +150,9 @@ impl Sim {
         self.elevator = if r.version >= 89 { crate::elevator::read_state(r)? } else { None };
         if r.version >= 90 {
             self.world.read_bare(r)?;
+        }
+        if r.version >= 91 {
+            self.world.read_wet(r)?;
         }
         Some(())
     }

@@ -247,6 +247,7 @@ impl Mesher {
                 }
             }
         }
+        water::overlay_wet(n, &mut self.pad);
         self.has_shapes = blocks::fill_pad_shapes(n, &mut self.pad_shapes);
         let centre = n[neighbor_index(0, 0, 0)];
         self.has_paint = centre.has_paint();

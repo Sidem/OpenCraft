@@ -85,7 +85,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `textures.rs` + `textures/`: procedural placeholder layers (the art pack overrides them in the browser).
 
 ### World and generation
-- `chunk.rs` (32³ + sparse shapes/paint/bare turf faces), `world/mod.rs` (`*_anywhere` accessors), `world/shapes.rs` (save 84), `world/colours.rs` (save 85), `world/sod.rs` (save 90), `world/streaming.rs`, `world/boxlight.rs`,
+- `chunk.rs` (32³ + sparse shapes/paint/bare turf faces/waterlogged cells), `world/mod.rs` (`*_anywhere` accessors), `world/shapes.rs` (save 84), `world/colours.rs` (save 85), `world/sod.rs` (save 90), `world/waterlog.rs` (save 91), `world/streaming.rs`, `world/boxlight.rs`,
   `world/glows.rs`, `world/settle.rs` (simulation liquid edits wait 0.15 s), `world/cover_clear.rs` (sickle-cut columns; saved), `world/upgrade.rs` (in-place deposits-layer refresh).
 - `worldgen/mod.rs`: heights, caves, `generate`, generator versions (pinned by `released_versions_never_change`). `layers.rs` (`Layers`: ground, water, cover, deposits), `column.rs`,
   `biome.rs`, `landform.rs`, `caves.rs`, `water.rs`, `rivers.rs` + `rivers/`, `shore.rs`, `trees.rs` (up to version 11),
