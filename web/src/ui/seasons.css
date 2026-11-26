@@ -1,0 +1,15 @@
+/* The season, sun and moon icons (ui/seasons.ts): fills and strokes in currentColor; the user sets size and colour. */
+.sn-icon {
+  fill: currentColor;
+}
+
+.sn-icon .ln {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.sn-icon .ln.dark {
+  stroke: rgba(0, 0, 0, 0.45);
+}

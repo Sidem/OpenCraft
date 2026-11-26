@@ -93,6 +93,17 @@ pub fn year_fraction(tick: u64) -> f64 {
     ((tick + START) % (YEAR_DAYS * DAY_TICKS)) as f64 / (YEAR_DAYS * DAY_TICKS) as f64
 }
 
+/// The share of day `day` of the year (from 0, wrapping) the sun is up, 0 to 1: the calendar draws the year's daylight
+/// from it (presentation only).
+pub fn daylight_share(day: u64) -> f64 {
+    day_length(day) as f64 / DAY_TICKS as f64
+}
+
+/// How fast things grow in `season` as a percentage of the year-round rate (`GROWTH_RATE`; the calendar shows it).
+pub fn growth_percent(season: Season) -> u32 {
+    (GROWTH_RATE[season as usize] * 100 / 2) as u32
+}
+
 /// The tick at which something that takes `normal` ticks of growth (at the year-round average rate), started at `tick`,
 /// is done: growth runs at the season's rate (`GROWTH_RATE`), so a spring sapling grows twice as fast and one planted
 /// in autumn waits out the winter. Grass, sod and saplings use it (`sim/timers.rs`).

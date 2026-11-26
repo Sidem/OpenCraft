@@ -4,6 +4,10 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-26 · v0.18.4 · Calendar
+- **A season chip under the map:** the year as a small ring with today's mark, the season's icon, the day of the season (3/9) and the clock, gold by day and blue by night.
+- **Shift+N opens the calendar:** the year ring with every day's daylight, today's day and night hours, and how many days until each season comes and how fast plants grow in it.
+
 ## 2026-11-26 · v0.18.3 · Seasons
 - **The year has seasons.** A world starts on the first day of spring, and each season lasts 9 days (3 hours of play), so a year is 36 days.
 - **Days follow the year.** Summer days are long (up to 16 hours of daylight) and winter days short (8 hours). The sky and solar panels follow them; over a year, panels make as much power as before.

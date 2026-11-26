@@ -1,0 +1,56 @@
+/* The season chip under the XYZ readout (ui/season-chip.ts): year dial, season icon, day of the season and the clock.
+   The height is mirrored as CHIP_PX in season-chip.ts; the top sits under .compass (compass.css). */
+
+.season-chip {
+  position: absolute;
+  top: calc(12px + 150px + 6px + 64px + 6px);
+  right: 12px;
+  width: 150px;
+  height: 30px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px 0 6px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  font: 700 13px/1 var(--mono);
+  color: #fff;
+  text-shadow: 0 1px 2px #000;
+  pointer-events: auto;
+}
+
+.sc-dial {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+.sc-mark {
+  fill: #fff;
+  stroke: #111;
+  stroke-width: 1;
+}
+
+.sc-season {
+  display: flex;
+}
+
+.season-chip .sn-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.sc-gap {
+  flex: 1;
+}
+
+.sc-time {
+  color: #ffd75e;
+}
+
+.sc-time.night {
+  color: #c8d4ff;
+}

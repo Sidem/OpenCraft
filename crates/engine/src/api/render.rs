@@ -1,4 +1,4 @@
-//! Data the host needs to draw and play a frame: streaming work, chunk mesh events, the camera, the time of day,
+//! Data the host needs to draw and play a frame: streaming work, chunk mesh events, the camera, the time of day (the calendar: api/calendar.rs),
 //! box instances, name-tag anchors, sound events and the texture atlas. Bulk data is exposed as `*_ptr` + length
 //! so the host reads it zero-copy from wasm memory.
 
@@ -189,29 +189,9 @@ impl Game {
         daytime::sun_time(self.sim.tick)
     }
 
-    /// The season: 0 spring, 1 summer, 2 autumn, 3 winter.
-    pub fn season(&self) -> u32 {
-        daytime::season(self.sim.tick) as u32
-    }
-
-    /// Which day of its season it is, counting from 1 (`daytime::DAYS_PER_SEASON` days each).
-    pub fn day_of_season(&self) -> u32 {
-        daytime::day_of_season(self.sim.tick) as u32
-    }
-
-    /// How far through the year it is, 0 to 1 from the start of spring.
-    pub fn year_fraction(&self) -> f64 {
-        daytime::year_fraction(self.sim.tick)
-    }
-
     /// Seconds in one day (the console turns "time noon" into a number of seconds to skip).
     pub fn day_seconds(&self) -> f64 {
         (daytime::DAY_TICKS / crate::TICK_RATE as u64) as f64
-    }
-
-    /// The day the world is on, counting from 1.
-    pub fn day_number(&self) -> u32 {
-        daytime::day_number(self.sim.tick) as u32
     }
 
     /// Byte offset of this frame's box instances (dropped items, belt items, machine parts):

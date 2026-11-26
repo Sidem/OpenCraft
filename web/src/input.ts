@@ -28,6 +28,7 @@ export type Action =
   | { kind: 'blueprints' }
   | { kind: 'hint' }
   | { kind: 'map' }
+  | { kind: 'calendar' }
   | { kind: 'world-map' }
   | { kind: 'build-ghost' }
   | { kind: 'toggle-xray' }
@@ -178,7 +179,7 @@ export class Input {
       else if (e.code === 'KeyP') this.actions.push({ kind: 'analytics' });
       else if (e.code === 'KeyH') this.actions.push({ kind: 'hint' });
       else if (e.code === 'Slash' || e.code === 'Backquote') this.actions.push({ kind: 'console' });
-      else if (e.code === 'KeyN') this.actions.push({ kind: 'map' });
+      else if (e.code === 'KeyN') this.actions.push({ kind: e.shiftKey ? 'calendar' : 'map' });
       else if (e.code === 'KeyX') this.actions.push({ kind: e.shiftKey ? 'toggle-xray' : 'build-ghost' });
     }
     if (e.code === 'Space' || e.code === 'Tab' || e.code.startsWith('Arrow')) e.preventDefault();

@@ -65,6 +65,7 @@ export const BINDINGS: readonly Binding[] = [
   key('screens', ['Slash', 'Backquote'], '{Slash} or {Backquote}', 'Command line for testing: weather, time of day, teleport, items (type help)'),
   key('screens', ['KeyM'], '{KeyM}', "Map: where you've been, your pins, where each ore lies"),
   key('screens', ['KeyN'], '{KeyN}', 'Minimap on or off'),
+  key('screens', [...SHIFTS, 'KeyN'], '{ShiftLeft} + {KeyN}', 'Calendar: the seasons, daylight and growth through the year'),
   key('screens', ['KeyP'], '{KeyP}', 'Power and production graphs'),
   key('screens', ['KeyL'], '{KeyL}', 'Blueprints'),
   key('screens', ['Tab'], 'Hold {Tab}', 'Who is playing with you'),

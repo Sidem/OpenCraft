@@ -1,0 +1,180 @@
+/* The calendar panel (ui/calendar.ts): the year ring, today's day-and-night bar and the seasons to come, under the
+   machine panel's frame (.mp in base.css). */
+
+.calendar {
+  width: 340px;
+  max-width: calc(100vw - 32px);
+}
+
+.cal-wheel {
+  position: relative;
+  width: 240px;
+  margin: 4px auto 14px;
+}
+
+.cal-ring {
+  display: block;
+  width: 240px;
+  height: 240px;
+  overflow: visible;
+}
+
+.cal-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 18;
+}
+
+.cal-band-icon {
+  color: rgba(0, 0, 0, 0.55) !important;
+}
+
+.cal-sun {
+  stroke: rgba(255, 215, 94, 0.45);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.cal-sun:hover {
+  stroke: rgba(255, 215, 94, 0.8);
+}
+
+.cal-sun.today {
+  stroke: #ffd75e;
+}
+
+.cal-now {
+  fill: #fff;
+  stroke: #111;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.cal-centre {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--mono);
+  text-shadow: 0 1px 2px #000;
+}
+
+.cal-big {
+  width: 34px;
+  height: 34px;
+}
+
+.cal-dos {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.cal-year {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+/* Today's 24 hours, midnight at both ends. */
+.cal-daybar {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  background: #1c2440;
+  overflow: hidden;
+}
+
+.cal-daylight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #f19a4a, #ffd75e 20%, #ffe58a 50%, #ffd75e 80%, #f19a4a);
+}
+
+.cal-clock {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 3px;
+  margin-left: -1.5px;
+  background: #fff;
+  box-shadow: 0 0 0 1px #111;
+}
+
+.cal-dayrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 6px 0 14px;
+  font: 700 13px/1 var(--mono);
+}
+
+.cal-hours {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #ffd75e;
+}
+
+.cal-hours.night {
+  color: #c8d4ff;
+}
+
+.cal-hours .sn-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.cal-now-time {
+  opacity: 0.7;
+}
+
+/* The seasons to come: this one first, its bar filled as far as it has gone. */
+.cal-next {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.cal-season {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px 7px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 3px solid color-mix(in srgb, var(--season) 35%, transparent);
+  font: 700 13px/1 var(--mono);
+}
+
+.cal-season.current {
+  background: color-mix(in srgb, var(--season) 16%, transparent);
+  border-image: linear-gradient(90deg, var(--season) var(--done), rgba(255, 255, 255, 0.15) var(--done)) 1;
+  border-bottom-width: 3px;
+}
+
+.cal-season > .sn-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.cal-grow {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  color: #7fd35c;
+}
+
+.cal-grow .sn-icon {
+  width: 11px;
+  height: 11px;
+}
+
+.cal-grow.stopped {
+  color: rgba(255, 255, 255, 0.35);
+}

@@ -104,7 +104,9 @@ fn the_time_is_the_cores_and_leaves_the_state_hash_alone() {
     run_until_ready(&mut g);
     let (hash, tick) = (g.sim.state_hash(), g.sim.tick);
     assert!((g.time_of_day() - time_of_day(tick)).abs() < 1e-9);
-    assert_eq!((g.season(), g.day_of_season()), (0, 1));
+    assert_eq!((g.season(), g.day_of_season(), g.days_per_season()), (0, 1, 9));
+    assert!(g.daylight_share(8) > 0.66 && g.daylight_share(26) < 0.34, "long summer days, short winter ones");
+    assert_eq!((0..4).map(|s| g.growth_percent(s)).collect::<Vec<_>>(), [200, 150, 50, 0]);
     assert_eq!(g.sim.state_hash(), hash, "reading the time changes nothing");
     // Saved with the world: a reloaded game shows the same time.
     let loaded = Game::load(&g.save(), 2).unwrap();
