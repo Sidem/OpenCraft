@@ -106,6 +106,8 @@ pub struct Sim {
     pub opening: Option<Opening>,
     /// The towns the players founded (settlements/).
     pub settlements: Settlements,
+    /// The world's space elevator, once its anchor stands (elevator/, save 89).
+    pub elevator: Option<crate::elevator::Elevator>,
     /// The players' note signs (signs/).
     pub signs: Signs,
     /// The colours of the players' LED lamps (led/).
@@ -154,6 +156,7 @@ impl Sim {
             mode: Mode::Normal,
             opening: None,
             settlements: Settlements::default(),
+            elevator: None,
             signs: Signs::default(),
             leds: Leds::default(),
             felling: Felling::default(),
@@ -207,6 +210,7 @@ impl Sim {
     pub fn step(&mut self) {
         let events_from = self.events.len();
         self.sync_depots();
+        self.sync_elevator();
         let due = self.pending.iter().take_while(|q| q.tick <= self.tick).count();
         let later = self.pending.split_off(due);
         for q in std::mem::replace(&mut self.pending, later) {
@@ -222,6 +226,7 @@ impl Sim {
             self.block_changed(pos, old);
         }
         self.step_towns();
+        self.step_elevator();
         self.settlements.made.note(&self.events[made_from..]);
         self.step_drones();
         self.step_cargo();
@@ -317,6 +322,7 @@ impl Sim {
         self.world.write_shapes(w);
         self.world.write_paint(w);
         self.paint.write_state(w);
+        crate::elevator::write_state(&self.elevator, w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed (`save.rs` lists the versions).
@@ -394,6 +400,7 @@ impl Sim {
         } else {
             crate::colour::PaintCharges::default()
         };
+        self.elevator = if r.version >= 89 { crate::elevator::read_state(r)? } else { None };
         Some(())
     }
 }

@@ -78,7 +78,7 @@ use tiers::*;
 #[cfg(test)]
 use timing::{BASE_TICKS, MAX_TICKS};
 use tooling::*;
-use towns::TOWN_DEPOT_RECIPE;
+use towns::{ELEVATOR_ANCHOR_RECIPE, TOWN_DEPOT_RECIPE};
 use transport::*;
 use wiring::*;
 
@@ -240,6 +240,7 @@ pub const RECIPES: &[Recipe] = &[
     SWARM_HUB_RECIPE,
     CRAFT_GLOVES_RECIPE,
     LAUNCH_SITE_RECIPE,
+    ELEVATOR_ANCHOR_RECIPE,
     GROUND_STATION_RECIPE,
     RECTENNA_RECIPE,
     LONG_POLE_RECIPE,

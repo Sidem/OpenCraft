@@ -1,10 +1,11 @@
 //! Placing and breaking multi-block machines in the core (`factory/footprint/`). Placing needs every
-//! cell free (air or water), and a town depot a site that fits a town (`settlements/`, which it founds);
+//! cell free (air or water), a town depot a site that fits a town (`settlements/`, which it founds), and an elevator
+//! anchor a grown town near (`elevator/`, which it stands up);
 //! the anchor gets the machine's block and the other cells `MACHINE_PART`.
 //! Breaking any cell breaks the machine: `dismantle` works on its anchor (drops, contents) and
 //! `clear_parts` empties the other cells.
 
-use crate::block::{BlockId, AIR, MACHINE_PART, TOWN_DEPOT};
+use crate::block::{BlockId, AIR, ELEVATOR_ANCHOR, MACHINE_PART, TOWN_DEPOT};
 use crate::factory::footprint::{self, Footprint};
 use crate::factory::tiers;
 use crate::item::ItemId;
@@ -32,6 +33,11 @@ impl Sim {
         if let Some(kind) = town {
             let Ok(kind) = kind else { return false };
             self.settlements.found(pos, kind, self.tick);
+        }
+        // The world's one elevator stands by a grown town.
+        if placed == ELEVATOR_ANCHOR {
+            let Ok(town) = self.elevator_site(pos) else { return false };
+            self.place_elevator(pos, town);
         }
         for (i, &c) in cells.iter().enumerate() {
             let old = self.world.block_anywhere_or_generate(c);

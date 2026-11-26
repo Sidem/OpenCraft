@@ -82,6 +82,7 @@ impl Game {
                 SimEvent::DroneNote { .. } => {}
                 SimEvent::Produced { item, count } => self.analytics.produced(item, count),
                 SimEvent::Consumed { item, count } => self.analytics.consumed(item, count),
+                SimEvent::ElevatorRose { .. } => {}
                 SimEvent::Launched { .. } | SimEvent::PodSent { .. } | SimEvent::PodLanded { .. } => {
                     self.orbit_event(event)
                 }

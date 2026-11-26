@@ -4,6 +4,10 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-26 · v0.18.0 · The space elevator, phase 1
+- **A space elevator to build.** Research **Space Elevator** in the Sky ring and place its **anchor** near the depot of a town or a city (one per world; it tells you whether the spot fits). The tether climbs into the sky in **eight sections of 64 blocks**, each a big order of steel beams, aluminium, plastic, chips and, higher up, rocket fuel, brought in by belts.
+- **Its climbers keep your factory busy.** From the second section on they use goods every minute; miss a minute and the section waits. Empty fuel barrels come back out of the anchor's front. While its town is stalled, the elevator waits too.
+- **You can see it grow.** Every section raises the tether, ringed with red lights every 64 blocks so it stands lit at night, and a climber car rides up the section being built. Right-click the anchor for the open section and the climbers' needs; the HUD tells you when a section is done or the climbers run short.
 ## 2026-11-25 · v0.17.0 · The Tool Belt
 - **One Tool Belt instead of nine tools.** Pickaxes, axes, shovels and the Mining Rig are gone. Wear a **Tool Belt** (6 stone, 4 sticks) and every swing uses the right head for stone, wood or soil, with an empty hand or anything else in it. It never wears out.
 - **Five tiers.** Mk1 digs twice as fast as bare hands and keeps 3 ore a block; Mk2 (6 iron plates) four times and 4 ore; Mk3 (Steel Tools, 6 steel plates) six times and 5 ore; Mk4 (4 violet kits) eight; Mk5 (4 gold kits) ten. Raise the worn belt in place from the button in the inventory, like packs and gloves.

@@ -84,6 +84,9 @@ impl Sim {
         if id == block::TOWN_DEPOT {
             self.settlements.sleep(pos);
         }
+        if id == block::ELEVATOR_ANCHOR {
+            self.elevator_broken(pos);
+        }
         // A town's own block drops nothing: its drones put it back for free.
         let town_block = self.settlements.broken(pos, id);
         let belt =

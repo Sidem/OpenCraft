@@ -1,6 +1,7 @@
 // In-game HUD: crosshair, the top-centre column (#hud-top: target name with detail text and mining bar; the scanner
 // pointer joins it from prospect.ts), the left-edge helper status line (#hud-left), hotbar, pickup toasts (and a town's news when it stalls
-// or is supplied again: `town_states` compared with the last look, `town_news` for the words),
+// or is supplied again: `town_states` compared with the last look, `town_news` for the words; the space elevator's
+// sections and stalls the same way: `elevator_state`, `elevator_news`),
 // the muted badge and the F3 debug overlay. Reads from the engine each frame; hotbar slots redraw only
 // when `inventory_version` changes. `itemIcon` renders the item icons other panels reuse, `showAmount` a
 // slot's count or, for a tool (whose count is its uses left), its wear bar.
@@ -43,6 +44,7 @@ function itemHudExtras(state: number): { note: string; controls: HudControl[] } 
  * (api/towns.rs) for a stalled and a dormant town. */
 const TOWN_KEY = -200000;
 const CODEX_KEY = -300000;
+const ELEVATOR_KEY = -400000;
 const TOWN_MS = 1000;
 const STALLED = 1;
 const DORMANT = 2;
@@ -112,6 +114,7 @@ export class Hud {
   private readonly helperStatus = $<HTMLDivElement>('helper-status');
   private helperText = '';
   private townStates: number[] | null = null;
+  private elevatorState: number | null = null;
   private codexMask: number | null = null;
   private lastTowns = 0;
   private readonly toastBox = $<HTMLDivElement>('toasts');
@@ -243,6 +246,7 @@ export class Hud {
     for (let sat = g.next_launch(); sat !== 0; sat = g.next_launch()) this.pushToast(sat, LAUNCHED, now);
     if (now - this.lastTowns > TOWN_MS) {
       this.townNews(now);
+      this.elevatorNews(now);
       this.codexNews(now);
     }
     for (const [item, t] of this.toasts) {
@@ -334,6 +338,19 @@ export class Hud {
       this.addToast(TOWN_KEY - i, this.game.town_depot_item(), label, 0, now, this.game.town_news(i));
       this.toasts.get(TOWN_KEY - i)!.el.classList.toggle('warn', stalled);
     });
+  }
+
+  /** Toasts the space elevator's news when a section is done or its climbers stall or are supplied (not when it is
+   *  placed, broken or put back). */
+  private elevatorNews(now: number): void {
+    const state = this.game.elevator_state();
+    const before = this.elevatorState;
+    this.elevatorState = state;
+    if (before === null || state === before || state === 0 || before === 0) return;
+    this.toasts.get(ELEVATOR_KEY)?.el.remove();
+    const stalled = state % 2 === 0;
+    this.addToast(ELEVATOR_KEY, this.game.elevator_anchor_item(), stalled ? 'stalled' : 'climbing', 0, now, this.game.elevator_news());
+    this.toasts.get(ELEVATOR_KEY)!.el.classList.toggle('warn', stalled);
   }
 
   /** Toasts each codex achievement newly unlocked since the previous check (first check only snapshots). */

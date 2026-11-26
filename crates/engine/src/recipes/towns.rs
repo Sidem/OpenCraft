@@ -1,4 +1,5 @@
-//! Milestone 13's hand recipes (the Settlements tech): the town depot, listed in `RECIPES`.
+//! Hand recipes for towns and what grows from them, listed in `RECIPES`: the town depot (Milestone 13, the Settlements
+//! tech) and the space elevator's anchor (M14A, the Space Elevator tech).
 
 use crate::block::*;
 use crate::item::*;
@@ -15,4 +16,15 @@ pub const TOWN_DEPOT_RECIPE: Recipe = Recipe {
             a river or lake bank, a highland workshop in the granite highlands, a basalt forge in the basalt fields. \
             Towns stand at least 300 blocks apart and away from the spawn plains; while you hold it, it says whether \
             the spot fits. Belts fill it from any side.",
+};
+
+pub const ELEVATOR_ANCHOR_RECIPE: Recipe = Recipe {
+    output: ELEVATOR_ANCHOR_ITEM,
+    group: Group::Space,
+    count: 1,
+    inputs: &[(b(CONCRETE), 200), (STEEL_BEAM, 80), (MOTOR, 20), (AVIONICS, 4)],
+    blurb: "The foundation of the space elevator, 5×5 and 2 high: it stands near the depot of a town or a city, one \
+            per world. Belts bring each section's order into its back and sides, and the tether climbs 64 blocks a \
+            section, eight in all; from the second section on, its climbers use up goods every minute. While you hold \
+            it, it says whether the spot fits.",
 };

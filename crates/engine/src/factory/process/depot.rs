@@ -60,27 +60,28 @@ pub const DEPOT_SPEC: ProcessSpec = ProcessSpec {
 };
 
 impl Factory {
-    /// The store of the depot anchored at `pos`, for its town to use up; `None` when no depot stands there.
+    /// The store of the depot (or elevator anchor: any `Pick::Depot`) anchored at `pos`, for its town (or the elevator)
+    /// to use up; `None` when none stands there.
     pub fn depot_store(&mut self, pos: IVec3) -> Option<&mut Buffer> {
-        let p = self.processors.iter_mut().find(|p| p.pos == pos && p.spec.block == TOWN_DEPOT)?;
+        let p = self.processors.iter_mut().find(|p| p.pos == pos && p.spec.pick == Pick::Depot)?;
         Some(&mut p.out)
     }
 
     /// What the depot anchored at `pos` holds, for the readout.
     pub fn depot_held(&self, pos: IVec3) -> Option<&Buffer> {
-        let p = self.processors.iter().find(|p| p.pos == pos && p.spec.block == TOWN_DEPOT)?;
+        let p = self.processors.iter().find(|p| p.pos == pos && p.spec.pick == Pick::Depot)?;
         Some(&p.out)
     }
 
     /// What the perk of the depot anchored at `pos` has taken in, and where it puts what it gives.
     pub fn depot_perk(&mut self, pos: IVec3) -> Option<(&mut Buffer, &mut Buffer)> {
-        let p = self.processors.iter_mut().find(|p| p.pos == pos && p.spec.block == TOWN_DEPOT)?;
+        let p = self.processors.iter_mut().find(|p| p.pos == pos && p.spec.pick == Pick::Depot)?;
         Some((&mut p.input, &mut p.side))
     }
 
     /// Sets what the depot anchored at `pos` takes in (its town's goods) and up to how many it holds of each.
     pub fn set_depot_wants(&mut self, pos: IVec3, wants: Vec<Want>) {
-        let depot = self.processors.iter_mut().find(|p| p.pos == pos && p.spec.block == TOWN_DEPOT);
+        let depot = self.processors.iter_mut().find(|p| p.pos == pos && p.spec.pick == Pick::Depot);
         if let Some(Extra::Depot { wants: held }) = depot.map(|p| &mut p.extra) {
             *held = wants;
         }

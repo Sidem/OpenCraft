@@ -13,6 +13,7 @@ mod crafting;
 mod creative;
 mod debug;
 mod drone;
+mod elevator;
 mod felling;
 mod guide;
 mod hand_waste;

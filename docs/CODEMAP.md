@@ -33,6 +33,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `helpers/`: jetpack, hover pack, `drone/` (personal drone, `trip.rs`). `blueprint/mod.rs` (data, bytes; `plan.rs` the view from above).
 - `signs/` (note signs; `view.rs` draws boards). `led/` (LED lamp colours, `SetLed`; `view.rs` the tint box). `street/` (street lamps: placing and breaking a 1×1×4 column of blocks, no state; `model.rs` the model, `view.rs` draws it from the head). `satellites.rs`, `pods.rs`, `opening.rs` (+ `opening/miners.rs`).
 - `settlements/`: towns. `orders.rs`, `run.rs`, `plans.rs`, `plots.rs`, `build.rs`, `state.rs`, `perks/` (+ `harbour/`).
+- `elevator/`: the space elevator, phase 1 (M14A): sections as orders, the climbers' draw (`mod.rs`); the tether and placement hint (`view.rs`).
 - `shape/`: block shape modifiers (slabs ¼/½/¾, vertical slabs, auto-corner stairs, 45° pitched slopes/roofs); `boxes.rs`.
 - `colour/`: per-face surface paint modifier (`FacePaint`, 16-hue palette, `PaintCharges`, legacy concrete migration).
 - `hints.rs`: onboarding tips. `lessons.rs`: the bits of `Sim::taught`.
@@ -55,7 +56,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `legacy.rs`, `facts.rs`. Machines with logic of their own: `steam.rs` (+ `steam_view.rs`), `solar.rs`, `diesel.rs`, `hydro.rs`,
   `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs` (+ `pump/view.rs`, `Look::Jack`), `refinery.rs`, `gas.rs`, `washer.rs`, `recycler.rs`,
   `center.rs`, `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs` (+ `rocket.rs`),
-  `pods.rs` + `pods/channels.rs`, `hangar.rs`, `hoist.rs`, `docks.rs`, `depot.rs`, `ejector.rs`, `upgrader.rs`, `laser.rs`,
+  `pods.rs` + `pods/channels.rs`, `hangar.rs`, `hoist.rs`, `docks.rs`, `depot.rs`, `anchor.rs` (the elevator's, a `Pick::Depot`), `ejector.rs`, `upgrader.rs`, `laser.rs`,
   `forester.rs` + `forester/` (`patch.rs`, `work.rs`, `fell.rs`, `view.rs`, `crane.rs`, `scene.rs`; `Look::Crane`), `thumper.rs` (`Look::Thumper`), `kiln.rs` (`GLASS_KILN`).
 - Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs`, `render.rs` (instances; `push_round`, `push_cone`,
   `push_framed`; `plume.rs`, `capsule.rs`; `render/fake_round.rs` and `tests/face_fight.rs` are checks), `static_view.rs` (chunk index and static/dynamic split), `hitbox.rs`, `smoke.rs`,
@@ -71,6 +72,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   Natural gas (CHEM-GAS): blocks 255–260 (`block/gas.rs`; 256–260 first wide blocks in `WIDE_BLOCK_ITEMS`), items 430–439, `recipes/gas.rs` (rows 193–197), `worldgen/gas.rs` (v13 independent fields), `item_models/gas.rs`, `textures/gas.rs`.
   Seismic prospecting (F-SEIS): block 261 (`block/thumper.rs`), items 442–444 (Mk1–Mk3), `recipes/thumper.rs`, `item_models/thumper.rs`, `textures/thumper.rs`.
   Glass Kiln & Paint Sprayer (L-COLOUR): block 262 (`block/kiln.rs`), items 445–446, `item_models/kiln.rs`, `textures/kiln.rs`.
+  Space elevator (M14A): block 270 (`block/elevator.rs`), item 463, `recipes/towns.rs`, tech 78 (`research/later.rs`).
   Clay & kilns (MAT-CLAY): blocks 263–269 (`block/clay.rs`; wide, paired in `WIDE_BLOCK_ITEMS`), items 451–457, `recipes/clay.rs` (rows 232–236, `Category::Firing`), `worldgen/clay.rs` (v14 beds and pockets), `textures/clay.rs`; river towns' `WARES` in `settlements/orders.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs`): `ItemId`; ids below 256 are blocks, wider blocks pair with items in `WIDE_BLOCK_ITEMS`. `wood.rs`: the ten woods.
 - `recipes/`: `mod.rs` (`RECIPES`; `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`; `machine_later.rs`), `process_notes.rs` (one line of real chemistry a chemical machine row; shown on its card and in the item guide), `rows.rs`, `tiers.rs`,
@@ -138,7 +140,7 @@ local player's hands, presentation, then the **deterministic core**, which never
     `craft-tiers.ts`, `craft-card.ts`, `craft-info.ts`, `item-guide.ts`, `take-apart.ts`, `offhand.ts`, `held-name.ts`,
     `drag-throw.ts`, `craft-terms.ts`, `creative.ts`, `gear-upgrade.ts`, `box-label.ts`, `drone.ts`, `drone-slots.ts`, `slot-view.ts`.
   - Machines: `machine.ts`, `machine-upgrade.ts`, `machine-recipes.ts` (+ `recipe-rates.ts`), `rate-table.ts`, `filter-panel.ts`,
-    `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`, `sign.ts` (`colour-wheel.ts`,
+    `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `elevator.ts`, `site.ts`, `logbook.ts`, `vault.ts`, `sign.ts` (`colour-wheel.ts`,
     `colour.ts`), `seismic.ts` + `seismic-controls.ts` + `seismic-render.ts` + `seismic-volume.ts` + `seismic-data.ts`, `train.ts`.
   - Research: `research.ts` (screen, HUD tracker), `research-frontier.ts` (pure: cells, discovery, wide rings, chains), `research-grid.ts` (rings × disciplines grid, hover lines), `research-chip.ts`, `research-now.ts` (now, ready, next-ring checklist), `research-detail.ts` (selected tech), `research-wedges.ts` (12 discipline rows), `research-kinds.ts`, `research-search.ts`, `research-queue.ts`, `codex.ts` (+ `codex-elements.ts`: periodic table & achievements; `codex-toast.ts`: unlock popups).
   - Maps: `worldmap.ts`, `pins.ts`, `map-pin-list.ts`, `map-filter.ts` + `map-filter-panel.ts`, `map-info.ts`, `map-key.ts` (+
@@ -173,6 +175,6 @@ Balance numbers are named constants atop their module; grep the name for the val
   `FUELS` (`recipes/machine.rs`), `BELT_TIERS` (`factory/belt.rs`), `POLE_TIERS`, `GENERATOR_TIERS`, `LAB_TIERS`,
   `BOX_SLOTS`, `QUARRY_TIERS`, `PUMP_TIERS` (their `factory/` files).
 - Research: `TECHS` (`research/techs.rs` and the era files). Hand recipes: `RECIPES` (`recipes/mod.rs`).
-- Towns: `UPKEEP_PER_MINUTE`, `ORDERS` (`settlements/orders.rs`), perk rates (`settlements/perks/`).
+- Towns: `UPKEEP_PER_MINUTE`, `ORDERS` (`settlements/orders.rs`), perk rates (`settlements/perks/`). Elevator: `ORDERS`, `DRAW` (`elevator/mod.rs`).
 - World: `SEA_LEVEL` (`worldgen/mod.rs`), biome thresholds (`worldgen/biome.rs`), ore tables (`worldgen/geology.rs`,
   `strata.rs`, `ore.rs`), rivers (`worldgen/rivers.rs`), `WATER_DELAY` (`sim/water.rs`), timers (`sim/timers.rs`).

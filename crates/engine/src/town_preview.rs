@@ -37,11 +37,13 @@ impl Game {
         (block == TOWN_DEPOT).then(|| self.sim.settlements.site(self.sim.world.generator(), anchor))
     }
 
-    /// The footprint outline's colour: green where the held depot founds a town, red where none fits, else 0 (amber).
+    /// The footprint outline's colour: green where the held depot founds a town (or the held elevator anchor may stand:
+    /// `elevator/view.rs`), red where it can't, else 0 (amber).
     pub(crate) fn depot_outline(&self) -> i32 {
-        match self.depot_site() {
-            Some(Ok(_)) => GHOST_GREEN,
-            Some(Err(_)) => BLOCKED_RED,
+        let fits = self.depot_site().map(|s| s.is_ok()).or_else(|| self.anchor_site().map(|s| s.is_ok()));
+        match fits {
+            Some(true) => GHOST_GREEN,
+            Some(false) => BLOCKED_RED,
             None => 0,
         }
     }
@@ -49,7 +51,8 @@ impl Game {
     /// The label's line about the town and whether one fits: "Founds a harbour here, on a sea shore", or why no town
     /// fits; `None` when no depot is held and aimed.
     pub(crate) fn depot_line(&self) -> Option<(String, bool)> {
-        Some(match self.depot_site()? {
+        let Some(site) = self.depot_site() else { return self.anchor_line() };
+        Some(match site {
             Ok(k) => {
                 let kind = &KINDS[k as usize];
                 (format!("Founds a {} here, {}", kind.name.to_lowercase(), kind.place), true)

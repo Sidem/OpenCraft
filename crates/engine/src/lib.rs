@@ -46,6 +46,7 @@ mod doors;
 mod drone_hands;
 mod drone_view;
 mod drones;
+mod elevator;
 mod entities;
 mod equipment;
 mod events;

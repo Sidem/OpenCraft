@@ -79,3 +79,17 @@ Each perk works from the camp on, while the town is supplied. Goods a town gives
 - **The maps** show each town as a little house in its kind's colour, ringed red while stalled and faded while
   asleep.
 - Once Settlements is researched, three tips walk through founding, feeding and supplying a town from far.
+
+## The space elevator (phase 1)
+
+- **Space Elevator** (Sky ring, after Rocketry) unlocks the **elevator anchor** (5×5, 2 high). One stands per world,
+  within 64 blocks of the depot of a town or a city; while you hold it, it says whether the spot fits.
+- Its tether climbs in **eight sections of 64 blocks**. Each section is a large order (`ORDERS` in
+  `elevator/mod.rs`) that belts bring into the anchor's back and sides; right-click the anchor for the open section
+  with a bar a line.
+- From the second section on, its **climbers use goods every minute** (`DRAW`): miss a minute and the section waits
+  until they are there. The empty rocket fuel barrels come out of the anchor's front.
+- While its town is stalled or asleep, the elevator waits too. Breaking the anchor keeps every section: put it back on
+  the same spot to carry on.
+- Each section shows: the tether rises over the anchor with a red lamp collar at every 64 blocks, lit at night, and a
+  climber car rides up the section being built.

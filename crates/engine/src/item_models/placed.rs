@@ -34,6 +34,7 @@ const PLACED: &[Placed] = &[
     Placed { block: block::PIPE, facing: 1, joined: ALONG_X },
     Placed { block: block::RAIL, facing: 0, joined: 0 },
     Placed { block: block::FIBRE_NODE, facing: 0, joined: 0 },
+    Placed { block: block::ELEVATOR_ANCHOR, facing: 0, joined: 0 },
 ];
 
 thread_local! {

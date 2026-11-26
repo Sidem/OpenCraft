@@ -231,6 +231,9 @@ pub use kiln::{GLASS_KILN, KILN_COUNT};
 /// Clay, kaolin and the ceramics fired from them, ids 263–269 (`clay.rs`).
 mod clay;
 pub use clay::*;
+/// The space elevator's anchor, id 270 (`elevator.rs`).
+mod elevator;
+pub use elevator::{ELEVATOR_ANCHOR, ELEVATOR_COUNT};
 const BASE_COUNT: usize = 129;
 pub const BLOCK_COUNT: usize = BASE_COUNT
     + DECOR_COUNT
@@ -249,7 +252,8 @@ pub const BLOCK_COUNT: usize = BASE_COUNT
     + GAS_COUNT
     + THUMPER_COUNT
     + KILN_COUNT
-    + CLAY_COUNT;
+    + CLAY_COUNT
+    + ELEVATOR_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;

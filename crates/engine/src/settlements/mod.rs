@@ -32,6 +32,7 @@ mod perks;
 mod plans;
 mod plots;
 mod run;
+pub(crate) use run::{deliver, take_upkeep, MINUTE};
 mod state;
 
 pub use build::{fleet, TownDrone};

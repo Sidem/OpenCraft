@@ -158,3 +158,5 @@ pub const TOOL_BELT_MK2: ItemId = ItemId(459);
 pub const TOOL_BELT_MK3: ItemId = ItemId(460);
 pub const TOOL_BELT_MK4: ItemId = ItemId(461);
 pub const TOOL_BELT_MK5: ItemId = ItemId(462);
+/// The Elevator Anchor as an item (M14A; it places `block::ELEVATOR_ANCHOR`).
+pub const ELEVATOR_ANCHOR_ITEM: ItemId = ItemId(463);

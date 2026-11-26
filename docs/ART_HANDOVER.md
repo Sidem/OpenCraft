@@ -310,6 +310,8 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   since GEAR-BELT; their held models are the heads the belt's swinging hand shows (`tool_belt::head`).
 - [ ] (GEAR-BELT, landed) Tool Belt Mk1–Mk5 (items 458–462): placeholder icons `tool_belt()` (`textures/gear.rs`), worn
   model `tool_belt(tier)` (`item_models/wear.rs`).
+- [ ] (M14A, landed) Elevator anchor (block 270, item 463; parts in `factory/process/anchor.rs`) and tether (`elevator/view.rs`):
+  placeholders from steel, beam, frame and lamp layers.
 - [x] (Saplings, landed) A sapling: layer `tex::SAPLING` (57) by `textures/plants.rs`, drawn on two
   crossed quads (`Render::Plant`), so keep the background transparent. Also its icon and loose item.
 - [x] (4.2, landed) Rocks and minerals for Milestone 4's biomes: granite, sandstone, basalt (building

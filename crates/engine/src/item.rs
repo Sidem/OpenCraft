@@ -234,7 +234,7 @@ pub fn stack_size(id: ItemId) -> u32 {
 
 /// Blocks with ids of 256 and up and the item each is. Item ids stay dense (the tables are `0..ITEM_COUNT`), so
 /// such an item is an ordinary `EXTRA` row whose `places` is the block; list the pair here, in block order.
-pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 14] = [
+pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 15] = [
     (block::GAS_WELL, GAS_WELL_ITEM),
     (block::WELLHEAD_SEPARATOR, WELLHEAD_SEPARATOR_ITEM),
     (block::GAS_PLANT, GAS_PLANT_ITEM),
@@ -249,12 +249,13 @@ pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 14] = [
     (block::PORCELAIN, PORCELAIN_ITEM),
     (block::TURQUOISE_TILES, TURQUOISE_TILES_ITEM),
     (block::AMBER_TILES, AMBER_TILES_ITEM),
+    (block::ELEVATOR_ANCHOR, ELEVATOR_ANCHOR_ITEM),
 ];
 
 /// How many item ids there are: the table is `0..ITEM_COUNT`, blocks then `EXTRA`.
 pub const ITEM_COUNT: usize = 256 + EXTRA.len();
 
-const EXTRA: [ItemDef; 207] = [
+const EXTRA: [ItemDef; 208] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -466,6 +467,7 @@ const EXTRA: [ItemDef; 207] = [
     device("Tool Belt Mk3", tex::TOOL_BELT_MK3, [0.9, 0.6, 0.2]),
     device("Tool Belt Mk4", tex::TOOL_BELT_MK4, [0.9, 0.6, 0.2]),
     device("Tool Belt Mk5", tex::TOOL_BELT_MK5, [0.9, 0.6, 0.2]),
+    wide_machine("Elevator Anchor", [tex::STEEL, tex::CONCRETE, tex::FRAME], block::ELEVATOR_ANCHOR),
 ];
 
 /// A wood's log: bark round, the oak's rings at the ends; it places nothing.

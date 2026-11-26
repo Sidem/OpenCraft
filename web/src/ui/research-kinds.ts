@@ -143,7 +143,7 @@ const LISTS: Record<Kind, string> = {
   build: 'Earthworks|Hoists|Settlements|Stone Styles|Glass|Metalwork|Paint|LED Lamps|Clay & Kilns|Porcelain & Glazes',
   nature: 'Forestry',
   survey: 'Ore Scanning|Advanced Scanning|Seismic Prospecting|AI Survey',
-  space: 'Rocketry|Orbital Comms|Orbital Science|Drop Pods',
+  space: 'Rocketry|Orbital Comms|Orbital Science|Drop Pods|Space Elevator',
   endless: 'Mining Productivity|Machine Speed|Drone Speed',
   general: '',
 };

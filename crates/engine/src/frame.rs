@@ -96,6 +96,7 @@ impl Game {
             let world = &mut self.sim.world;
             factory::light_boxes(&mut self.instances, eye, |c| world.light_at(c));
         }
+        self.write_elevator(eye);
         self.write_line_preview(eye, time);
         self.write_power_preview(eye);
         self.write_rail_preview(eye);

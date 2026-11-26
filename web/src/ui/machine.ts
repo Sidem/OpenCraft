@@ -4,7 +4,7 @@
 // slot to take it, Shift-click an inventory stack to put it in. Shows what the machine is doing, its buffers, the
 // recipe choice for machines where the player picks it, where a filter sends what (ui/filter-panel.ts), one-click put-in buttons, a
 // take-output button, a quarry's choices (ui/quarry.ts; `quarryBox` for its outline), a pod launcher's or pad's channel
-// (ui/pod-channel.ts) and a depot's town on top (ui/town.ts). Sections a machine doesn't use are hidden.
+// (ui/pod-channel.ts), and a depot's town (ui/town.ts) or an elevator anchor's climb (ui/elevator.ts) on top. Sections a machine doesn't use are hidden.
 // Everything shown is read from the engine each frame (`machine_panel`); buttons queue engine actions. What it takes and
 // makes a minute and a second is the table of `rate-table.ts`.
 // A new machine with a panel needs no change here unless it adds a buffer role (`ROLE_LABELS`).
@@ -12,6 +12,7 @@
 import './machine.css';
 import type { Game } from '../wasm/engine.js';
 import { button, h } from './dom';
+import { ElevatorSection } from './elevator';
 import { FilterSection } from './filter-panel';
 import type { Beside, InventoryPanel } from './inventory';
 import { MachineUpgrade } from './machine-upgrade';
@@ -45,6 +46,7 @@ export class MachinePanel implements Beside {
   private readonly quarry: QuarrySection;
   private readonly channel: ChannelSection;
   private readonly town: TownSection;
+  private readonly elevator: ElevatorSection;
   private readonly upgrade: MachineUpgrade;
   private readonly roleLabels: Map<number, string>;
   private pos: [number, number, number] = [0, 0, 0];
@@ -61,7 +63,7 @@ export class MachinePanel implements Beside {
       [game.panel_role_input(), 'In'],
       [game.panel_role_fuel(), 'Fuel'],
       [game.panel_role_output(), 'Out'],
-      [game.panel_role_store(), 'Town'],
+      [game.panel_role_store(), 'Store'],
     ]);
     this.progress.append(this.bar);
     this.take = button('secondary-btn mp-take', 'Take output', () => {
@@ -84,11 +86,12 @@ export class MachinePanel implements Beside {
     this.quarry = new QuarrySection(game);
     this.channel = new ChannelSection(game);
     this.town = new TownSection(game, icon);
+    this.elevator = new ElevatorSection(game, icon);
     this.recipes = new RecipePicker(game, icon, (id) => {
       const current = this.game.machine_panel(...this.pos)[1];
       this.game.set_machine_recipe(...this.pos, current === id ? -1 : id);
     });
-    this.el.append(this.town.el, state, this.quarry.el, this.channel.el, this.filter.el, this.recipeHead, this.recipes.el, this.put);
+    this.el.append(this.town.el, this.elevator.el, state, this.quarry.el, this.channel.el, this.filter.el, this.recipeHead, this.recipes.el, this.put);
   }
 
   get isOpen(): boolean {
@@ -146,6 +149,7 @@ export class MachinePanel implements Beside {
     this.title = g.machine_name(...this.pos) || this.title; // an upgrade changes the Mk in the heading
     const quarry = this.quarry.update(this.pos);
     this.town.update(this.pos);
+    this.elevator.update(this.pos);
     const channel = this.channel.update(this.pos);
     // The running average moves a little every frame, so it is outside the redraw key below.
     const efficiency = g.machine_efficiency(...this.pos);

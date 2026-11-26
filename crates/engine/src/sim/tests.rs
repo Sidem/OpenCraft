@@ -62,8 +62,10 @@ const B: PlayerId = PlayerId(1);
 /// 20 zero bytes when empty at the end of the core); the previous hash was 0x1897_870a_4573_aa56.
 // Save 86 (TREE-CORE): 76-tech frontier map, open_rings bitmask and belts_laid counter (6_850_157_767_433_831_835).
 // MAT-CLAY: the research table has 78 techs and new worlds record generator 14 (clay); nothing else moved.
-// v0.16.0: Underpasses moved to the Red ring (Red packs only), so the lab leaves its 6 Green packs untouched.
-const GOLDEN_HASH: u64 = 11_647_145_183_151_009_783;
+// v0.16.0: Underpasses moved to the Red ring (Red packs only), so the lab leaves its 6 Green packs untouched
+// (11_647_145_183_151_009_783).
+// Save 89 (M14A): the core ends with the space elevator (none here) and the research table has the Space Elevator tech.
+const GOLDEN_HASH: u64 = 17_479_648_060_806_993_320;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

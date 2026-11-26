@@ -63,6 +63,11 @@ pub enum SimEvent {
         kept: u32,
         lost: u32,
     },
+    /// The space elevator anchored at `pos` finished its `built`th section (`elevator/`).
+    ElevatorRose {
+        pos: IVec3,
+        built: u8,
+    },
     /// A launch site's rocket went up with a satellite (`item`); `pos` is the site's anchor.
     Launched {
         pos: IVec3,
