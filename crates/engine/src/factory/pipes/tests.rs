@@ -94,14 +94,14 @@ fn a_pump_drains_a_pit_over_a_cliff() {
     assert_eq!(count(&mut sim, PIT.0, PIT.1, WATER), 72, "75 less the pump and two pipes");
     run(&mut sim, 10);
     let pumped = 72 - count(&mut sim, PIT.0, PIT.1, WATER);
-    assert!((17..=21).contains(&pumped), "about 2 a second: {pumped}");
+    assert!((14..=18).contains(&pumped), "about 1.62 a second at 3-block lift (81% pressure): {pumped}");
 
     // A save made mid-drain carries on identically.
     let mut w = ByteWriter::default();
     sim.write_state(&mut w);
     let mut again = Sim::new(1337, 2);
     again.read_state(&mut ByteReader::new(&w.bytes)).expect("reads back");
-    for _ in 0..40 * crate::TICK_RATE {
+    for _ in 0..50 * crate::TICK_RATE {
         sim.step();
         again.step();
     }
@@ -136,7 +136,7 @@ fn a_pump_in_the_sea_runs_but_the_level_never_drops() {
     let full = count(&mut sim, sea.0, sea.1, WATER);
     run(&mut sim, 20);
     let land = count(&mut sim, at(20, SEA_LEVEL + 1, 0), at(60, SEA_LEVEL + 1, 30), WATER);
-    assert!(land >= 35, "the pump kept going: {land} blocks poured on land");
+    assert!(land >= 28, "the pump kept going at 81% pressure: {land} blocks poured on land");
     assert!(count(&mut sim, sea.0, sea.1, WATER) + 1 >= full, "at most the block just taken is missing");
 }
 
@@ -198,4 +198,80 @@ fn pumps_lift_two_four_and_six_blocks_a_second_and_hold_as_many_for_more_power()
     assert_eq!(held_after(0, 66), (2, 2, 0, Flow::Full));
     assert_eq!(held_after(1, 66), (4, 4, 0, Flow::Full));
     assert_eq!(held_after(2, 66), (6, 6, 0, Flow::Full));
+}
+
+#[test]
+fn pipe_height_reduces_pressure_increases_power_and_stalls_above_max_head() {
+    let measure = |lift: i32, tier: u8| {
+        let mut sim = Sim::new(1337, 2);
+        fill(&mut sim, at(0, 80, 0), at(30, 105, 20), STONE);
+        fill(&mut sim, at(0, 101, 0), at(30, 130, 20), AIR);
+        fill(&mut sim, at(12, 85, 1), at(29, 100, 19), AIR);
+        fill(&mut sim, PIT.0, PIT.1, WATER);
+        let pump_pos = at(2, 98, 2);
+        let top_y = pump_pos.y + lift;
+        pipeline(&mut sim, pump_pos, at(2, top_y, 2), at(11, top_y, 2), at(0, 101, 3), true);
+        // Add generators so high lift (up to 400 kW on Mk2) has full grid power.
+        for gz in 4..=10 {
+            put(&mut sim, GENERATOR, at(0, 101, gz), 0);
+            assert_eq!(sim.factory.insert(at(0, 101, gz), COAL_ORE.into(), 64), 64);
+        }
+        put(&mut sim, POLE, at(1, 101, 7), 0);
+        (0..tier).for_each(|_| assert!(sim.factory.upgrade(pump_pos)));
+        run(&mut sim, 10);
+        let pumped = 72 - count(&mut sim, PIT.0, PIT.1, WATER);
+        let pump = &sim.factory.pipework[0];
+        let outlet = sim.factory.pipework.iter().find(|p| p.part == Part::Outlet).unwrap();
+        (pump.pressure, pump.power_kw(), pump.flow, outlet.flow, pumped)
+    };
+    let (p_low, kw_low, f_low, _, vol_low) = measure(3, 0);
+    let (p_high, kw_high, f_high, _, vol_high) = measure(9, 0);
+    assert_eq!((f_low, f_high), (Flow::Working, Flow::Working));
+    assert!(p_low > p_high, "higher pipes have lower pressure: {p_low} vs {p_high}");
+    assert!(kw_high > kw_low, "higher lift costs more power: {kw_high} vs {kw_low}");
+    assert!(vol_low > vol_high, "higher lift pumps less water: {vol_low} vs {vol_high}");
+
+    // Above Mk1 max_head (12): stalls with TooHigh and pumps nothing.
+    let (p_over, _, f_over, of_over, vol_over) = measure(14, 0);
+    assert_eq!((p_over, f_over, of_over, vol_over), (0, Flow::TooHigh, Flow::TooHigh, 0));
+
+    // Upgrading to Mk2 (max_head 24) restores pressure and flow at lift 14!
+    let (p_mk2, _, f_mk2, _, vol_mk2) = measure(14, 1);
+    assert_eq!(f_mk2, Flow::Working);
+    assert!(p_mk2 > 500 && vol_mk2 > 15, "Mk2 handles lift 14: p={p_mk2}, vol={vol_mk2}");
+}
+
+#[test]
+fn outlet_creates_a_live_falling_stream_that_dries_when_pump_stops() {
+    let mut sim = pit_over_a_cliff(true);
+    run(&mut sim, 3);
+    // While pouring, a real flowing-water cascade hangs directly in front of the outlet down the cliff,
+    // preserving the stream's flow level (FLOW_6 at 3-block lift = 1.62 blocks/s).
+    let front = at(12, 101, 2);
+    assert_eq!(crate::block::flow_level(sim.world.block_anywhere_or_generate(front)), Some(6), "live spout stream");
+    assert_eq!(
+        crate::block::flow_level(sim.world.block_anywhere_or_generate(at(12, 99, 2))),
+        Some(6),
+        "falling waterfall preserves stream level"
+    );
+
+    // Once the pit runs dry, the outlet stops and the falling waterfall dries back to air.
+    run(&mut sim, 55);
+    assert_eq!(sim.world.block_anywhere_or_generate(front), AIR, "spout stream dried up");
+    assert_eq!(sim.world.block_anywhere_or_generate(at(12, 99, 2)), AIR, "falling column dried up");
+}
+
+#[test]
+fn rotating_a_placed_outlet_turns_its_spout_and_drains_the_old_stream() {
+    let mut sim = pit_over_a_cliff(true);
+    let outlet_pos = at(11, 101, 2);
+    run(&mut sim, 3);
+    assert!(crate::block::flow_level(sim.world.block_anywhere_or_generate(at(12, 101, 2))).is_some());
+    assert_eq!(sim.factory.pipework.iter().find(|p| p.pos == outlet_pos).unwrap().facing, EAST);
+
+    // Rotate 90° clockwise: EAST (1) -> SOUTH (2).
+    sim.apply(P, Action::Rotate { pos: outlet_pos });
+    assert_eq!(sim.factory.pipework.iter().find(|p| p.pos == outlet_pos).unwrap().facing, 2);
+    run(&mut sim, 2);
+    assert_eq!(sim.world.block_anywhere_or_generate(at(12, 101, 2)), AIR, "old east stream dried up");
 }

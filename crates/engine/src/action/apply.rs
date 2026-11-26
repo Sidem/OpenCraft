@@ -119,8 +119,9 @@ impl Sim {
                 let s = self.world.shape_anywhere(pos);
                 if crate::shape::is_rotatable(s) {
                     self.world.set_shape_anywhere(pos, crate::shape::rotate_cw(s));
-                } else {
-                    self.factory.rotate(pos);
+                } else if self.factory.rotate(pos) && self.world.block_anywhere_or_generate(pos) == crate::block::OUTLET
+                {
+                    self.water_changed(pos, crate::block::OUTLET);
                 }
             }
             Action::BendBelt { pos, bend } => {

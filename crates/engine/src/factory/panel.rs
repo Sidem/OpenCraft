@@ -7,7 +7,7 @@
 //! To give a machine a panel: `panel: true` in its `MACHINES` row, a `panel()` method on it, and its
 //! arms here.
 
-use crate::block::{BlockId, LASER_EMITTER, LASER_MIRROR};
+use crate::block::{BlockId, LASER_EMITTER, LASER_MIRROR, OUTLET};
 use crate::inventory::Stack;
 use crate::item::ItemId;
 use crate::math::IVec3;
@@ -26,9 +26,9 @@ pub const ROLE_OUTPUT: u8 = 2;
 /// A town depot's store: its town's goods, which "take output" leaves alone.
 pub const ROLE_STORE: u8 = 3;
 
-/// Whether R turns a placed `block` (belts, routers and sensors do too; so does a laser emitter or mirror).
+/// Whether R turns a placed `block` (belts, routers and sensors do too; so does a laser emitter, mirror or outlet).
 pub fn turns(block: BlockId) -> bool {
-    matches!(block, LASER_EMITTER | LASER_MIRROR)
+    matches!(block, LASER_EMITTER | LASER_MIRROR | OUTLET)
 }
 
 /// A machine's panel, as the host shows it.
@@ -124,13 +124,18 @@ impl Factory {
         }
     }
 
-    /// Turns the belt, router, sensor, laser emitter or mirror at `pos` a quarter turn clockwise, carrying its items
-    /// along. False when nothing there turns.
+    /// Turns the belt, router, sensor, outlet, laser emitter or mirror at `pos` a quarter turn clockwise, carrying its
+    /// items along. False when nothing there turns.
     pub fn rotate(&mut self, pos: IVec3) -> bool {
         let dir = match self.at.get(&pos) {
             Some(&Slot::Belt(i)) => &mut self.belts[i as usize].dir,
             Some(&Slot::Router(i)) => &mut self.routers[i as usize].dir,
             Some(&Slot::Sensor(i)) => &mut self.sensors[i as usize].dir,
+            Some(&Slot::Pipe(i)) if self.pipework[i as usize].part == super::pipes::Part::Outlet => {
+                let p = &mut self.pipework[i as usize];
+                p.pouring = 0;
+                &mut p.facing
+            }
             Some(&Slot::Process(i)) if turns(self.processors[i as usize].spec.block) => {
                 &mut self.processors[i as usize].dir
             }

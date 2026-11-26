@@ -179,7 +179,18 @@ fn displays(spec: &ProcessSpec) -> impl Iterator<Item = &Part> {
 
 /// Whether a part is drawn as its box (smoke, the display's slot, the rocket's stand, a pour and a work cell are not).
 fn boxed(p: &Part) -> bool {
-    !matches!(p.look, Look::Smoke | Look::Product | Look::Rocket | Look::Pour | Look::Work | Look::Crane | Look::Jack)
+    !matches!(
+        p.look,
+        Look::Smoke
+            | Look::Product
+            | Look::Rocket
+            | Look::Pour
+            | Look::Work
+            | Look::Crane
+            | Look::Jack
+            | Look::Thumper
+            | Look::WaterWheel
+    )
 }
 
 fn lo(p: &Part, k: usize) -> f32 {

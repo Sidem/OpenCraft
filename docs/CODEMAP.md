@@ -44,7 +44,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - Logistics: `belt.rs` (`BELT_TIERS`), `provenance.rs`, `belt_items.rs`, `belt_shape.rs` (ramps, lifts), `belt_model.rs`,
   `belt_curve.rs`, `underpass.rs`, `belt_chain.rs`, `router.rs` (splitter, filter, merger) + `router_model.rs` + `filter_rules.rs`, `storage.rs` +
   `box_label.rs`, `buffer.rs`, `links.rs` (`relink`) + `belt_order.rs`, `ports.rs` (drone pads), `stock.rs`.
-- Extraction: `miner.rs` (+ `miner_model.rs`, `miner_burner.rs`), `forecast.rs` (deposit depletion forecast), `quarry.rs` + `quarry/`, `pipes.rs`, `pumping.rs`.
+- Extraction: `miner.rs` (+ `miner_model.rs`, `miner_burner.rs`), `forecast.rs` (deposit depletion forecast), `quarry.rs` + `quarry/`, `pipes.rs` (+ `pipe_model.rs`), `pumping.rs`.
 - Power: `power.rs`, `pole.rs` + `pole_mount.rs` + `pole_tower.rs` + `pole_hang.rs` (where wires hang: insulators), `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs`,
   `grid_colour.rs`. Data and light: `fibre.rs`, `laser.rs`. Logic: `sensor.rs`.
 - Rails: `rail.rs` + `rail/curve.rs` + `rail/ground.rs` + `rail/pieces.rs` (docks as track pieces; core side `action/docks.rs`),
@@ -53,7 +53,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `process/`: every inputs-to-outputs machine is one `Processor` driven by a `ProcessSpec` row (`specs.rs`; `basic.rs` the first
   rows); `mod.rs`, `work.rs`, `state.rs`, `extra.rs`, `kinds.rs`, `status.rs`, `view.rs`, `model.rs` + `parts.rs`, `display.rs`
   (`Look::Product`), `assembly_view.rs` (`Look::Work`), `port_mouth.rs` (port openings), `shape.rs` (cells and ports: ask it, not the spec), `intake.rs`,
-  `legacy.rs`, `facts.rs`. Machines with logic of their own: `steam.rs` (+ `steam_view.rs`), `solar.rs`, `diesel.rs`, `hydro.rs`,
+  `legacy.rs`, `facts.rs`. Machines with logic of their own: `steam.rs` (+ `steam_view.rs`), `solar.rs`, `diesel.rs`, `hydro.rs` (+ `hydro/view.rs`, `Look::WaterWheel`),
   `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs` (+ `pump/view.rs`, `Look::Jack`), `refinery.rs`, `gas.rs`, `washer.rs`, `recycler.rs`,
   `center.rs`, `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs` (+ `rocket.rs`),
   `pods.rs` + `pods/channels.rs`, `hangar.rs`, `hoist.rs`, `docks.rs`, `depot.rs`, `anchor.rs` (the elevator's, a `Pick::Depot`), `ejector.rs`, `upgrader.rs`, `laser.rs`,

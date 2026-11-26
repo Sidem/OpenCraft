@@ -68,7 +68,7 @@ impl Game {
         if self.cycle_scan_filter() || self.wire_toggle() || self.eyedrop_paint_colour() {
             return true;
         }
-        if self.ghost_mode || self.holds_boxed() || self.held_footprint().is_some() {
+        if self.ghost_mode || self.holds_boxed() || self.holds_outlet() || self.held_footprint().is_some() {
             if !(self.ghost_mode && self.turn_held_blueprint()) {
                 self.turn_placement();
             }

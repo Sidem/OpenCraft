@@ -125,6 +125,7 @@ impl Game {
             }
             let quarry = self.quarry_label();
             let quarry = if quarry.is_empty() { self.forester_label() } else { quarry };
+            let quarry = if quarry.is_empty() { self.outlet_label() } else { quarry };
             let quarry = if quarry.is_empty() { self.crowded_label() } else { quarry };
             let footprint = if quarry.is_empty() { self.footprint_label() } else { quarry };
             if !footprint.is_empty() {

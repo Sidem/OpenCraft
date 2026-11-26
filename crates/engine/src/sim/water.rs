@@ -134,8 +134,14 @@ impl Sim {
         if pos.y <= SEA_LEVEL && (above == WATER || sides.iter().any(|&s| self.block(s) == WATER)) {
             return Some(WATER);
         }
+        if let Some(level) = self.factory.outlet_stream_level_at(pos, b) {
+            return Some(flow(level));
+        }
         if LIQUID[above as usize] {
-            return Some(FLOW_7);
+            return Some(match flow_level(above) {
+                Some(lvl) => flow(lvl),
+                None => FLOW_7,
+            });
         }
         let feed = sides.iter().map(|&s| self.feed(s)).max().unwrap_or(0);
         Some(if feed > 1 { flow(feed - 1) } else { AIR })

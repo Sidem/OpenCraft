@@ -1,23 +1,23 @@
 //! Pipework: pumps, pipes and outlets, one machine kind (`Kind::Pipe`, like splitters and filters share
 //! `Router`). Every piece joins the pieces on its six faces; each connected group is a network
-//! (derived in `relink` by `link_pipework`, never saved). What moves water lives in `pumping.rs`.
+//! (derived in `relink` by `link_pipework`, never saved). What moves water lives in `pumping.rs`; 3D models live
+//! in `pipe_model.rs`.
 //!
 //! Invariants: a pump holds at most its tier's `hold` units of water, and a unit is always one source block
 //! taken out of the world or put back into it (water is never made or lost in the pipes). `progress`
-//! counts toward the next unit in 1/`UNIT`ths. `net` and `arms` are derived; `status` is last tick's.
+//! counts toward the next unit in 1/`UNIT`ths. `net`, `arms`, `peak_y`, `pressure` and `pouring` are derived.
 //!
 //! To add a piece: a `Part`, its byte, a `MACHINES` row sharing `Kind::Pipe`, and its arms in `step`
-//! (`pumping.rs`), `describe` and `model` here.
+//! (`pumping.rs`), `describe` here and `pipe_model.rs`.
 
-use crate::block::{tex, OUTLET, PIPE, PUMP};
+use crate::block::{OUTLET, PIPE, PUMP};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::math::{IVec3, Vec3};
 
 use super::links::Slot;
-use super::pumping::{PumpTier, OUTLET_RATE, PUMP_RANGE, PUMP_TIERS};
-use super::render::{push_box, push_round, Axis};
-use super::{tier_mark, Factory, Machine, DIRS, FACES};
+use super::pumping::{pump_pressure, PumpTier, OUTLET_RATE, PUMP_RANGE, PUMP_TIERS};
+use super::{Factory, Machine, DIRS, FACES};
 
 /// Progress per unit of water: a unit per second at a rate of 1 takes `UNIT` / `TICK_RATE` a tick.
 pub const UNIT: u32 = 60_000;
@@ -53,6 +53,8 @@ pub enum Flow {
     Full,
     /// An outlet with nowhere to pour.
     Blocked,
+    /// Pipe network rises above the pump's maximum lift (`max_head`).
+    TooHigh,
 }
 
 pub struct Pipework {
@@ -65,8 +67,14 @@ pub struct Pipework {
     pub progress: u32,
     /// A pump's water waiting for an outlet.
     pub held: u32,
+    /// Active outlet spout flow level (0 = not pouring, 1..=7 = live falling stream at `front`; derived).
+    pub pouring: u8,
     /// Network index (derived).
     pub net: u32,
+    /// Highest `y` coordinate of any piece in `net` (derived in `link_pipework`).
+    pub peak_y: i32,
+    /// Current hydraulic pressure in permille `0..=1000` (derived).
+    pub pressure: u16,
     /// What its network carries (derived).
     pub fluid: Fluid,
     /// Faces joined to another piece or to a boiler's or turbine's pipe port, as bits in `FACES` order
@@ -89,16 +97,30 @@ impl Pipework {
             facing: facing % 4,
             progress: 0,
             held: 0,
+            pouring: 0,
             net: 0,
+            peak_y: pos.y,
+            pressure: if part == Part::Pump { 1000 } else { 0 },
             fluid: Fluid::Water,
             arms: 0,
             flow: Flow::Idle,
         }
     }
 
-    /// Whether a pump wants power this tick: it has room for more water.
+    /// Vertical blocks this piece's pipe network climbs above it.
+    pub fn lift(&self) -> u32 {
+        (self.peak_y - self.pos.y).max(0) as u32
+    }
+
+    /// Total electric power (kW) a pump draws at its current lift height (`base + lift * lift_power`).
+    pub fn power_kw(&self) -> u32 {
+        let t = self.pump_stats();
+        t.power + self.lift().min(t.max_head) * t.lift_power
+    }
+
+    /// Whether a pump wants power this tick: it has room for more water and enough head for its pipework.
     pub fn wants_power(&self) -> bool {
-        self.part == Part::Pump && self.held < self.pump_stats().hold
+        self.part == Part::Pump && self.held < self.pump_stats().hold && self.pressure > 0
     }
 
     /// What its tier lets it do (a pump's numbers; the other parts are Mk1).
@@ -108,7 +130,8 @@ impl Pipework {
 }
 
 impl Factory {
-    /// Numbers the pipe networks (in order of their lowest piece) and records each piece's arms.
+    /// Numbers the pipe networks (in order of their lowest piece), records each piece's arms, computes each
+    /// network's peak height `peak_y` and refreshes each pump's head pressure.
     pub(super) fn link_pipework(&mut self) {
         let at = &self.at;
         let pipe_at = |q: IVec3| match at.get(&q) {
@@ -131,26 +154,54 @@ impl Factory {
             })
             .collect();
         let mut net = vec![u32::MAX; self.pipework.len()];
-        let mut nets = 0;
+        let mut peak_y: Vec<i32> = Vec::new();
         for start in 0..net.len() {
             if net[start] != u32::MAX {
                 continue;
             }
-            net[start] = nets;
+            let id = peak_y.len() as u32;
+            let mut max_y = self.pipework[start].pos.y;
+            net[start] = id;
             let mut stack = vec![start];
             while let Some(i) = stack.pop() {
+                max_y = max_y.max(self.pipework[i].pos.y);
                 for f in FACES {
                     if let Some(j) = pipe_at(self.pipework[i].pos + f).filter(|&j| net[j] == u32::MAX) {
-                        net[j] = nets;
+                        net[j] = id;
                         stack.push(j);
                     }
                 }
             }
-            nets += 1;
+            peak_y.push(max_y);
         }
         for ((p, a), n) in self.pipework.iter_mut().zip(arms).zip(net) {
-            (p.arms, p.net) = (a, n);
+            p.arms = a;
+            p.net = n;
+            p.peak_y = peak_y[n as usize];
+            if p.part == Part::Pump {
+                p.pressure = pump_pressure(p.pos.y, p.peak_y, p.pump_stats());
+            }
         }
+    }
+
+    /// Flow level (1..=7) if an actively pouring pipe outlet faces directly into `pos`.
+    /// On the first tick after a save load (while `dirty` is still set before `step_pipework` runs),
+    /// preserves any existing `current` flow level at an outlet's front cell so save/reload stays deterministic.
+    pub(crate) fn outlet_stream_level_at(&self, pos: IVec3, current: crate::block::BlockId) -> Option<u8> {
+        let mut best = 0u8;
+        let cur_lvl = crate::block::flow_level(current).unwrap_or(0);
+        for (d, &dir) in DIRS.iter().enumerate() {
+            if let Some(&Slot::Pipe(i)) = self.at.get(&(pos - dir)) {
+                let p = &self.pipework[i as usize];
+                if p.part == Part::Outlet && p.facing as usize == d {
+                    let lvl = if self.dirty { cur_lvl } else { p.pouring };
+                    if lvl > best {
+                        best = lvl;
+                    }
+                }
+            }
+        }
+        (best > 0).then_some(best)
     }
 }
 
@@ -212,19 +263,41 @@ impl Machine for Pipework {
             Part::Pipe => format!("{network}\nPipes join pumps to outlets and water inlets"),
             Part::Pump => {
                 let tier = self.pump_stats();
+                let lift = self.lift();
+                let pct = self.pressure / 10;
+                let rate_tenths = tier.rate * u32::from(self.pressure) / 100;
                 let me = f.pipework.iter().position(|p| p.pos == self.pos);
                 let pole = me.and_then(|i| f.power.pipe_pole.get(i).copied()).flatten();
                 let status = match self.flow {
-                    Flow::Working | Flow::Idle => format!("Pumping {} blocks of water a second", tier.rate),
+                    Flow::Working | Flow::Idle => format!(
+                        "Pumping {}.{} blocks/s · lift {lift} / {} blocks ({pct}% pressure)",
+                        rate_tenths / 10,
+                        rate_tenths % 10,
+                        tier.max_head
+                    ),
+                    Flow::TooHigh => {
+                        format!(
+                            "Too high: pipes rise {lift} blocks (Mk{} lifts up to {})",
+                            self.tier + 1,
+                            tier.max_head
+                        )
+                    }
                     Flow::NoPower => f.power.grid_line(pole),
-                    Flow::NoWater => format!("No water: it takes still water within {PUMP_RANGE} blocks of it"),
-                    Flow::Full | Flow::Blocked => "Full: pipe it to an outlet that can pour".to_string(),
+                    Flow::NoWater => format!("No water: takes still water within {PUMP_RANGE} blocks"),
+                    Flow::Full | Flow::Blocked => {
+                        format!("Full · lift {lift} / {} blocks ({pct}% pressure)", tier.max_head)
+                    }
                 };
-                format!("{status}\nHolding {} of {} · needs {} kW\n{network}", self.held, tier.hold, tier.power)
+                format!("{status}\nHolding {} of {} · needs {} kW\n{network}", self.held, tier.hold, self.power_kw())
             }
             Part::Outlet => {
+                let pct = self.pressure / 10;
+                let rate_tenths = OUTLET_RATE * u32::from(self.pressure) / 100;
                 let status = match self.flow {
-                    Flow::Working => format!("Pouring up to {OUTLET_RATE} blocks of water a second"),
+                    Flow::Working => {
+                        format!("Pouring up to {}.{} blocks/s ({pct}% pressure)", rate_tenths / 10, rate_tenths % 10)
+                    }
+                    Flow::TooHigh => "No pressure: pipes rise too high for the pump".to_string(),
                     Flow::Blocked => "Nowhere to pour: the space in front is full".to_string(),
                     _ => "Waiting for water from a pump".to_string(),
                 };
@@ -233,137 +306,9 @@ impl Machine for Pipework {
         }
     }
 
-    /// Round pipes (blue banded for water, pale and red banded for steam): a pipe whose joins lie on one line is one
-    /// straight length through its cell, else a round hub with an arm to each joined face; a pump housing or an outlet
-    /// spout around a pump's or outlet's arms. Each arm ends at its face, so joined cells never draw the same surface
-    /// twice (they flickered), and a steel flange rings each joint, drawn by the cell on its low side only.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         self.write_static(out, rel);
         self.write_dynamic(out, rel, time);
-    }
-}
-
-impl Pipework {
-    /// Camera- and time-independent pipework geometry (pipes, hubs, arms, flanges, pump body, outlet body).
-    pub(super) fn write_static(&self, out: &mut Vec<f32>, rel: Vec3) {
-        let steel = [tex::STEEL; 3];
-        let pipe = [match self.fluid {
-            Fluid::Water => tex::PIPE_WATER,
-            Fluid::Steam => tex::PIPE_STEAM,
-            Fluid::Mixed => tex::LAMP_RED,
-        }; 3];
-        let joined = |f: usize| self.arms & (1 << f) != 0;
-        let facing = if DIRS[self.facing as usize].x != 0 { 0 } else { 2 };
-        let line = (0..6).filter(|&f| joined(f)).map(axis_of).try_fold(None, |line, a| match line {
-            Some(l) if l != a => Err(()),
-            _ => Ok(Some(a)),
-        });
-        let straight = match line {
-            Ok(a) => Some(a.unwrap_or(facing)),
-            Err(()) => None,
-        };
-        match (self.part, straight) {
-            (Part::Pipe, Some(a)) => push_round(out, rel, 0.0, AXES[a], along(a, 1.0, PIPE_D), 1.0, pipe, false),
-            (part, _) => {
-                if part == Part::Pipe {
-                    let arms_on = |a: usize| (0..6).filter(|&f| joined(f) && axis_of(f) == a).count();
-                    let a = (0..3).max_by_key(|&a| arms_on(a)).unwrap_or(0);
-                    push_round(out, rel, 0.0, AXES[a], along(a, HUB_D, HUB_D), 1.0, steel, false);
-                }
-                for (f, &n) in FACES.iter().enumerate().filter(|&(f, _)| joined(f)) {
-                    let a = axis_of(f);
-                    push_round(out, rel + n.as_vec3() * 0.25, 0.0, AXES[a], along(a, 0.5, PIPE_D), 1.0, pipe, false);
-                }
-            }
-        }
-        for (f, &n) in FACES.iter().enumerate().filter(|&(f, n)| joined(f) && n.x + n.y + n.z > 0) {
-            let a = axis_of(f);
-            push_round(out, rel + n.as_vec3() * 0.5, 0.0, AXES[a], along(a, FLANGE_LEN, FLANGE_D), 1.0, steel, false);
-        }
-        match self.part {
-            Part::Pipe => {}
-            Part::Pump => {
-                let skid = if self.tier > 0 { tex::stripe(self.tier) } else { tex::FRAME };
-                push_box(out, rel + Vec3::new(0.0, -0.425, 0.0), 0.0, [0.86, 0.13, 0.86], 0.0, [skid; 3], false);
-                let casing = [tex::FRAME, tex::PIPE_WATER, tex::FRAME];
-                push_round(out, rel + Vec3::new(0.0, -0.06, 0.0), 0.0, Axis::X, [0.6, 0.62, 0.62], 1.0, casing, false);
-                let motor = [tex::FRAME, tex::MOTOR, tex::FRAME];
-                push_box(out, rel + Vec3::new(0.0, 0.33, 0.0), 0.0, [0.34, 0.2, 0.34], 0.0, motor, false);
-            }
-            Part::Outlet => {
-                let d = DIRS[self.facing as usize].as_vec3();
-                push_box(out, rel, 0.0, [0.5; 3], 0.0, steel, false);
-                let yaw = d.x.atan2(-d.z) as f32;
-                push_box(out, rel + d * 0.4, yaw, [0.3, 0.3, 0.3], 0.0, [tex::FRAME; 3], false);
-            }
-        }
-    }
-
-    /// Animated and near-camera parts of a pump or outlet (fan, stream, status lamp, tier studs; nothing for pipes).
-    pub(super) fn write_dynamic(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
-        match self.part {
-            Part::Pipe => {}
-            Part::Pump => {
-                tier_mark::ring(out, rel + Vec3::new(0.0, -0.43, 0.0), 0.0, [0.43, 0.43], self.tier);
-                let spin = if self.flow == Flow::Working { (time * 9.0) as f32 } else { 0.0 };
-                push_box(out, rel + Vec3::new(0.0, 0.45, 0.0), spin, [0.32, 0.04, 0.08], 0.0, [tex::STEEL; 3], false);
-                push_box(
-                    out,
-                    rel + Vec3::new(0.0, 0.37, 0.18),
-                    0.0,
-                    [0.12, 0.08, 0.02],
-                    0.0,
-                    [lamp(self.flow); 3],
-                    false,
-                );
-            }
-            Part::Outlet => {
-                let d = DIRS[self.facing as usize].as_vec3();
-                let yaw = d.x.atan2(-d.z) as f32;
-                if self.flow == Flow::Working {
-                    let stream = rel + d * 0.62 - Vec3::new(0.0, 0.25, 0.0);
-                    push_box(out, stream, yaw, [0.18, 0.5, 0.14], (time * 2.0) as f32, [tex::WATER; 3], false);
-                }
-                push_box(out, rel + Vec3::new(0.0, 0.3, 0.0), 0.0, [0.1, 0.1, 0.1], 0.0, [lamp(self.flow); 3], false);
-            }
-        }
-    }
-}
-
-/// A pipe's diameter, a junction's hub, and the flange round each joint (as fractions of a block).
-const PIPE_D: f32 = 0.24;
-const HUB_D: f32 = 0.34;
-const FLANGE_D: f32 = 0.32;
-const FLANGE_LEN: f32 = 0.06;
-/// The round body's axis for world axis x, y, z.
-const AXES: [Axis; 3] = [Axis::X, Axis::Up, Axis::Z];
-
-/// The world axis (0 x, 1 y, 2 z) of face `f` of `FACES`.
-fn axis_of(f: usize) -> usize {
-    let n = FACES[f];
-    if n.x != 0 {
-        0
-    } else if n.y != 0 {
-        1
-    } else {
-        2
-    }
-}
-
-/// The size of a round body `len` long along world axis `a` and `d` across.
-fn along(a: usize, len: f32, d: f32) -> [f32; 3] {
-    let mut s = [d; 3];
-    s[a] = len;
-    s
-}
-
-/// The status lamp: green working, yellow full or blocked, red without power or water.
-fn lamp(flow: Flow) -> u16 {
-    match flow {
-        Flow::Working => tex::LAMP_GREEN,
-        Flow::Full | Flow::Blocked => tex::LAMP_YELLOW,
-        Flow::NoPower | Flow::NoWater => tex::LAMP_RED,
-        Flow::Idle => tex::FRAME,
     }
 }
 

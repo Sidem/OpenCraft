@@ -129,8 +129,8 @@ pub const PUMP_RECIPE: Recipe = Recipe {
     group: Group::Logistics,
     count: 1,
     inputs: &[(IRON_PLATE, 6), (IRON_ROD, 4), (COPPER_WIRE, 6)],
-    blurb: "Lifts 2 blocks of still water a second out of the water it touches, highest first. Pipe it to \
-            an outlet; needs 5 kW. It can't lower the sea.",
+    blurb: "Lifts up to 2 blocks of still water a second up to 12 blocks high. Pressure and flow drop with pipe \
+            height and lift costs extra power (+14 kW per block climbed, 5 kW base). Can't lower the sea.",
 };
 
 pub const PIPE_RECIPE: Recipe = Recipe {
@@ -146,8 +146,8 @@ pub const OUTLET_RECIPE: Recipe = Recipe {
     group: Group::Logistics,
     count: 1,
     inputs: &[(IRON_PLATE, 3), (IRON_ROD, 2)],
-    blurb: "Pours the water its pipes bring out in front of it (it faces the way you do), filling from the \
-            bottom up.",
+    blurb: "Discharge spout that pours pressurized water out in front of it (faces the way you do). Flow rate and \
+            jet pressure depend on pump height and how high the pipes climb.",
 };
 
 pub const GENERATOR_RECIPE: Recipe = Recipe {

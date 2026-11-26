@@ -18,7 +18,7 @@ pub const WASHER: BlockId = 89;
 pub const TAILINGS: BlockId = 90;
 /// The research center (the Research Center tech): a 2×2×2 lab with eight pack slots.
 pub const RESEARCH_CENTER: BlockId = 91;
-/// The water wheel (the Hydropower tech): a 3×3×1 power source that reads the water touching it.
+/// The water wheel (the Hydropower tech): an upright 3×1×3 power source driven by falling water on one side.
 pub const WATER_WHEEL: BlockId = 92;
 /// The hoist shaft (the Hoists tech): a climbable steel frame, fast while a winch beside its top cell has power.
 pub const HOIST: BlockId = 93;

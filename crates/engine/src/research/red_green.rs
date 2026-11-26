@@ -174,8 +174,8 @@ pub(super) const RED_GREEN: [Tech; 17] = [
     },
     Tech {
         name: "Hydropower",
-        blurb: "The water wheel (3×3×1) stands beside or in water and turns it into power: 2 kW for every water block \
-                that touches it (4 for flowing water), up to 48 kW, with no fuel and day and night.",
+        blurb: "The water wheel (3×1×3) turns falling water on one side into power: up to 10 kW for every falling \
+                water block along that side (30 kW max), with no fuel and day and night.",
         ring: Ring::Green,
         wedge: Wedge::Power,
         deed: None,

@@ -22,9 +22,9 @@ pub const WATER_WHEEL_RECIPE: Recipe = Recipe {
     group: Group::Power,
     count: 1,
     inputs: &[(b(PLANKS), 12), (IRON_ROD, 8), (GEAR, 4), (COPPER_WIRE, 6)],
-    blurb: "A 3×3×1 wheel that stands in a river or beside a lake: every water block touching it gives 2 kW (flowing \
-            water 4), up to 48 kW, day and night with no fuel. A river's weir or a pool you pipe in works as a dam. \
-            Hang it on a power pole.",
+    blurb: "An upright 3×1×3 wooden wheel driven by falling water on one side: up to 10 kW per falling water block \
+            along that side (30 kW max), day and night with no fuel. Water on both sides cancels out. Hang it on a \
+            power pole.",
 };
 
 pub const HOIST_RECIPE: Recipe = Recipe {

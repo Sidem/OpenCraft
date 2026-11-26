@@ -80,7 +80,9 @@ pub const PUMP_MK2_RECIPE: Recipe = Recipe {
     group: Group::Logistics,
     count: 1,
     inputs: &[(b(PUMP), 1), (GREEN_KIT, 4)],
-    blurb: "Lifts 4 blocks of water a second and holds 4; needs 10 kW. Or upgrade a placed pump with 4 green kits.",
+    blurb:
+        "Lifts up to 4 blocks/s up to 24 blocks high (10 kW base + 28 kW per block climbed) and holds 4. Or upgrade \
+            a placed pump with 4 green kits.",
 };
 
 pub const PUMP_MK3_RECIPE: Recipe = Recipe {
@@ -88,7 +90,9 @@ pub const PUMP_MK3_RECIPE: Recipe = Recipe {
     group: Group::Logistics,
     count: 1,
     inputs: &[(PUMP_MK2, 1), (BLUE_KIT, 4)],
-    blurb: "Lifts 6 blocks of water a second and holds 6; needs 20 kW. Or upgrade a placed pump with 4 blue kits.",
+    blurb:
+        "Lifts up to 6 blocks/s up to 40 blocks high (20 kW base + 42 kW per block climbed) and holds 6. Or upgrade \
+            a placed pump with 4 blue kits.",
 };
 
 pub const QUARRY_MK2_RECIPE: Recipe = Recipe {

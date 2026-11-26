@@ -52,6 +52,8 @@ pub enum Look {
     Jack,
     /// A seismic thumper's hydraulic drop-hammer and impact shock ring (`thumper.rs`).
     Thumper,
+    /// A water wheel's rotating wooden wheel, water-filled buckets and splash spray (`hydro/view.rs`).
+    WaterWheel,
 }
 
 #[derive(Clone, Copy)]
@@ -225,6 +227,10 @@ fn draw_dynamic_body(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) ->
             }
             Look::Thumper => {
                 super::thumper::draw_dynamic(p, out, centre, yaw, time);
+                continue;
+            }
+            Look::WaterWheel => {
+                super::hydro::draw_wheel(p, out, centre, yaw, time);
                 continue;
             }
             Look::Fire(idle) => [if working { tex::LAMP_YELLOW } else { idle }; 3],

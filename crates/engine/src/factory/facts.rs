@@ -119,10 +119,11 @@ pub fn facts(item: ItemId) -> Option<Facts> {
         PUMP => {
             let t = &PUMP_TIERS[tier.min(PUMP_TIERS.len() - 1)];
             f.uses = Some(t.power);
-            f.stat("Lifts", format!("{} blocks of water/s", t.rate));
+            f.stat("Lifts", format!("Up to {} blocks/s (max head {} blocks)", t.rate, t.max_head));
+            f.stat("Lift power", format!("+{} kW per block of climb", t.lift_power));
         }
         PIPE => f.stat("Carries", "Water or steam between machines"),
-        OUTLET => f.stat("Pours", format!("{OUTLET_RATE} blocks of water/s")),
+        OUTLET => f.stat("Pours", format!("Up to {OUTLET_RATE} blocks/s (scales with head pressure)")),
         GENERATOR => {
             let t = &GENERATOR_TIERS[tier.min(GENERATOR_TIERS.len() - 1)];
             f.fuel = Some(fuel_names());

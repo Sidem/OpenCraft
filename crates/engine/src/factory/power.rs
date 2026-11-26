@@ -256,7 +256,7 @@ impl Power {
             each(p, l.pos, l.wants_power(u.research), LAB, l.stats().power);
         }
         for (m, p) in u.pipework.iter().zip(&self.pipe_pole) {
-            each(p, m.pos, m.wants_power(), PUMP, m.pump_stats().power);
+            each(p, m.pos, m.wants_power(), PUMP, m.power_kw());
         }
         for (q, p) in u.quarries.iter().zip(&self.quarry_pole) {
             each(p, q.pos, q.wants_power(), QUARRY, q.stats().power);

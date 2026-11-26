@@ -40,6 +40,11 @@ pub struct Store {
     pub taken: u32,
     /// kW the water around a water wheel, or the satellites over a rectenna, give (derived; `hydro.rs`, `rectenna.rs`).
     pub flow: u32,
+    /// Falling-water side mask for a water wheel (derived; `hydro.rs`): bits 0..3 left (y=0..3), bits 4..7 right.
+    pub hydro_mask: u8,
+    /// A water wheel's rotation in turns (0..1) and angular speed in turns per tick (derived, presentation only).
+    pub wheel_angle: f64,
+    pub wheel_spin: f64,
 }
 
 const TIER: [ProcessTier; 1] = [ProcessTier { energy: Energy::Solar, speed: 1000, fuel: 0, power: 0 }];

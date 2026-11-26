@@ -116,8 +116,8 @@ fn a_sea_pump_feeds_a_boiler_and_two_turbines_at_400_kw() {
             best[i] = best[i].max(sim.factory.processor_at(pos, TURBINE).steam.output);
         }
     }
-    assert!((405..=410).contains(&peak), "nine Mk3 constructors and a pump: {peak} kW");
-    assert_eq!(best, [240, 170], "the first turbine gives all it can, the second the rest of 405 kW and the pump's 5");
+    assert!((405..=452).contains(&peak), "nine Mk3 constructors and a 3-block-lift pump: {peak} kW");
+    assert_eq!(best, [240, 212], "the first turbine gives all it can, the second the rest of 405 kW and the pump's 47");
     assert_eq!(rods(&sim), [64; 9], "every constructor finished its stack");
     // 405 kW for 43 s is 17,400 kJ: about 32 coal at 540 kJ, and two coal's steam still in the boiler.
     let burnt = COAL - coal_left(&sim);

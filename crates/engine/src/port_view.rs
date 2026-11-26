@@ -41,7 +41,8 @@ impl Game {
     /// Draws the held machine's ghost and its port marks, or the marks of built machines while a belt is held.
     pub(crate) fn write_port_view(&mut self, eye: Vec3, time: f64) {
         let ghost = self.footprint_ghost();
-        let shape_ghost = if ghost.is_none() {
+        let outlet_ghost = if ghost.is_none() { self.outlet_ghost() } else { None };
+        let shape_ghost = if ghost.is_none() && outlet_ghost.is_none() {
             self.shape_placement().map(|(b, pos, s, blk)| {
                 (b, pos, s, blk, crate::shape::corner_of(s, pos, |q| self.sim.world.get_shape(q)))
             })
@@ -63,6 +64,10 @@ impl Game {
         if let Some((block, anchor, dir, cells)) = ghost {
             *blocked = cells.iter().any(|c| c.1);
             port_marks::draw_ghost(block, anchor, dir, eye, time, free, marks, boxes);
+        } else if let Some((pos, facing, arms, is_blocked)) = outlet_ghost {
+            *blocked = is_blocked;
+            let rel = pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye;
+            factory::preview_outlet(boxes, rel, facing, arms, time);
         } else if let Some((block, pos, s, is_blocked, corner)) = shape_ghost {
             *blocked = is_blocked;
             let f = block::def(block).faces;
