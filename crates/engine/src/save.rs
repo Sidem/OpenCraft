@@ -98,7 +98,16 @@ impl Game {
             return Err(DAMAGED.into());
         }
         r.version = version;
-        read_game(&mut r, seed, layers, view_radius).ok_or_else(|| DAMAGED.into())
+        let at = r.clone();
+        read_game(&mut r, seed, layers, view_radius)
+            .or_else(|| {
+                // A save 89 written while the water wheel rework was unreleased (local builds of 2026-11-26) ended each pipe,
+                // pump and outlet with its stream level; read such a file once more that way.
+                let mut r = at.clone();
+                r.pipe_level_byte = version == 89;
+                r.pipe_level_byte.then(|| read_game(&mut r, seed, layers, view_radius)).flatten()
+            })
+            .ok_or_else(|| DAMAGED.into())
     }
 }
 

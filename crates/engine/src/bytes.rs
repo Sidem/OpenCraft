@@ -96,16 +96,19 @@ impl ByteWriter {
 const BLOCK_ESCAPE: u8 = 255;
 
 /// Reads what a `ByteWriter` wrote, in the same order. Its primitives are not inlined either (0.4 KB).
+#[derive(Clone)]
 pub struct ByteReader<'a> {
     bytes: &'a [u8],
     pos: usize,
     /// The save format being read (`SAVE_VERSION` unless a save header says otherwise).
     pub version: u32,
+    /// Reading a save 89 file from an unreleased build that ended each pipework entry with a byte (save.rs).
+    pub pipe_level_byte: bool,
 }
 
 impl<'a> ByteReader<'a> {
     pub fn new(bytes: &'a [u8]) -> Self {
-        ByteReader { bytes, pos: 0, version: SAVE_VERSION }
+        ByteReader { bytes, pos: 0, version: SAVE_VERSION, pipe_level_byte: false }
     }
 
     /// The next `n` raw bytes.

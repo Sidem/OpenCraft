@@ -232,6 +232,9 @@ impl Machine for Pipework {
         if r.version >= 21 {
             p.tier = r.u8()?;
         }
+        if r.pipe_level_byte {
+            r.u8()?; // an outlet's stream level, derived since
+        }
         if p.tier as usize >= PUMP_TIERS.len() {
             return None;
         }

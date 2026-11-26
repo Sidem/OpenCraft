@@ -275,3 +275,24 @@ fn rotating_a_placed_outlet_turns_its_spout_and_drains_the_old_stream() {
     run(&mut sim, 2);
     assert_eq!(sim.world.block_anywhere_or_generate(at(12, 101, 2)), AIR, "old east stream dried up");
 }
+
+#[test]
+fn an_unreleased_save_89_with_a_level_byte_per_pipe_still_reads() {
+    let mut sim = pit_over_a_cliff(true);
+    run(&mut sim, 2);
+    let mut plain = ByteWriter::default();
+    let mut padded = ByteWriter::default();
+    for p in &sim.factory.pipework {
+        p.write_state(&mut plain);
+        p.write_state(&mut padded);
+        padded.u8(5); // the stream level that build wrote
+    }
+    let read = |bytes: &[u8], pad: bool| {
+        let mut r = ByteReader::new(bytes);
+        (r.version, r.pipe_level_byte) = (89, pad);
+        let list: Vec<_> = sim.factory.pipework.iter().map(|_| Pipework::read_state(&mut r).unwrap()).collect();
+        assert!(r.is_done());
+        list.iter().map(|p| (p.pos, p.part, p.facing, p.progress, p.held, p.tier)).collect::<Vec<_>>()
+    };
+    assert_eq!(read(&padded.bytes, true), read(&plain.bytes, false));
+}
