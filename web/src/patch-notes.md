@@ -21,6 +21,10 @@ version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/t
 - **Grass grows on every side that sees daylight**, not only on top: hill steps, banks and the edges of a ditch turn green, and ground in deep shade shows bare soil. Bare dirt near you greens over a few minutes, even where nothing was dug.
 - **Fresh holes show soil.** Dig into a lawn and the sides of the hole are bare earth, as in a real garden; grass creeps back over them one side at a time over a few minutes.
 - **Grass lives while any side is open.** It turns back to dirt only once every side is covered.
+- **A new water wheel.** It stands upright on a timber frame and turns the way falling water pushes it: pour water on one side only, and its paddles carry it round. Water on both sides stalls it.
+- **Pumps feel the height.** The higher a pipe climbs, the less water a pump lifts and the more power it needs, up to its tier's limit; a wheel driving a pump that feeds that wheel slowly runs down.
+- **Outlets have a spout you can turn.** Place an outlet and its ghost shows where the water will fall; press R to turn it, before or after placing. Water now visibly pours from it.
+
 ## 2026-11-26 · v0.18.0 · The space elevator, phase 1
 - **A space elevator to build.** Research **Space Elevator** in the Sky ring and place its **anchor** near the depot of a town or a city (one per world; it tells you whether the spot fits). The tether climbs into the sky in **eight sections of 64 blocks**, each a big order of steel beams, aluminium, plastic, chips and, higher up, rocket fuel, brought in by belts.
 - **Its climbers keep your factory busy.** From the second section on they use goods every minute; miss a minute and the section waits. Empty fuel barrels come back out of the anchor's front. While its town is stalled, the elevator waits too.
