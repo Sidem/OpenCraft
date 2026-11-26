@@ -140,12 +140,12 @@ export class Ambience {
   }
 
   /** Call every frame with the game: reads the surroundings a few times a second and plays the one-shots. */
-  poll(game: { surroundings(): Float32Array; time_of_day(): number }, dt: number): void {
+  poll(game: { surroundings(): Float32Array; sun_time(): number }, dt: number): void {
     if (!this.ctx || !this.beds || !this.audible) return;
     this.since += dt;
     if (this.since >= POLL) {
       this.since = 0;
-      this.retarget(mixFor(game.surroundings(), game.time_of_day(), this.weather));
+      this.retarget(mixFor(game.surroundings(), game.sun_time(), this.weather));
     }
     this.gust(dt);
     SHOTS.forEach((shot, i) => {

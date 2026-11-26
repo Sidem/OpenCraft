@@ -72,7 +72,7 @@ const clamp = (v: number) => Math.round(Math.min(100, Math.max(0, v)));
 /** What `Music.poll` reads from the game (surroundings, time of day and completed research era). */
 export interface MusicGame {
   surroundings(): Float32Array;
-  time_of_day(): number;
+  sun_time(): number;
   tech_count(): number;
   tech_done(t: number): boolean;
   tech_endless(t: number): boolean;
@@ -182,7 +182,7 @@ export class Music {
     const s = game.surroundings();
     this.duck = duckFor(s[S.din]);
     this.apply();
-    const play = this.director.update(elapsed, contextFor(s, game.time_of_day(), researchEra(game)));
+    const play = this.director.update(elapsed, contextFor(s, game.sun_time(), researchEra(game)));
     if (play) this.begin(play.piece as Piece, play.crossfade);
   }
 

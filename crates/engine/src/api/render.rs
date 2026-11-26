@@ -179,9 +179,29 @@ impl Game {
         self.body().pitch
     }
 
-    /// The time of day (daytime.rs): 0 midnight, 0.25 sunrise, 0.5 noon, 0.75 sunset.
+    /// The clock's time of day (daytime.rs): 0 midnight, 0.5 noon; sunrise and sunset move with the season.
     pub fn time_of_day(&self) -> f64 {
         daytime::time_of_day(self.sim.tick)
+    }
+
+    /// The sun's place in its day, for the sky: 0 midnight, 0.25 sunrise, 0.5 noon, 0.75 sunset in every season.
+    pub fn sun_time(&self) -> f64 {
+        daytime::sun_time(self.sim.tick)
+    }
+
+    /// The season: 0 spring, 1 summer, 2 autumn, 3 winter.
+    pub fn season(&self) -> u32 {
+        daytime::season(self.sim.tick) as u32
+    }
+
+    /// Which day of its season it is, counting from 1 (`daytime::DAYS_PER_SEASON` days each).
+    pub fn day_of_season(&self) -> u32 {
+        daytime::day_of_season(self.sim.tick) as u32
+    }
+
+    /// How far through the year it is, 0 to 1 from the start of spring.
+    pub fn year_fraction(&self) -> f64 {
+        daytime::year_fraction(self.sim.tick)
     }
 
     /// Seconds in one day (the console turns "time noon" into a number of seconds to skip).

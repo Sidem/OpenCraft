@@ -373,7 +373,7 @@ async function main(): Promise<void> {
       targetFit: !hasTarget ? [] : Array.from(game.target_fit()),
       selectedItem: Array.from(game.selected_item_box()),
       mineProgress: game.mine_progress(),
-      time: game.time_of_day(),
+      time: game.sun_time(),
       days: game.day_number() - 1 + game.time_of_day(),
       seed: worldSeed,
       biome: biomeNow(now),

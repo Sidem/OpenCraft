@@ -62,9 +62,11 @@ fn lot(seed: u32, saplings: u32, tier: usize) -> Sim {
     sim
 }
 
-/// The lot with no forester on it yet.
+/// The lot with no forester on it yet, on the second day of summer: growth there is nearest the year-round rate the
+/// pace bars were set at (`daytime::growth_ticks`), and a run of a few hours stays in summer.
 fn bare(seed: u32) -> Sim {
     let mut sim = Sim::new(seed, 2);
+    sim.tick = (crate::daytime::DAYS_PER_SEASON + 1) * crate::daytime::DAY_TICKS;
     fill(&mut sim, at(-8, GROUND - 6, -14), at(20, GROUND - 1, 14), STONE);
     fill(&mut sim, at(-8, GROUND - 2, -14), at(20, GROUND - 1, 14), DIRT);
     fill(&mut sim, at(-8, GROUND, -14), at(20, GROUND, 14), GRASS);
@@ -301,13 +303,17 @@ fn an_upgrade_grows_the_patch_where_the_ground_allows() {
     let stone = at(16, GROUND + 1, 10);
     sim.world.set_block_anywhere(stone, STONE);
     assert!(sim.factory.upgrade(q()));
-    until(&mut sim, 30, rest);
+    // The round under way ends first: a summer patch has many trees to fell, so keep the generator fed.
+    sim.factory.insert(GEN, COAL_ORE.into(), 64);
+    until(&mut sim, 300, rest);
     sim.step();
+    sim.factory.insert(GEN, COAL_ORE.into(), 64);
     until(&mut sim, 300, rest);
     sim.step();
     assert_eq!(forest(&sim).ground, Survey { size: Some(1), uneven: 1, blocker: Some(stone) });
     assert!(forester(&sim).status_text().contains("flatten more ground"), "{}", forester(&sim).status_text());
     sim.world.set_block_anywhere(stone, AIR);
+    sim.factory.insert(GEN, COAL_ORE.into(), 64);
     until(&mut sim, 300, |s| forest(s).ground.size == Some(2));
 }
 

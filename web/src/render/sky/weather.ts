@@ -10,8 +10,9 @@
 // `skyAt` (render/sky.ts) take. To tune: `storminess`'s weights and the three smoothsteps in `weatherAt` (the test pins the
 // shares of clear, cloudy and wet time and how fast things may change); the biome rows `WET` and `WARMTH`.
 
-/** Game days in a year: the same as astro.ts `YEAR_DAYS` (a test checks; a value import would not load under `node --test`). */
-export const YEAR_DAYS = 96;
+/** Game days in a year: the engine's `daytime::YEAR_DAYS` (four seasons of nine days), and astro.ts `YEAR_DAYS` (a test
+ * checks; a value import would not load under `node --test`). */
+export const YEAR_DAYS = 36;
 
 export type WeatherKind = 'clear' | 'cloudy' | 'gloomy' | 'rain' | 'snow';
 
@@ -73,8 +74,8 @@ export function storminess(seed: number, days: number): number {
 
 /** The temperature at `days` in a biome, about -0.5 (cold) to 1.5 (hot); snow falls below zero. */
 export function temperature(biome: number, days: number): number {
-  // The first half of a year is the warm half, the second the cold one.
-  return (WARMTH[biome] ?? WARMTH[0]) + SWING * Math.sin((2 * Math.PI * days) / YEAR_DAYS);
+  // The year starts in spring (days 0 to 9): warmest in the middle of summer, coldest in the middle of winter.
+  return (WARMTH[biome] ?? WARMTH[0]) + SWING * Math.sin(2 * Math.PI * (days / YEAR_DAYS - 1 / 8));
 }
 
 export function weatherAt(seed: number, days: number, biome: number): Weather {

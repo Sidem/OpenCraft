@@ -11,13 +11,14 @@
 //! `BlockTimers` keeps its entries sorted by (due tick, position, kind), at most one per position and
 //! kind and at most `MAX_TIMERS` (new ones beyond that are dropped). `Sim::step` runs the due ones after
 //! the tick's actions; a timer checks its condition again when it fires. Delays are exponential draws
-//! from `Sim.rng` with a half-life per kind.
+//! from `Sim.rng` with a half-life per kind; growth runs fast in spring and waits out the winter (`daytime.rs`).
 //!
 //! To add a timed rule: a `TimerKind` (append: saves store it as a byte), its check in `block_changed`
 //! and its effect in `fire`.
 
 use crate::block::{is_leaves, is_log, is_sapling, is_turf, sapling_of, BlockId, AIR, DIRT, GRASS, SOLID};
 use crate::bytes::{ByteReader, ByteWriter};
+use crate::daytime::growth_ticks;
 use crate::math::{IVec3, Vec3};
 use crate::sim::{Sim, SimEvent};
 use crate::TICK_RATE;
@@ -217,11 +218,16 @@ impl Sim {
         self.schedule_after(pos, kind, 0.0, half_life);
     }
 
-    /// Schedules `kind` at `pos` after `min` seconds plus an exponential delay with the given half-life.
+    /// Schedules `kind` at `pos` after `min` seconds plus an exponential delay with the given half-life; growth (grass,
+    /// sod, saplings) takes that long at summer's rate and follows the season (`daytime::growth_ticks`).
     pub(super) fn schedule_after(&mut self, pos: IVec3, kind: TimerKind, min: f64, half_life: f64) {
         let u = 1.0 - self.rng.next_f64(); // (0, 1]
         let ticks = ((min - u.ln() * half_life / std::f64::consts::LN_2) * TICK_RATE as f64) as u64;
-        self.timers.schedule(Timer { due: self.tick + ticks.max(1), pos, kind });
+        let due = match kind {
+            TimerKind::GrassGrow | TimerKind::SodGrow | TimerKind::SaplingGrow => growth_ticks(self.tick, ticks),
+            TimerKind::LeafDecay | TimerKind::GrassDie => self.tick + ticks,
+        };
+        self.timers.schedule(Timer { due: due.max(self.tick + 1), pos, kind });
     }
 
     pub(crate) fn block(&mut self, p: IVec3) -> BlockId {

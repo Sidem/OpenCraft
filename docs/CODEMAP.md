@@ -26,7 +26,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `action.rs`: the `Action` enum. `action/`: `apply.rs` (one arm each), `clicks.rs`, `blocks.rs`, `docks.rs`, `multiblock.rs`,
   `codec.rs` + `codec/read.rs` (bytes; tags append only).
 - `bytes.rs`: canonical encoding (a block id is one byte below 255, else 255 and a `u16`). `save.rs`: the file, `SAVE_VERSION`. `join.rs`: const-table joins. `math.rs`: vectors, hashes, `Rng`.
-- `doors.rs`, `deposits.rs` (pools, tiers, `HAND_YIELD`), `daytime.rs`, `crafting.rs`, `take_apart.rs`, `perks.rs`, `mode.rs`, `tools.rs` (tool classes, retired tools).
+- `doors.rs`, `deposits.rs` (pools, tiers, `HAND_YIELD`), `daytime.rs` (clock and calendar: seasons, day length, growth by season), `crafting.rs`, `take_apart.rs`, `perks.rs`, `mode.rs`, `tools.rs` (tool classes, retired tools).
 - `inventory.rs` + `inventory/stacks.rs` + `inventory/kinds.rs`; `equipment.rs` (worn gear, packs, upgrades); `tool_belt/` (the worn Tool Belt: speeds, crouch reach, the hand's head, migration); `offhand.rs`.
 - `research.rs`; `research/`: `techs.rs` (`TECHS`), `ids.rs`, `rings.rs` (rings, wedges, thresholds, red deeds), `red_green.rs`, `blue.rs`, `violet.rs`, `gold_sky.rs`, `later.rs` (techs added since, at the open end), `migrate.rs` (save < 86 migration), `queue.rs`, `bonus.rs`.
 - `codex/`: world-wide obtained-items bitset (save 83), `data.rs` (periodic table forms/facts), `achievements.rs`.

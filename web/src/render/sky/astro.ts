@@ -12,7 +12,7 @@
 export type Vec3 = [number, number, number];
 
 /** Game days for the stars to come round once (the seasons of the night sky). */
-export const YEAR_DAYS = 96;
+export const YEAR_DAYS = 36; // the engine's daytime::YEAR_DAYS
 /** Game days from one full moon to the next (twelve moons a year). */
 export const MOON_DAYS = 8;
 /** The sun's right ascension on the first day: 12 hours, so the first nights have Cassiopeia and Cygnus overhead. */

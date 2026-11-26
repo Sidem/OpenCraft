@@ -4,6 +4,12 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-26 · v0.18.3 · Seasons
+- **The year has seasons.** A world starts on the first day of spring, and each season lasts 9 days (3 hours of play), so a year is 36 days.
+- **Days follow the year.** Summer days are long (up to 16 hours of daylight) and winter days short (8 hours). The sky and solar panels follow them; over a year, panels make as much power as before.
+- **Growth follows the seasons.** Grass, saplings and Forester trees grow twice as fast in spring, a little faster in summer, slowly in autumn and not at all in winter. Over a year they grow as much as before, so stock up on logs before winter.
+- **The night sky and the snow keep the same year:** the stars turn once in 36 days, and snow falls in winter.
+
 ## 2026-11-26 · v0.18.2 · Underwater belts
 - **Belts laid under water keep the water around them.** Water stays and flows around and through belts in lakes, streams and sea-level trenches, and breaking a wet belt leaves the water behind while items still move along it as usual.
 

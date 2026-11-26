@@ -95,11 +95,11 @@ test('precipitation is snow exactly when the place is below freezing', () => {
       assert.equal(weatherAt(5, d, b).snow, temperature(b, d) < 0);
     }
   }
-  // Plains: warm in the first half of the year, snowy only deep in the cold half.
-  assert.ok(temperature(PLAINS, YEAR_DAYS / 4) > 0.5, 'high summer');
-  assert.ok(temperature(PLAINS, (3 * YEAR_DAYS) / 4) < 0, 'midwinter');
+  // Plains: warm through summer, snowy only deep in winter.
+  assert.ok(temperature(PLAINS, (3 * YEAR_DAYS) / 8) > 0.5, 'high summer');
+  assert.ok(temperature(PLAINS, (7 * YEAR_DAYS) / 8) < 0, 'midwinter');
   assert.ok(temperature(PLAINS, YEAR_DAYS / 2 + 1) > 0, 'early autumn is not snowy');
-  assert.ok(temperature(DESERT, (3 * YEAR_DAYS) / 4) > 0, 'deserts do not freeze');
+  assert.ok(temperature(DESERT, (7 * YEAR_DAYS) / 8) > 0, 'deserts do not freeze');
 });
 
 test('the clear state keeps a few small clouds and no gloom', () => {
