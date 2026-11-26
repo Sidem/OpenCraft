@@ -98,41 +98,41 @@ fn wet(sim: &mut Sim, p: IVec3) -> bool {
 }
 
 #[test]
-fn a_broken_dam_falls_into_the_pit_and_spreads_seven_cells() {
+fn a_broken_dam_falls_into_the_pit_and_spreads_six_cells() {
     let mut sim = pond_above_a_pit();
     change(&mut sim, DAM, AIR);
     settle(&mut sim);
     assert_eq!(sim.block(DAM), flow(7));
     assert_eq!(sim.block(at(6, 100, 15)), flow(6), "the lip");
     for y in 91..100 {
-        assert_eq!(sim.block(at(6, y, 15)), FLOW_7, "falling at y {y}");
+        assert_eq!(sim.block(at(6, y, 15)), flow(6), "falling at y {y}: the lip's level, no stronger");
         assert!(!wet(&mut sim, at(7, y, 15)), "falling water doesn't spread in the air");
     }
-    // On the floor: level 8 - distance from where it lands, so at most 7 cells out.
+    // On the floor: the fall's level where it lands, then one less a cell, so at most 6 cells out.
     for z in 1..=29 {
         for x in 6..=39 {
             let d = (x - 6) + (z - 15i32).abs();
             let expect = match d {
-                0 => FLOW_7,
-                1..=7 => flow(8 - d as u8),
+                0 => flow(6),
+                1..=6 => flow(7 - d as u8),
                 _ => AIR,
             };
             assert_eq!(sim.block(at(x, 90, z)), expect, "({x}, {z})");
         }
     }
-    assert_eq!(sim.block(at(13, 90, 15)), FLOW_1);
+    assert_eq!(sim.block(at(12, 90, 15)), FLOW_1);
     assert_eq!(sim.block(at(1, 100, 15)), WATER, "the pond is a source: it stays");
 }
 
-/// What the player sees (`mesher/water.rs`): a settled flow thins out in even steps, from 13/16 of a block where it
-/// lands to the last cell's 1/16, never a step that skips a height.
+/// What the player sees (`mesher/water.rs`): a settled flow thins out in even steps, from 11/16 of a block where it
+/// lands (the lip's level 6) to the last cell's 1/16, never a step that skips a height or rises.
 #[test]
 fn a_settled_flow_thins_in_even_steps_of_height() {
     let mut sim = pond_above_a_pit();
     change(&mut sim, DAM, AIR);
     settle(&mut sim);
-    let heights: Vec<u32> = (0..8).map(|d| crate::mesher::water_height(sim.block(at(6 + d, 90, 15)))).collect();
-    assert_eq!(heights, [13, 13, 11, 9, 7, 5, 3, 1], "the landing cell, then 7 cells out");
+    let heights: Vec<u32> = (0..7).map(|d| crate::mesher::water_height(sim.block(at(6 + d, 90, 15)))).collect();
+    assert_eq!(heights, [11, 11, 9, 7, 5, 3, 1], "the landing cell, then 6 cells out");
 }
 
 #[test]
@@ -177,7 +177,7 @@ fn cores_agree_whatever_is_loaded_and_a_save_reloads_mid_flow() {
         c.step();
         assert_eq!(a.state_hash(), c.state_hash(), "tick {t}");
     }
-    assert_eq!(c.block(at(13, 90, 15)), FLOW_1, "the reloaded core finished the flow");
+    assert_eq!(c.block(at(12, 90, 15)), FLOW_1, "the reloaded core finished the flow");
 }
 
 /// A walled sea beside a dry basin 38 × 39 × 2 at sea level (2,964 cells), opened by one hole.

@@ -6,9 +6,10 @@
 //! - At or below `SEA_LEVEL` (the sea's top water block) a cell next to a source, sideways or above,
 //!   becomes a source. The sea is endless: it refills holes and trenches, floods what connects to it,
 //!   and a pump can't lower it (nor the few cells of a deep pond that reach that low).
-//! - A cell under water becomes falling water (`FLOW_7`).
+//! - A cell under water becomes falling water: `FLOW_7` under a source, the same level under flowing water, so a fall
+//!   never gains strength (a water wheel fed from a pump can't power that pump: `factory/process/hydro.rs`).
 //! - Otherwise its level is its best feed minus 1 (0 is air, so a flow without a feed dries up). A
-//!   source feeds 8; flowing water feeds its level, or 8 where falling water lands, but only while it
+//!   source feeds 8; flowing water feeds its level, or one more where falling water lands, but only while it
 //!   rests on a block that holds it (neither air nor water): water with air under it falls instead of
 //!   spreading, and water landing on water joins it.
 //!
@@ -159,7 +160,7 @@ impl Sim {
             return 0;
         }
         if LIQUID[self.block(pos + UP) as usize] {
-            8
+            level + 1
         } else {
             level
         }
