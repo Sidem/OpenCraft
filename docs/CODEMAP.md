@@ -20,7 +20,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `events.rs`: `SimEvent`s → item spawns, sounds, toasts, analytics. `authority.rs`: bodies, loose items, join/leave. `grass_sweep.rs`: seeds grass on bare dirt near bodies (`Action::GrowGrass`).
 
 ### Deterministic core (changes only through `Action`s at a tick)
-- `sim.rs`: `Sim`, `step`, `state_hash`, `PlayerId`. `sim/`: `event.rs`, `timers.rs` (leaf decay, grass, saplings), `water.rs`,
+- `sim.rs`: `Sim`, `step`, `state_hash`, `PlayerId`. `sim/`: `state.rs` (the core's bytes, in order), `event.rs`, `timers.rs` (leaf decay, grass, saplings),
+  `sod.rs` (turf faces a dig uncovers start bare and regrow), `water.rs`,
   `saplings.rs`, `torches.rs`, `scrap.rs`, `vault.rs` (ruin vault puzzle), `felling.rs` + `felling/tree.rs` (grown trees felled whole), `fire/` (`blaze.rs`, `front.rs`: burning trees to charcoal, grass fronts, flamethrower rays).
 - `action.rs`: the `Action` enum. `action/`: `apply.rs` (one arm each), `clicks.rs`, `blocks.rs`, `docks.rs`, `multiblock.rs`,
   `codec.rs` + `codec/read.rs` (bytes; tags append only).
@@ -84,7 +85,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `textures.rs` + `textures/`: procedural placeholder layers (the art pack overrides them in the browser).
 
 ### World and generation
-- `chunk.rs` (32³ + sparse shapes/paint), `world/mod.rs` (`*_anywhere` accessors), `world/shapes.rs` (save 84), `world/colours.rs` (save 85), `world/streaming.rs`, `world/boxlight.rs`,
+- `chunk.rs` (32³ + sparse shapes/paint/bare turf faces), `world/mod.rs` (`*_anywhere` accessors), `world/shapes.rs` (save 84), `world/colours.rs` (save 85), `world/sod.rs` (save 90), `world/streaming.rs`, `world/boxlight.rs`,
   `world/glows.rs`, `world/settle.rs` (simulation liquid edits wait 0.15 s), `world/cover_clear.rs` (sickle-cut columns; saved), `world/upgrade.rs` (in-place deposits-layer refresh).
 - `worldgen/mod.rs`: heights, caves, `generate`, generator versions (pinned by `released_versions_never_change`). `layers.rs` (`Layers`: ground, water, cover, deposits), `column.rs`,
   `biome.rs`, `landform.rs`, `caves.rs`, `water.rs`, `rivers.rs` + `rivers/`, `shore.rs`, `trees.rs` (up to version 11),
@@ -102,7 +103,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - Tools: `prospect.rs`, `seismic/` (`mod.rs`, `scan.rs`, `volume.rs`: 2D MRI slice + 48³ 3D volume query), `survey.rs` + `survey/orbit.rs`, `telescope.rs` + `telescope/` (`ground.rs`, `beacons.rs`), `sickle.rs`, `flame_hands.rs`.
 
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
-- `mesher.rs` + `mesher/` (`quad.rs`, `face_layer.rs` (alternates, turf's lit sides), `water.rs`, `blocks/` + `blocks/slope.rs` shaped slabs/stairs/roofs, `cover.rs` + `cover/shape.rs`); trees: `shaped.rs`, `tree_grid.rs`, `logs.rs` + `logs/`
+- `mesher.rs` + `mesher/` (`quad.rs`, `face_layer.rs` (alternates, turf's lit grown faces), `plants.rs`, `water.rs`, `blocks/` + `blocks/slope.rs` shaped slabs/stairs/roofs, `cover.rs` + `cover/shape.rs`); trees: `shaped.rs`, `tree_grid.rs`, `logs.rs` + `logs/`
   (`node.rs`, `ring.rs`), `foliage.rs` + `foliage/style.rs`.
 - `entities.rs` + `entities/merge.rs`, `avatars.rs` + `avatars/` (`grip.rs`, `hand.rs`, `tool_hold.rs`; first-person hand & character rig), `halos.rs`, `fire_view.rs` + `fire_view/torch.rs` (burning tree/ember emitters, ballistic torch plumes, flame lights & glow), `wire_props.rs`,
   `held_light.rs`, `drone_view.rs` + `companion_view.rs`, `orbit_fx.rs`, `sound.rs`.

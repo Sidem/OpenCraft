@@ -57,6 +57,14 @@ pub const RUSTY_SOIL: BlockId = 36;
 pub const DARK_SOIL: BlockId = 37;
 pub const GREEN_SOIL: BlockId = 38;
 pub const PALE_SOIL: BlockId = 39;
+
+/// Turf: grass and the soils that stain it, a green top over soil whose faces green where grown and lit
+/// (`sim/sod.rs`, `mesher/face_layer.rs`).
+#[inline]
+pub const fn is_turf(b: BlockId) -> bool {
+    b == GRASS || (b >= RUSTY_SOIL && b <= PALE_SOIL)
+}
+
 /// The same hints where the surface is sand; they drop sand.
 pub const RUSTY_SAND: BlockId = 40;
 pub const DARK_SAND: BlockId = 41;

@@ -15,6 +15,7 @@ mod cover_clear;
 mod glows;
 mod settle;
 mod shapes;
+mod sod;
 mod streaming;
 mod upgrade;
 

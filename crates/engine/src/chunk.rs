@@ -31,13 +31,16 @@ pub struct Chunk {
     /// Sparse per-cell per-face paint (`colour/mod.rs`, 6 faces × 5 bits packed in `u32`), sorted by
     /// `index(x, y, z) as u16`; `None` when no surface in the chunk is painted (0 heap bytes).
     paint: Option<Vec<(u16, u32)>>,
+    /// Sparse per-cell bare turf faces (`sim/sod.rs`: a bit per face grass hasn't grown over since an edit uncovered
+    /// it), sorted by `index(x, y, z) as u16`; `None` when there are none (0 heap bytes).
+    bare: Option<Vec<(u16, u8)>>,
     /// Edited by the player since generation; kept when the chunk is streamed out.
     pub modified: bool,
 }
 
 impl Chunk {
     pub fn uniform(b: BlockId) -> Self {
-        Self { data: Data::Uniform(b), shapes: None, paint: None, modified: false }
+        Self { data: Data::Uniform(b), shapes: None, paint: None, bare: None, modified: false }
     }
 
     /// Takes ownership of a dense buffer, collapsing it to a uniform chunk when possible.
@@ -47,7 +50,7 @@ impl Chunk {
         if blocks.iter().all(|&b| b == first) {
             return Self::uniform(first);
         }
-        Self { data: Data::Dense(blocks.into_boxed_slice()), shapes: None, paint: None, modified: false }
+        Self { data: Data::Dense(blocks.into_boxed_slice()), shapes: None, paint: None, bare: None, modified: false }
     }
 
     #[inline]
@@ -65,6 +68,9 @@ impl Chunk {
         if self.paint.is_some() {
             self.set_paint(x, y, z, 0);
         }
+        if self.bare.is_some() {
+            self.set_bare(x, y, z, 0);
+        }
         if let Data::Uniform(u) = self.data {
             if u == b {
                 return;
@@ -79,48 +85,44 @@ impl Chunk {
     /// Shape modifier at `(x, y, z)` (`0` = full cube). O(1) fast path when the chunk has no shapes.
     #[inline]
     pub fn get_shape(&self, x: usize, y: usize, z: usize) -> u8 {
-        let Some(list) = self.shapes.as_deref() else { return 0 };
-        let key = index(x, y, z) as u16;
-        list.binary_search_by_key(&key, |&(i, _)| i).map_or(0, |at| list[at].1)
+        get_sparse(self.shapes.as_deref(), index(x, y, z))
     }
 
     /// Sets the shape modifier at `(x, y, z)` (`0` clears it), returning the previous shape.
     /// Promotes a uniform chunk to dense when adding a non-full shape so `as_uniform` stays exact.
     pub fn set_shape(&mut self, x: usize, y: usize, z: usize, shape: u8) -> u8 {
-        let key = index(x, y, z) as u16;
         if shape != 0 {
-            if let Data::Uniform(u) = self.data {
-                self.data = Data::Dense(vec![u; CHUNK_VOLUME].into_boxed_slice());
-            }
+            self.make_dense();
         }
-        let Some(list) = self.shapes.as_mut() else {
-            if shape == 0 {
-                return 0;
-            }
-            self.shapes = Some(vec![(key, shape)]);
-            return 0;
-        };
-        let old = match list.binary_search_by_key(&key, |&(i, _)| i) {
-            Ok(at) => {
-                let prev = list[at].1;
-                if shape == 0 {
-                    list.remove(at);
-                } else {
-                    list[at].1 = shape;
-                }
-                prev
-            }
-            Err(at) => {
-                if shape != 0 {
-                    list.insert(at, (key, shape));
-                }
-                0
-            }
-        };
-        if list.is_empty() {
-            self.shapes = None;
+        set_sparse(&mut self.shapes, index(x, y, z), shape)
+    }
+
+    /// Bare turf faces at `(x, y, z)` (`0` = every face grown). O(1) fast path when the chunk has none.
+    #[inline]
+    pub fn get_bare(&self, x: usize, y: usize, z: usize) -> u8 {
+        get_sparse(self.bare.as_deref(), index(x, y, z))
+    }
+
+    /// Sets the bare turf faces at `(x, y, z)` (`0` clears them), returning the previous mask.
+    pub fn set_bare(&mut self, x: usize, y: usize, z: usize, mask: u8) -> u8 {
+        set_sparse(&mut self.bare, index(x, y, z), mask)
+    }
+
+    /// Every cell with bare turf faces, sorted by cell index.
+    #[inline]
+    pub fn bares(&self) -> &[(u16, u8)] {
+        self.bare.as_deref().unwrap_or(&[])
+    }
+
+    /// Replaces the chunk's bare-face table from a validated, sorted save list.
+    pub fn set_bare_sorted(&mut self, list: Vec<(u16, u8)>) {
+        self.bare = (!list.is_empty()).then_some(list);
+    }
+
+    fn make_dense(&mut self) {
+        if let Data::Uniform(u) = self.data {
+            self.data = Data::Dense(vec![u; CHUNK_VOLUME].into_boxed_slice());
         }
-        old
     }
 
     #[inline]
@@ -148,47 +150,15 @@ impl Chunk {
     /// Packed per-face paint at `(x, y, z)` (`0` = unpainted). O(1) fast path when the chunk has no paint.
     #[inline]
     pub fn get_paint(&self, x: usize, y: usize, z: usize) -> u32 {
-        let Some(list) = self.paint.as_deref() else { return 0 };
-        let key = index(x, y, z) as u16;
-        list.binary_search_by_key(&key, |&(i, _)| i).map_or(0, |at| list[at].1)
+        get_sparse(self.paint.as_deref(), index(x, y, z))
     }
 
     /// Sets the packed per-face paint at `(x, y, z)` (`0` clears it), returning the previous value.
     pub fn set_paint(&mut self, x: usize, y: usize, z: usize, packed: u32) -> u32 {
-        let key = index(x, y, z) as u16;
         if packed != 0 {
-            if let Data::Uniform(u) = self.data {
-                self.data = Data::Dense(vec![u; CHUNK_VOLUME].into_boxed_slice());
-            }
+            self.make_dense();
         }
-        let Some(list) = self.paint.as_mut() else {
-            if packed == 0 {
-                return 0;
-            }
-            self.paint = Some(vec![(key, packed)]);
-            return 0;
-        };
-        let old = match list.binary_search_by_key(&key, |&(i, _)| i) {
-            Ok(at) => {
-                let prev = list[at].1;
-                if packed == 0 {
-                    list.remove(at);
-                } else {
-                    list[at].1 = packed;
-                }
-                prev
-            }
-            Err(at) => {
-                if packed != 0 {
-                    list.insert(at, (key, packed));
-                }
-                0
-            }
-        };
-        if list.is_empty() {
-            self.paint = None;
-        }
-        old
+        set_sparse(&mut self.paint, index(x, y, z), packed)
     }
 
     #[inline]
@@ -241,9 +211,9 @@ impl Chunk {
         }
     }
 
-    /// Whether both hold the same blocks, shapes and paint, however each is stored.
+    /// Whether both hold the same blocks, shapes, paint and bare turf faces, however each is stored.
     pub fn same_blocks(&self, other: &Chunk) -> bool {
-        if self.shapes() != other.shapes() || self.paints() != other.paints() {
+        if self.shapes() != other.shapes() || self.paints() != other.paints() || self.bares() != other.bares() {
             return false;
         }
         match (&self.data, &other.data) {
@@ -302,6 +272,33 @@ impl Chunk {
         }
         Some(Chunk::from_blocks(blocks))
     }
+}
+
+/// The value at cell `i` of a sparse table sorted by cell (`T::default()` when absent).
+#[inline]
+fn get_sparse<T: Copy + Default>(list: Option<&[(u16, T)]>, i: usize) -> T {
+    let Some(list) = list else { return T::default() };
+    list.binary_search_by_key(&(i as u16), |&(k, _)| k).map_or_else(|_| T::default(), |at| list[at].1)
+}
+
+/// Sets cell `i` of a sparse table (the default value removes it; an empty table becomes `None`); the old value.
+fn set_sparse<T: Copy + Default + PartialEq>(table: &mut Option<Vec<(u16, T)>>, i: usize, value: T) -> T {
+    let (key, none) = (i as u16, T::default());
+    let list = table.get_or_insert_with(Vec::new);
+    let old = match list.binary_search_by_key(&key, |&(k, _)| k) {
+        Ok(at) if value == none => list.remove(at).1,
+        Ok(at) => std::mem::replace(&mut list[at].1, value),
+        Err(at) => {
+            if value != none {
+                list.insert(at, (key, value));
+            }
+            none
+        }
+    };
+    if list.is_empty() {
+        *table = None;
+    }
+    old
 }
 
 #[cfg(test)]

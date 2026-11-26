@@ -20,20 +20,20 @@
 //! high one, averaged from the light field (`light.rs`) in the cells in front of the face around that
 //! corner. They follow the vertices in `verts`, four per `u32` (see [`MeshOutput`]).
 //!
-//! Quads are merged only where AO and light are constant along the merge direction, so greedy
-//! merging never changes how their gradients look. Layers with alternates (ores, leaves:
-//! `block::tex::alternates`) get one of four looks per block (`face_layer.rs`, which also greens turf's lit
-//! sides), so those faces merge less. Plants (`block::PLANT`) are two crossed quads, each emitted in both windings, into the
-//! cutout list and never merged (so is the ground cover on natural ground: `cover.rs`). Liquids (`block::LIQUID`) get faces only against cells that are neither
-//! opaque nor liquid, unshaded by AO, into a third list the host draws blended after the others. Their
-//! surface corners sit below the block's top by a height read from the cells around (`water::corner_drop`), so
+//! Quads are merged only where AO and light are constant along the merge direction, so greedy merging never changes
+//! how their gradients look. Layers with alternates (ores, leaves: `block::tex::alternates`) get one of four looks per
+//! block (`face_layer.rs`, which also greens turf's lit, grown-over faces: `sim/sod.rs`), so those faces merge less.
+//! Plants (`block::PLANT`) are two crossed quads into the cutout list, never merged (`plants.rs`; so is the ground
+//! cover on natural ground: `cover.rs`). Liquids (`block::LIQUID`) get faces only against cells that are neither
+//! opaque nor liquid, unshaded by AO, into a third list the host draws blended after the others. Their surface corners
+//! sit below the block's top by a height read from the cells around (`water::corner_drop`), so
 //! flows slope smoothly and no face is needed between two liquid cells.
 //!
 //! Trees are not cubes: logs (branches, `logs.rs`) and leaves (cards, `foliage.rs`), read from the blocks around the
 //! chunk (`tree_grid.rs`), go into a fourth, "shaped" list with its own vertex format (`shaped.rs`). Logs hide no
 //! faces beside them (`HIDES`).
 
-use crate::block::{is_leaves, is_log, BlockId, AIR, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT, TRANSLUCENT};
+use crate::block::{is_leaves, is_log, BlockId, AIR, CUTOUT, LIQUID, MESHED, OPAQUE, TRANSLUCENT};
 use crate::chunk::{index, Chunk};
 use shaped::{HIDES, SHAPED};
 
@@ -42,6 +42,7 @@ mod cover;
 mod face_layer;
 mod foliage;
 mod logs;
+mod plants;
 mod quad;
 pub mod shaped;
 mod tree_grid;
@@ -87,6 +88,8 @@ pub struct Mesher {
     /// Per-face paint for the centre 32³ chunk; filled only when `has_paint` is true (zero work for unpainted chunks).
     centre_paint: Vec<u32>,
     has_paint: bool,
+    /// The centre chunk's bare turf faces (`Chunk::bares`, `sim/sod.rs`), sorted by cell; usually empty.
+    centre_bare: Vec<(u16, u8)>,
     mask: Vec<(u64, u8)>,
     opaque: Vec<u32>,
     cutout: Vec<u32>,
@@ -126,6 +129,7 @@ impl Mesher {
             has_shapes: false,
             centre_paint: vec![0; N * N * N],
             has_paint: false,
+            centre_bare: Vec::new(),
             mask: vec![(0, 0); N * N],
             opaque: Vec::new(),
             cutout: Vec::new(),
@@ -252,6 +256,8 @@ impl Mesher {
                 self.centre_paint[idx as usize] = packed;
             }
         }
+        self.centre_bare.clear();
+        self.centre_bare.extend_from_slice(centre.bares());
     }
 
     fn mesh_face(&mut self, face: usize, light: &[u8]) {
@@ -264,6 +270,7 @@ impl Mesher {
         let has_shapes = self.has_shapes;
         let centre_paint = &self.centre_paint;
         let has_paint = self.has_paint;
+        let centre_bare = &self.centre_bare;
         let opp_bit = 1u8 << (face ^ 1);
         let mask = &mut self.mask;
 
@@ -313,7 +320,7 @@ impl Mesher {
                             let layer = if liquid {
                                 u64::from(water::look(pad, p))
                             } else {
-                                u64::from(face_layer(b, face, c, light[q] & 15))
+                                u64::from(face_layer(b, face, c, light[q] & 15, centre_bare))
                             };
                             key = KEY_FLAG
                                 | (u64::from(CUTOUT[b as usize]) << KEY_CUTOUT)
@@ -383,43 +390,6 @@ impl Mesher {
                     bu += w;
                 }
             }
-        }
-    }
-}
-
-impl Mesher {
-    /// Two diagonal quads per plant block (faces 6 and 7), each in both windings, unshaded by AO.
-    fn mesh_plants(&mut self, light: &[u8]) {
-        for y in 0..N {
-            for z in 0..N {
-                for x in 0..N {
-                    let p = pidx(x + 1, y + 1, z + 1);
-                    let b = self.pad[p];
-                    if !PLANT[b as usize] {
-                        continue;
-                    }
-                    let layer = FACE_TEX[b as usize][0] as u32;
-                    self.push_plant(x as u32, y as u32, z as u32, layer, light[p]);
-                }
-            }
-        }
-    }
-
-    /// The crossed quads of a plant in chunk cell (x, y, z) drawn with texture `layer`, lit by `light`.
-    fn push_plant(&mut self, x: u32, y: u32, z: u32, layer: u32, light: u8) {
-        let (lo, hi) = (layer & 0x1FF, ((layer >> 9) as u8) << 5);
-        for _ in 0..16 {
-            self.cutout_light.push(light);
-            self.cutout_light.push(hi);
-        }
-        let v = |dx: u32, dy: u32, dz: u32, face: u32| {
-            (x + dx) | ((y + dy) << 6) | ((z + dz) << 12) | (face << 18) | (3 << 21) | (lo << 23)
-        };
-        let a = [v(0, 0, 0, 6), v(1, 0, 1, 6), v(1, 1, 1, 6), v(0, 1, 0, 6)];
-        let b = [v(1, 0, 0, 7), v(0, 0, 1, 7), v(0, 1, 1, 7), v(1, 1, 0, 7)];
-        for q in [a, b] {
-            self.cutout.extend_from_slice(&q);
-            self.cutout.extend_from_slice(&[q[3], q[2], q[1], q[0]]);
         }
     }
 }

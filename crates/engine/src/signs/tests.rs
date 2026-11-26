@@ -175,6 +175,8 @@ fn signs_are_saved_and_older_saves_have_none() {
         sim.paint.write_state(&mut charges);
         let mut elevator = ByteWriter::default();
         crate::elevator::write_state(&sim.elevator, &mut elevator);
+        let mut bare = ByteWriter::default();
+        sim.world.write_bare(&mut bare);
         let tail = [
             bytes.as_slice(),
             &felling.bytes,
@@ -186,11 +188,12 @@ fn signs_are_saved_and_older_saves_have_none() {
             &paint.bytes,
             &charges.bytes,
             &elevator.bytes,
+            &bare.bytes,
         ]
         .concat();
         assert!(
             core.bytes.ends_with(&tail),
-            "the core ends with the signs, the trees being felled, the LED colours, the switched-off machines, active fires, the codex, chunk shapes, surface paint and the elevator"
+            "the core ends with the signs, the trees being felled, the LED colours, the switched-off machines, active fires, the codex, chunk shapes, surface paint, the elevator and the bare turf faces"
         );
     }
     const { assert!(SAVE_VERSION >= 63, "signs came with save 63") };
@@ -199,8 +202,8 @@ fn signs_are_saved_and_older_saves_have_none() {
     let fresh = crate::sim::Sim::new(2024, 2);
     fresh.write_state(&mut w);
     let cut = crate::helpers::before_drone_orders(&fresh, &w.bytes);
-    // (Cut the signs' count, the LED colours', the switched-off machines', active fires, the empty codex, chunk shapes, surface paint + charges and the elevator, which a save 62 does not have either.)
-    let old = &cut[..cut.len() - 50];
+    // (Cut the signs' count, the LED colours', the switched-off machines', active fires, the empty codex, chunk shapes, surface paint + charges, the elevator and the bare turf faces, which a save 62 does not have either.)
+    let old = &cut[..cut.len() - 54];
     let (mut r, mut sim) = (ByteReader::new(old), crate::sim::Sim::new(2024, 2));
     r.version = 62;
     assert!(sim.read_state(&mut r).is_some() && r.is_done(), "a version 62 core");

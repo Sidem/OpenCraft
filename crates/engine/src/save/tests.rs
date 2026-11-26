@@ -186,8 +186,11 @@ fn a_version_76_save_still_loads_and_saves_with_only_the_head_slot_and_the_new_t
     assert!(g.sim.codex.has(IRON_INGOT), "migrated v76 save seeds codex from existing inventory");
     // +4 bytes for the empty chunk-shapes list (save 84), +20 bytes for surface paint & charges (save 85);
     // save 86 migrated 85 techs -> 76 techs (-36 bytes) + open_rings (1) + belts_laid (4) = -31 bytes vs V76; MAT-CLAY's
-    // two techs (+8); the Space Elevator tech (+4) and no elevator (+1, save 89).
-    assert_eq!(saved.len(), V76_SAVE.len() + 2 * players - 31 + 8 + 4 + 1 + 4 + leds + 12 + 12 + codex_bytes + 4 + 20);
+    // two techs (+8); the Space Elevator tech (+4), no elevator (+1, save 89) and no bare turf faces (+4, save 90).
+    assert_eq!(
+        saved.len(),
+        V76_SAVE.len() + 2 * players - 31 + 8 + 4 + 1 + 4 + 4 + leds + 12 + 12 + codex_bytes + 4 + 20
+    );
     let back = Game::load(&saved, 2).expect("the new format loads");
     assert_eq!(back.sim.state_hash(), g.sim.state_hash());
 }

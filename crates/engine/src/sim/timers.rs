@@ -1,7 +1,8 @@
 //! Block timers (core state): single-block changes due at a later tick. Leaves decay once no log
 //! holds them up; grass spreads onto dirt beside it that has any face open (a hillside's bare step, a trench wall,
 //! not only a top) and turns back to dirt once every face is covered; saplings grow into trees (`sim/saplings.rs`).
-//! Which open faces draw green is the mesher's (lit ones: `mesher/face_layer.rs`).
+//! Turf faces an edit uncovers start bare and grow over one by one (`sim/sod.rs`, timer `SodGrow`); which grown faces
+//! draw green is the mesher's (lit ones: `mesher/face_layer.rs`).
 //!
 //! Invariants: timers start only from block changes (`Sim::block_changed`, called by the actions that
 //! break and place blocks and by the timers themselves) and from `Action::GrowGrass` (the authority's sweep for
@@ -15,11 +16,13 @@
 //! To add a timed rule: a `TimerKind` (append: saves store it as a byte), its check in `block_changed`
 //! and its effect in `fire`.
 
-use crate::block::{is_leaves, is_log, is_sapling, sapling_of, BlockId, AIR, DIRT, GRASS, SOLID};
+use crate::block::{is_leaves, is_log, is_sapling, is_turf, sapling_of, BlockId, AIR, DIRT, GRASS, SOLID};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::{IVec3, Vec3};
 use crate::sim::{Sim, SimEvent};
 use crate::TICK_RATE;
+
+use super::sod::SOD_HALF_LIFE;
 
 /// Most timers pending at once.
 pub const MAX_TIMERS: usize = 4096;
@@ -38,6 +41,7 @@ pub enum TimerKind {
     GrassGrow = 1,
     GrassDie = 2,
     SaplingGrow = 3,
+    SodGrow = 4,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -81,6 +85,7 @@ impl BlockTimers {
                 1 => TimerKind::GrassGrow,
                 2 => TimerKind::GrassDie,
                 3 => TimerKind::SaplingGrow,
+                4 => TimerKind::SodGrow,
                 _ => return None,
             };
             timers.schedule(Timer { due, pos, kind });
@@ -123,6 +128,7 @@ impl Sim {
         if is_sapling(self.block(pos)) {
             self.schedule_growth(pos);
         }
+        self.sod_changed(pos, old);
         for p in cube(pos, 1) {
             self.check_grass(p);
         }
@@ -134,12 +140,17 @@ impl Sim {
         self.water_changed(pos, old);
     }
 
-    /// Starts the grass timer `p` calls for, if any: dirt that can green grows, grass with every face covered dies.
+    /// Starts the grass timers `p` calls for, if any: dirt that can green grows, grass with every face covered dies,
+    /// turf with bare faces grows over them.
     pub(crate) fn check_grass(&mut self, p: IVec3) {
-        match self.block(p) {
+        let b = self.block(p);
+        match b {
             DIRT if self.grass_can_grow(p) => self.schedule(p, TimerKind::GrassGrow, GRASS_GROW_HALF_LIFE),
             GRASS if self.buried(p) => self.schedule(p, TimerKind::GrassDie, GRASS_DIE_HALF_LIFE),
             _ => {}
+        }
+        if is_turf(b) && self.world.bare_anywhere(p) != 0 {
+            self.schedule(p, TimerKind::SodGrow, SOD_HALF_LIFE);
         }
     }
 
@@ -173,6 +184,7 @@ impl Sim {
             TimerKind::GrassGrow => (DIRT, GRASS),
             TimerKind::GrassDie => (GRASS, DIRT),
             TimerKind::SaplingGrow => return self.grow_sapling(t.pos),
+            TimerKind::SodGrow => return self.grow_sod(t.pos),
         };
         if self.block(t.pos) != block {
             return;
@@ -181,11 +193,14 @@ impl Sim {
             TimerKind::LeafDecay => is_leaves(block) && !self.leaf_supported(t.pos),
             TimerKind::GrassGrow => self.grass_can_grow(t.pos),
             TimerKind::GrassDie => self.buried(t.pos),
-            TimerKind::SaplingGrow => false, // returned above
+            TimerKind::SaplingGrow | TimerKind::SodGrow => false, // returned above
         };
         // The remesh waits for the streaming budget: many timers fire in a burst (a felled tree's leaves).
         if !holds || !self.world.set_block_anywhere_later(t.pos, new) {
             return;
+        }
+        if t.kind == TimerKind::GrassGrow {
+            self.sod_sprouted(t.pos);
         }
         if t.kind == TimerKind::LeafDecay {
             self.events.push(SimEvent::LeafDecayed { pos: t.pos });
@@ -198,7 +213,7 @@ impl Sim {
     }
 
     /// Schedules `kind` at `pos` after an exponential delay with the given half-life (at least a tick).
-    fn schedule(&mut self, pos: IVec3, kind: TimerKind, half_life: f64) {
+    pub(super) fn schedule(&mut self, pos: IVec3, kind: TimerKind, half_life: f64) {
         self.schedule_after(pos, kind, 0.0, half_life);
     }
 

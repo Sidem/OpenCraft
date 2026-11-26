@@ -64,8 +64,10 @@ const B: PlayerId = PlayerId(1);
 // MAT-CLAY: the research table has 78 techs and new worlds record generator 14 (clay); nothing else moved.
 // v0.16.0: Underpasses moved to the Red ring (Red packs only), so the lab leaves its 6 Green packs untouched
 // (11_647_145_183_151_009_783).
-// Save 89 (M14A): the core ends with the space elevator (none here) and the research table has the Space Elevator tech.
-const GOLDEN_HASH: u64 = 17_479_648_060_806_993_320;
+// Save 89 (M14A): the core ends with the space elevator (none here) and the research table has the Space Elevator tech
+// (17_479_648_060_806_993_320).
+// Save 90 (sod): the core ends with the bare turf faces (`world/sod.rs`).
+const GOLDEN_HASH: u64 = 10_372_337_773_946_103_848;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

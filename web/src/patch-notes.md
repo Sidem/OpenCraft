@@ -5,7 +5,8 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
 ## 2026-11-26 · v0.18.1 · Green on every side
-- **Grass grows on every side that sees daylight**, not only on top: hill steps, banks and the walls of a ditch turn green, and sides in deep shade show bare soil. Bare dirt near you greens over a few minutes, even where nothing was dug.
+- **Grass grows on every side that sees daylight**, not only on top: hill steps, banks and the edges of a ditch turn green, and ground in deep shade shows bare soil. Bare dirt near you greens over a few minutes, even where nothing was dug.
+- **Fresh holes show soil.** Dig into a lawn and the sides of the hole are bare earth, as in a real garden; grass creeps back over them one side at a time over a few minutes.
 - **Grass lives while any side is open.** It turns back to dirt only once every side is covered.
 ## 2026-11-26 · v0.18.0 · The space elevator, phase 1
 - **A space elevator to build.** Research **Space Elevator** in the Sky ring and place its **anchor** near the depot of a town or a city (one per world; it tells you whether the spot fits). The tether climbs into the sky in **eight sections of 64 blocks**, each a big order of steel beams, aluminium, plastic, chips and, higher up, rocket fuel, brought in by belts.

@@ -3,7 +3,7 @@
 //! neighbouring ground plants.
 
 use super::{MAX_FRONT, MAX_HEAT, SCORCH_TICKS};
-use crate::block::{is_leaves, is_sapling, is_tree_wood, BlockId, AIR, GRASS, LIQUID, PALE_SOIL, RUSTY_SOIL};
+use crate::block::{is_leaves, is_sapling, is_tree_wood, is_turf, AIR, LIQUID};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::{hash3, IVec3};
 use crate::sim::Sim;
@@ -45,11 +45,6 @@ impl Front {
     pub(super) fn read_state(r: &mut ByteReader) -> Option<Front> {
         Some(Front { pos: r.ivec3()?, origin: (r.i32()?, r.i32()?), heat: r.u8()?, due: r.u64()? })
     }
-}
-
-/// Natural turf blocks where the weed torch clears ground cover.
-fn is_turf(b: BlockId) -> bool {
-    b == GRASS || (RUSTY_SOIL..=PALE_SOIL).contains(&b)
 }
 
 impl Sim {

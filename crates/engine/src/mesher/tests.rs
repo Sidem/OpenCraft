@@ -18,20 +18,25 @@ fn decode(v: u32) -> (u32, u32, u32, u32, u32) {
 }
 
 #[test]
-fn turf_sides_draw_green_in_daylight_and_soil_in_shade() {
-    use crate::block::{GRASS, RUSTY_SOIL};
+fn turf_faces_draw_green_where_lit_and_grown_over_and_soil_elsewhere() {
+    use crate::block::{FACE_TEX, GRASS, RUSTY_SOIL};
     use face_layer::GREEN_SKY;
     let c = [3, 4, 5];
-    let (top, soil) = (face_layer(GRASS, 2, c, 15), face_layer(GRASS, 3, c, 0));
+    let layer = |b, face, sky| face_layer(b, face, c, sky, &[]);
+    let (top, soil) = (layer(GRASS, 2, 15), layer(GRASS, 3, 0));
     assert_ne!(top, soil);
-    assert_eq!(face_layer(GRASS, 0, c, 15), top, "a side in daylight is as green as the top");
-    assert_eq!(face_layer(GRASS, 3, c, GREEN_SKY), top, "so is an underside a little into shade");
-    assert_eq!(face_layer(GRASS, 4, c, GREEN_SKY - 1), soil, "deeper in shade: soil");
-    assert_eq!(face_layer(GRASS, 2, c, 0), top, "the top stays green under a canopy");
-    assert_eq!(face_layer(RUSTY_SOIL, 1, c, 15), face_layer(RUSTY_SOIL, 2, c, 15), "stained soils too");
-    assert_eq!(face_layer(STONE, 0, c, 0), FACE_TEX[STONE as usize][0], "other blocks keep their own faces");
+    assert_eq!(layer(GRASS, 0, 15), top, "a side in daylight is as green as the top");
+    assert_eq!(layer(GRASS, 3, GREEN_SKY), top, "so is an underside a little into shade");
+    assert_eq!(layer(GRASS, 4, GREEN_SKY - 1), soil, "deeper in shade: soil");
+    assert_eq!(layer(GRASS, 2, GREEN_SKY - 1), soil, "the top too");
+    assert_eq!(layer(RUSTY_SOIL, 1, 15), layer(RUSTY_SOIL, 2, 15), "stained soils too");
+    assert_eq!(layer(STONE, 0, 0), FACE_TEX[STONE as usize][0], "other blocks keep their own faces");
+    // The cell's +x face is bare (a fresh hole's wall): soil in full daylight until grass grows over it.
+    let bares = [(index(2, 3, 4) as u16, 1u8 << 0)];
+    assert_eq!(face_layer(GRASS, 0, c, 15, &bares), soil);
+    assert_eq!(face_layer(GRASS, 1, c, 15, &bares), top, "its other faces are grown");
+    assert_eq!(face_layer(GRASS, 0, [3, 4, 6], 15, &bares), top, "and so is the cell beside it");
 }
-
 #[test]
 fn single_block_has_six_unoccluded_faces() {
     let m = mesh_single(|c| c.set(5, 5, 5, STONE));
