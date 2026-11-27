@@ -135,6 +135,7 @@ mod town_preview;
 mod train_tools;
 mod upgrade_aim;
 mod upgrade_lesson;
+mod weather;
 mod wire_props;
 pub mod wood;
 mod world;

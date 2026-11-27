@@ -358,8 +358,9 @@ fn pace(seed: u32, tier: usize, minutes: u32, warm: usize) -> (f64, f64, f64, f6
 
 /// The pace bars (numbers: `cargo test -q slow_steady -- --nocapture`), from a bare patch over 75 minutes on 3 seeds: a
 /// Mk1 gives 5 to 8 logs a minute, a Mk2 at least 1.7 times and a Mk3 at least 2.4 times as many; logs per 5 minutes
-/// within 25% (coefficient of variation), at most 1% of plot-minutes bare for want of a sapling, and every tier draws
-/// more energy per log than a log burns for.
+/// within 25% (coefficient of variation), at most 2% of plot-minutes bare for want of a sapling (1% before rain sped
+/// growth: a rain spell on seed 7 outruns a Mk3's nine starting saplings for a few plot-minutes, `weather::growth_due`),
+/// and every tier draws more energy per log than a log burns for.
 #[test]
 fn each_tier_gives_a_slow_steady_supply() {
     let mut means = [0.0; 3];
@@ -372,7 +373,7 @@ fn each_tier_gives_a_slow_steady_supply() {
                 tier + 1
             );
             assert!(cv < 0.25, "Mk{} seed {seed}: cv {cv:.3}", tier + 1);
-            assert!(starved <= 0.01, "Mk{} seed {seed}: starved {starved:.4}", tier + 1);
+            assert!(starved <= 0.02, "Mk{} seed {seed}: starved {starved:.4}", tier + 1);
             assert!(kj > best_burn() * 1.1, "Mk{} seed {seed}: {kj:.0} kJ a log", tier + 1);
             *mean += rate / seeds.len() as f64;
         }

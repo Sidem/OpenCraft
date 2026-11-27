@@ -205,7 +205,8 @@ size.
   branch. A passing loop between two signals lets two trains meet and pass; a plain line with a signal in the middle
   can deadlock.
 - **Solar power** (Solar Power research, after Electronics) is a solar panel (2×2×1) that gives up to 10 kW at
-  noon, less towards dawn and dusk and nothing at night, and the accumulator (2×2×2) that stores 10 MJ of spare
+  noon, less towards dawn and dusk, under heavy cloud (down to 60% in a storm) and nothing at night, and the
+  accumulator (2×2×2) that stores 10 MJ of spare
   sun and gives it back (up to 60 kW) when the sun falls short, before any generator or turbine burns fuel.
   Wire both to a power pole like any machine. Six panels and one accumulator carry a steady 15 kW round the
   clock; the world's day is 20 minutes.

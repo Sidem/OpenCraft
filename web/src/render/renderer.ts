@@ -275,7 +275,7 @@ export class Renderer {
     const gl = this.gl;
     this.resize();
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-    const look = this.weather.look(this.skySettings, f.seed, f.days, f.biome, performance.now()); // undefined: the plain sky
+    const look = this.weather.look(this.skySettings, f.weather, performance.now()); // undefined: the plain sky
     const sky = skyAt(f.time, look);
     const now = performance.now(), drawn = look ? this.weather.ease.value : undefined;
     const ground = this.precip.groundLook(drawn, this.skySettings.precip, now);

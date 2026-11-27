@@ -3,6 +3,7 @@
 // reads the box instance lists (views into wasm memory, valid for this frame only).
 
 import type { Game } from '../wasm/engine.js';
+import type { Weather } from './sky/weather';
 
 /** The box lists of this frame from `game`: the world's, the ghost's and the port marks', each with its round bodies. */
 export function boxViews(game: Game, memory: WebAssembly.Memory, floats: number) {
@@ -45,9 +46,8 @@ export interface FrameInfo {
   time: number;
   /** Days since the world began as a fraction (0 at the first midnight); moves the stars and the moon's phase. */
   days: number;
-  /** The world's seed and the biome the player stands in (engine order): what the weather is a function of (sky/weather.ts). */
-  seed: number;
-  biome: number;
+  /** The engine's weather at the camera (`game.weather_here()`, sky/weather.ts), before the ease. */
+  weather: Weather;
   /** Box instances (dropped items, belt items, machine parts), `INSTANCE_FLOATS` each. */
   boxes: Float32Array;
   boxCount: number;

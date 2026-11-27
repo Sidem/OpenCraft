@@ -18,9 +18,9 @@
 
 use crate::block::{is_leaves, is_log, is_sapling, is_turf, sapling_of, BlockId, AIR, DIRT, GRASS, SOLID};
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::daytime::growth_ticks;
 use crate::math::{IVec3, Vec3};
 use crate::sim::{Sim, SimEvent};
+use crate::weather::growth_due;
 use crate::TICK_RATE;
 
 use super::sod::SOD_HALF_LIFE;
@@ -219,12 +219,14 @@ impl Sim {
     }
 
     /// Schedules `kind` at `pos` after `min` seconds plus an exponential delay with the given half-life; growth (grass,
-    /// sod, saplings) takes that long at summer's rate and follows the season (`daytime::growth_ticks`).
+    /// sod, saplings) takes that long at summer's rate, follows the season and is quicker in rain (`weather::growth_due`).
     pub(super) fn schedule_after(&mut self, pos: IVec3, kind: TimerKind, min: f64, half_life: f64) {
         let u = 1.0 - self.rng.next_f64(); // (0, 1]
         let ticks = ((min - u.ln() * half_life / std::f64::consts::LN_2) * TICK_RATE as f64) as u64;
         let due = match kind {
-            TimerKind::GrassGrow | TimerKind::SodGrow | TimerKind::SaplingGrow => growth_ticks(self.tick, ticks),
+            TimerKind::GrassGrow | TimerKind::SodGrow | TimerKind::SaplingGrow => {
+                growth_due(self.world.generator(), pos, self.tick, ticks)
+            }
             TimerKind::LeafDecay | TimerKind::GrassDie => self.tick + ticks,
         };
         self.timers.schedule(Timer { due: due.max(self.tick + 1), pos, kind });

@@ -161,8 +161,9 @@ impl WorldGen {
         }
     }
 
-    /// The climate at (x, z), unfrayed: warmth and wetness (about -0.6..0.6, calm near spawn). Version 12's trees.
-    pub(super) fn climate_at(&self, x: i32, z: i32) -> (f64, f64) {
+    /// The climate at (x, z), unfrayed: warmth and wetness (about -0.6..0.6, calm near spawn). Version 12's trees and
+    /// the weather (`weather/climate.rs`).
+    pub(crate) fn climate_at(&self, x: i32, z: i32) -> (f64, f64) {
         let (fx, fz) = (x as f64, z as f64);
         let calm = smoothstep(SPAWN_CALM.0, SPAWN_CALM.1, (fx * fx + fz * fz).sqrt());
         (
