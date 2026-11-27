@@ -1,6 +1,6 @@
 // The four seasons as the calendar UI draws them (season-chip.ts, calendar.ts): a name (tooltips only), a colour and
-// a small icon, in the engine's order (`game.season()`: 0 spring to 3 winter, daytime.rs), plus the sun and moon
-// icons and the arc maths the year rings share. The year runs clockwise from the top. To restyle a season, edit its row.
+// a small icon, in the engine's order (`game.season()`: 0 spring to 3 winter, daytime.rs), plus the sun, moon and
+// weather icons (forecast.ts) and the arc maths the year rings share. The year runs clockwise from the top. To restyle a season, edit its row.
 
 import './seasons.css';
 
@@ -25,6 +25,9 @@ const ICONS = {
     '<path class="ln" d="M8 1.5v13M2.4 4.75l11.2 6.5M2.4 11.25l11.2-6.5M6.3 2.6L8 4.2l1.7-1.6M6.3 13.4L8 11.8l1.7 1.6"/>',
   sun: '<circle cx="8" cy="8" r="3.5"/><path class="ln" d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M13 3l-1.4 1.4M4.4 11.6L3 13"/>',
   moon: '<path d="M10.5 1.5a6.5 6.5 0 1 0 4 10.5A5.5 5.5 0 0 1 10.5 1.5z"/>',
+  cloud: '<path d="M4.5 12.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.6-1A3.3 3.3 0 0 1 12 12.5z"/>',
+  rain: '<path d="M4.5 9.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.6-1A3.3 3.3 0 0 1 12 9.5z"/><path class="ln" d="M5 11.5l-1 2.5M8.5 11.5l-1 2.5M12 11.5l-1 2.5"/>',
+  storm: '<path d="M4.5 9a3 3 0 0 1-.3-6 4 4 0 0 1 7.6-1A3.3 3.3 0 0 1 12 9z"/><path d="M8.8 9.5L6 13h2.2l-1 2.8 3.6-4.3H8.6l1.2-2z"/>',
 } as const;
 const SEASON_ICONS = ['spring', 'summer', 'autumn', 'winter'] as const;
 

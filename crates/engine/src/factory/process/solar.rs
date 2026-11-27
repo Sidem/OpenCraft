@@ -1,8 +1,9 @@
 //! Solar power (Milestone 7): the solar panel (2×2×1) and the accumulator (2×2×2), processors that are power
 //! sources and sinks on the grid of the pole they hang on, like a steam turbine (`steam.rs`).
 //!
-//! - A panel gives `SOLAR_KW` in full sun, scaled by `daytime::sunlight` of the core tick (nothing at night),
-//!   and only what its grid lacks. Sun a grid doesn't use is spare and charges its accumulators.
+//! - A panel gives `SOLAR_KW` in full sun, scaled by `daytime::sunlight` of the core tick (nothing at night) and
+//!   by the clouds over it (`sense`, `weather/`), and only what its grid lacks. Sun a grid doesn't use is spare and
+//!   charges its accumulators.
 //! - An accumulator holds `CHARGE_CAP` and gives up to `ACCUMULATOR_KW` when the sun falls short, before
 //!   any generator or turbine burns fuel; it charges from spare sun only, at the same rate. Charge is in
 //!   kW·ticks (1 kJ = `TICK_RATE`), saved for accumulators only. Nothing else here is saved.
@@ -14,6 +15,8 @@
 use crate::block::tex;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::daytime::sunlight;
+use crate::weather::Climate;
+use crate::worldgen::WorldGen;
 use crate::TICK_RATE;
 
 use super::super::footprint::{Footprint, Port};
@@ -28,6 +31,8 @@ pub const SOLAR_KW: u32 = 10;
 pub const CHARGE_CAP: u32 = 10_000 * TICK_RATE;
 /// The most an accumulator gives or takes, in kW.
 pub const ACCUMULATOR_KW: u32 = 60;
+/// Panels in the same square of this many blocks share one reading of the clouds.
+const CLOUD_CELL: i32 = 32;
 
 /// A panel's or accumulator's state; other processors keep the default.
 #[derive(Default)]
@@ -38,7 +43,8 @@ pub struct Store {
     pub sun: u32,
     pub given: u32,
     pub taken: u32,
-    /// kW the water around a water wheel, or the satellites over a rectenna, give (derived; `hydro.rs`, `rectenna.rs`).
+    /// kW the water around a water wheel, or the satellites over a rectenna, give (derived; `hydro.rs`, `rectenna.rs`);
+    /// a panel's share of the sun through the clouds, in thousandths (derived; `sense`).
     pub flow: u32,
     /// Falling-water side mask for a water wheel (derived; `hydro.rs`): bits 0..3 left (y=0..3), bits 4..7 right.
     pub hydro_mask: u8,
@@ -142,14 +148,31 @@ impl Processor {
     }
 }
 
+/// Each panel's share of the sun through the clouds this tick (thousandths, `weather::Climate::sun_share`), kept in
+/// `store.flow` for `run`. Read at the corner of the panel's `CLOUD_CELL`, so a field of panels costs a few lookups.
+pub(in crate::factory) fn sense(processors: &mut [Processor], panels: &[u32], gen: &WorldGen, tick: u64) {
+    let mut last: Option<((i32, i32), u32)> = None;
+    for &i in panels {
+        let p = &mut processors[i as usize];
+        let cell = (p.pos.x.div_euclid(CLOUD_CELL) * CLOUD_CELL, p.pos.z.div_euclid(CLOUD_CELL) * CLOUD_CELL);
+        let share = match last {
+            Some((c, share)) if c == cell => share,
+            _ => Climate::at(gen, cell.0, cell.1).sun_share(gen.seed(), cell.0, cell.1, tick),
+        };
+        last = Some((cell, share));
+        p.store.flow = share;
+    }
+}
+
 /// One tick of every panel and accumulator on a grid: panels give what their grid lacks, accumulators fill
 /// what is still lacking, and the spare sun charges accumulators. `Power::balance` adds the demands first.
 pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor], kinds: &Kinds, tick: u64) {
-    let sun = sunlight(tick) * SOLAR_KW / 1000;
+    let light = sunlight(tick) * SOLAR_KW;
     let grid_of = |power: &Power, i: usize| power.process_pole[i].map(|p| power.pole_grid[p as usize] as usize);
     let mut spare = vec![0u32; power.supply.len()];
     for &i in &kinds.solar {
         let (i, p) = (i as usize, &mut processors[i as usize]);
+        let sun = light * p.store.flow / 1_000_000;
         p.store.sun = sun;
         p.store.given = 0;
         if let Some(grid) = grid_of(power, i) {

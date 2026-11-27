@@ -4,6 +4,12 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-27 · v0.18.6 · Weather
+- **Weather moves across the world.** Fronts drift in from the west: clear skies, clouds, rain and storms, and snow wherever it is below freezing.
+- **Every place has its own temperature** from its climate, the season, the hour and its height, so mountains and cold forests see snow first and deserts never freeze. Snow stays on open ground while it is cold and melts as it warms up.
+- **Weather works on your base:** clouds dim solar panels a little (down to 60% in a storm), and rain makes grass and saplings grow faster.
+- **The calendar (Shift+N) shows a forecast:** the temperature now and the weather for the next six days.
+
 ## 2026-11-27 · v0.18.5 · Whole trees
 - **A tree's leaves stay on it.** You can no longer pick leaves off a grown tree one by one; fell the trunk and the whole crown comes down with it.
 - **A felled crown gives leaves:** one Leaves for every 4 leaf blocks, landing with the logs, sticks and saplings, so thatch stays easy to make.

@@ -1,18 +1,10 @@
-// The weather, as pure maths (no GL, no DOM; tested in web/test/weather.test.mjs). `weatherAt(seed, days, biome)` is a
-// function of the world's seed, the game time in days (`FrameInfo.days`: the core tick, so every co-op peer agrees) and the
-// biome the player stands in. Nothing is stored or saved: the same inputs give the same sky on every machine.
-// A "storminess" curve, the sum of three slow noises of the seed and the time, says how stormy the day is; clear sky is
-// the usual state, and every few days a front brings cloud, then gloom, then rain or snow, and passes. The biome shifts it
-// (deserts are dry, lowlands wet) and decides rain or snow with the temperature: each biome has a warmth, the year
-// (`YEAR_DAYS`, the same turn as the stars) swings it, and below zero the precipitation is snow.
-// `WeatherEase` smooths what is drawn (crossing a biome border, a time skip, the menu switch) over a few seconds, and
+// The weather as drawn (no GL, no DOM; tested in web/test/weather.test.mjs). The engine owns the weather (weather/ in the
+// engine: fronts drifting over the world, the temperature of the place, rain turning to snow below zero); `weatherFrom`
+// reads its `game.weather_here()` numbers, which main.ts polls a few times a second into `FrameInfo.weather`.
+// `WeatherEase` smooths what is drawn (a front arriving, a time skip, the menu switch) over a few seconds, and
 // `WeatherSky` (one per renderer) turns the sky settings and the eased weather into the `SkyLook` that the sky shader and
-// `skyAt` (render/sky.ts) take. To tune: `storminess`'s weights and the three smoothsteps in `weatherAt` (the test pins the
-// shares of clear, cloudy and wet time and how fast things may change); the biome rows `WET` and `WARMTH`.
-
-/** Game days in a year: the engine's `daytime::YEAR_DAYS` (four seasons of nine days), and astro.ts `YEAR_DAYS` (a test
- * checks; a value import would not load under `node --test`). */
-export const YEAR_DAYS = 36;
+// `skyAt` (render/sky.ts) take. The console's `weather` command forces a kind (`weatherOf`). To tune what is drawn: the
+// ease's time constant and the kinds in `weatherOf`; the weather itself is tuned in the engine.
 
 export type WeatherKind = 'clear' | 'cloudy' | 'gloomy' | 'rain' | 'snow';
 
@@ -21,10 +13,12 @@ export interface Weather {
   cover: number;
   /** How dark and heavy the cloud is, 0 to 1 (dims the sun, the stars and the fog). */
   gloom: number;
-  /** How hard it rains or snows, 0 to 1 (the particles of step S3 read it). */
+  /** How hard it rains or snows, 0 to 1 (the particles read it). */
   precip: number;
   /** Whether precipitation here falls as snow. */
   snow: boolean;
+  /** The temperature here in degrees Celsius (snow lies while it is below zero). */
+  temp: number;
 }
 
 /** What the sky is drawn with: the eased weather, whether the red dusk is on, and the cloud quality (0 none, 1 Low, 2 Full). */
@@ -37,53 +31,11 @@ export interface SkyLook {
 }
 
 /** A clear day still has scattered fair-weather clouds (the key art's sky); `kindOf` calls it cloudy above 0.4. */
-export const CLEAR: Weather = { cover: 0.38, gloom: 0, precip: 0, snow: false };
+export const CLEAR: Weather = { cover: 0.38, gloom: 0, precip: 0, snow: false, temp: 12 };
 
-/** Biomes in the engine's order (audio/surroundings.ts): plains, desert, highlands, lowlands, basalt fields. */
-const WET = [0, -0.12, 0.02, 0.04, 0];
-const WARMTH = [0.4, 1.0, 0.05, 0.4, 0.3];
-/** How far the year swings the temperature each way. */
-const SWING = 0.5;
-
-function hash(seed: number, i: number): number {
-  let h = (seed ^ Math.imul(i, 0x9e3779b1)) >>> 0;
-  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
-  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-}
-
-/** Smooth 1-D value noise in 0..1 with one lattice point per unit of `x`. */
-function noise(seed: number, x: number): number {
-  const i = Math.floor(x), f = x - i;
-  const t = f * f * f * (f * (f * 6 - 15) + 10);
-  const a = hash(seed, i), b = hash(seed, i + 1);
-  return a + (b - a) * t;
-}
-
-const smooth = (a: number, b: number, x: number) => {
-  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-};
-
-/** How stormy the world is at `days`, 0 to 1: fronts a day or two long, shorter squalls, and wetter and drier weeks. */
-export function storminess(seed: number, days: number): number {
-  const s = seed >>> 0;
-  const front = noise(s, days / 1.6), squall = noise(s ^ 0x5bd1e995, days / 0.9), season = noise(s ^ 0x27d4eb2f, days / 9);
-  return 0.66 * front + 0.16 * squall + 0.18 * season;
-}
-
-/** The temperature at `days` in a biome, about -0.5 (cold) to 1.5 (hot); snow falls below zero. */
-export function temperature(biome: number, days: number): number {
-  // The year starts in spring (days 0 to 9): warmest in the middle of summer, coldest in the middle of winter.
-  return (WARMTH[biome] ?? WARMTH[0]) + SWING * Math.sin(2 * Math.PI * (days / YEAR_DAYS - 1 / 8));
-}
-
-export function weatherAt(seed: number, days: number, biome: number): Weather {
-  const s = storminess(seed, days) + (WET[biome] ?? 0);
-  const precip = smooth(0.68, 0.78, s);
-  const gloom = Math.max(smooth(0.6, 0.74, s) * 0.85, precip);
-  const cover = Math.max(CLEAR.cover, smooth(0.48, 0.68, s), gloom);
-  return { cover, gloom, precip, snow: temperature(biome, days) < 0 };
+/** The engine's `weather_here()`: cover, gloom, precipitation, snow (0 or 1), temperature. */
+export function weatherFrom(v: ArrayLike<number>): Weather {
+  return { cover: v[0], gloom: v[1], precip: v[2], snow: v[3] > 0.5, temp: v[4] };
 }
 
 /** The word for a weather: what a player would call it. */
@@ -98,28 +50,28 @@ export function weatherOf(kind: WeatherKind, amount = 1): Weather {
   const a = Math.min(1, Math.max(0, amount));
   switch (kind) {
     case 'clear': return { ...CLEAR };
-    case 'cloudy': return { cover: 0.7, gloom: 0.15, precip: 0, snow: false };
-    case 'gloomy': return { cover: 1, gloom: 0.75, precip: 0, snow: false };
-    default: return { cover: 1, gloom: 0.75 + 0.25 * a, precip: Math.max(0.2, a), snow: kind === 'snow' };
+    case 'cloudy': return { cover: 0.7, gloom: 0.15, precip: 0, snow: false, temp: 12 };
+    case 'gloomy': return { cover: 1, gloom: 0.75, precip: 0, snow: false, temp: 10 };
+    default: return { cover: 1, gloom: 0.75 + 0.25 * a, precip: Math.max(0.2, a), snow: kind === 'snow', temp: kind === 'snow' ? -4 : 9 };
   }
 }
 
-/** The weather as drawn: the model, eased, and turned into the `SkyLook` for the sky's settings (the renderer owns one). */
+/** The weather as drawn: the engine's, eased, and turned into the `SkyLook` for the sky's settings (the renderer owns one). */
 export class WeatherSky {
   readonly ease = new WeatherEase();
-  /** When set, this weather is drawn instead of the model's (the console's `weather` command; never saved). */
+  /** When set, this weather is drawn instead of the engine's (the console's `weather` command; never saved). */
   forced: Weather | undefined;
   private last = 0;
 
   /** The look for this frame (`now` in milliseconds), or `undefined` when weather and red dusk are both off: today's plain sky. */
-  look(settings: { weather: 0 | 1 | 2; dusk: boolean }, seed: number, days: number, biome: number, now: number): SkyLook | undefined {
+  look(settings: { weather: 0 | 1 | 2; dusk: boolean }, model: Weather, now: number): SkyLook | undefined {
     const dt = (now - this.last) / 1000;
     this.last = now;
     if (settings.weather === 0) {
       this.ease.reset();
       return settings.dusk ? { cover: 0, gloom: 0, precip: 0, dusk: true, clouds: 0 } : undefined;
     }
-    const w = this.ease.update(this.forced ?? weatherAt(seed, days, biome), dt);
+    const w = this.ease.update(this.forced ?? model, dt);
     return { cover: w.cover, gloom: w.gloom, precip: w.precip, dusk: settings.dusk, clouds: settings.weather };
   }
 }
@@ -135,6 +87,7 @@ export class WeatherEase {
     v.cover += (target.cover - v.cover) * k;
     v.gloom += (target.gloom - v.gloom) * k;
     v.precip += (target.precip - v.precip) * k;
+    v.temp += (target.temp - v.temp) * k;
     v.snow = target.snow;
     this.primed = true;
     return v;

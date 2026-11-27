@@ -1,13 +1,14 @@
 // Tests for the wet and snowy ground (web/src/render/sky/ground.ts), run with `node --test web/test`: rain wets the ground
-// fast and it dries slowly, snow builds slowly and melts slower still (faster in rain), and with the weather off it is all clear.
+// fast and it dries slowly, snow builds slowly, lies while it is below zero and melts with the warmth (faster in rain); the cold alone lays a thin cover, and with the weather off it is all clear.
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Ground } from '../src/render/sky/ground.ts';
+import { frostCover, Ground } from '../src/render/sky/ground.ts';
 
-const RAIN = { cover: 1, gloom: 1, precip: 1, snow: false };
-const SNOW = { cover: 1, gloom: 1, precip: 1, snow: true };
-const CLEAR = { cover: 0.1, gloom: 0, precip: 0, snow: false };
+const RAIN = { cover: 1, gloom: 1, precip: 1, snow: false, temp: 8 };
+const SNOW = { cover: 1, gloom: 1, precip: 1, snow: true, temp: -4 };
+const CLEAR = { cover: 0.1, gloom: 0, precip: 0, snow: false, temp: 4 };
+const FROST = { ...CLEAR, temp: -6 };
 
 /** Steps `g` through `seconds` of weather `w` at 10 steps a second. */
 function run(g, w, seconds) {
@@ -60,4 +61,28 @@ test('weather off clears everything, and a long frame cannot jump the ground', (
   g.update(CLEAR, 0.1);
   g.update(RAIN, 1000);
   assert.ok(g.wet <= 0.2, `one 1000 s frame counts as at most a second: ${g.wet}`);
+});
+
+test('snow never melts below zero, and melts faster the warmer it is', () => {
+  const cold = new Ground(), mild = new Ground(), warm = new Ground();
+  for (const x of [cold, mild, warm]) { x.update(CLEAR, 0.1); run(x, SNOW, 80); }
+  run(cold, FROST, 120);
+  run(mild, CLEAR, 60);
+  run(warm, { ...CLEAR, temp: 16 }, 60);
+  assert.equal(cold.snow, 1, 'a frosty day keeps the cover');
+  assert.ok(warm.snow < mild.snow - 0.3, `16 degrees melts it faster: ${warm.snow} against ${mild.snow}`);
+});
+
+test('the cold alone lays a thin cover that deepens with the frost', () => {
+  assert.equal(frostCover(2), 0);
+  assert.ok(frostCover(-2) > 0 && frostCover(-2) < frostCover(-6) && frostCover(-30) <= 0.6);
+  const g = new Ground();
+  g.update(FROST, 0.1);
+  assert.equal(g.snow, frostCover(-6), 'joined on a frosty day: the cold cover at once');
+  const late = new Ground();
+  late.update(CLEAR, 0.1);
+  run(late, FROST, 30);
+  assert.ok(late.snow > 0 && late.snow < frostCover(-6), `builds slowly: ${late.snow}`);
+  run(late, FROST, 300);
+  assert.equal(late.snow, frostCover(-6), 'up to the cold cover, no further');
 });

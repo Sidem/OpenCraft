@@ -18,7 +18,7 @@ pub const DAYS_PER_SEASON: u64 = 9;
 /// Days in a year: spring, summer, autumn, winter.
 pub const YEAR_DAYS: u64 = 4 * DAYS_PER_SEASON;
 /// Where tick 0 falls in the day: 7:00.
-const START: u64 = DAY_TICKS * 7 / 24;
+pub(crate) const START: u64 = DAY_TICKS * 7 / 24;
 /// How far daylight swings from twelve hours at the longest and shortest day: four hours.
 const DAY_SWING: u64 = DAY_TICKS / 6;
 /// Growth per tick in each season, where 2 is the year-round rate it replaced: twice that in spring, half again in summer,

@@ -77,6 +77,7 @@ pub(in crate::factory) fn sense_sources(
     tick: u64,
 ) {
     super::hydro::sense(processors, &kinds.hydro, world);
+    super::solar::sense(processors, &kinds.solar, world.generator(), tick);
     super::ground::sense(processors, &kinds.ground, sats, tick);
     for &i in &kinds.rectenna {
         let p = &mut processors[i as usize];

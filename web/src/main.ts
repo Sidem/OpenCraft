@@ -28,6 +28,7 @@ import { AnalyticsPanel } from './ui/analytics';
 import { CodexPanel } from './ui/codex';
 import { ComfortPanel } from './ui/comfort';
 import { SkyStore } from './render/sky/settings';
+import { weatherFrom } from './render/sky/weather';
 import { SkyPanel } from './ui/sky';
 import { isTouchDevice, showDesktopOnly } from './ui/desktop-only';
 import { CoopPanel } from './ui/coop';
@@ -339,16 +340,15 @@ async function main(): Promise<void> {
     return dt;
   };
 
-  // The weather is a function of the seed and the biome underfoot (render/sky/weather.ts); the biome is read twice a second.
+  // The engine's weather at the camera (render/sky/weather.ts), read four times a second; the renderer eases it.
   renderer.precip.roofSource = () => game.rain_roof(); // where rain stops (roofs, caves)
-  const worldSeed = game.seed();
-  let biome = 0, biomeRead = -1e9;
-  const biomeNow = (now: number) => {
-    if (now - biomeRead > 500) {
-      biomeRead = now;
-      biome = game.surroundings()[0];
+  let weather = weatherFrom(game.weather_here()), weatherRead = -1e9;
+  const weatherNow = (now: number) => {
+    if (now - weatherRead > 250) {
+      weatherRead = now;
+      weather = weatherFrom(game.weather_here());
     }
-    return biome;
+    return weather;
   };
 
   const frame = (now: number) => {
@@ -377,8 +377,7 @@ async function main(): Promise<void> {
       mineProgress: game.mine_progress(),
       time: game.sun_time(),
       days: game.day_number() - 1 + game.time_of_day(),
-      seed: worldSeed,
-      biome: biomeNow(now),
+      weather: weatherNow(now),
       ...boxViews(game, wasm.memory, instanceFloats),
       lineCells: game.line_cells(),
       quarryBoxes: machine.quarryBox() ?? game.placement_box(),

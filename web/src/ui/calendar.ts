@@ -1,5 +1,6 @@
 // Calendar panel (Shift+N): the year as a ring of the four seasons with each day's daylight as a bar and today's mark,
-// today's day and night as a 24-hour bar, and the seasons to come with the days to go and how fast plants grow then.
+// today's day and night as a 24-hour bar, the weather now and the days ahead (forecast.ts), and the seasons to come
+// with the days to go and how fast plants grow then.
 // Everything is read from the engine's calendar getters (api/calendar.rs, daytime.rs) when it opens and once a
 // second while open; words only in tooltips. The frame is the machine panel's (base.css `.mp`).
 
@@ -7,6 +8,7 @@ import './calendar.css';
 import type { Game } from '../wasm/engine.js';
 import { clock } from '../render/sky';
 import { button, h } from './dom';
+import { drawForecast } from './forecast';
 import { icon, onRing, seasonIcon, seasonRing, SEASONS, svgEl } from './seasons';
 
 const RING = 240; // the year ring's view box
@@ -23,6 +25,7 @@ export class CalendarPanel {
   private readonly centre = h('div', 'cal-centre');
   private readonly dayBar = h('div', 'cal-daybar');
   private readonly dayRow = h('div', 'cal-dayrow');
+  private readonly sky = h('div', 'cal-sky');
   private readonly next = h('div', 'cal-next');
   private timer = 0;
 
@@ -37,7 +40,7 @@ export class CalendarPanel {
     const wheel = h('div', 'cal-wheel');
     wheel.append(this.ring, this.centre);
     const body = h('div', 'mp-body');
-    body.append(wheel, this.dayBar, this.dayRow, this.next);
+    body.append(wheel, this.dayBar, this.dayRow, this.sky, this.next);
     this.dialog.append(head, body);
     this.backdrop.append(this.dialog);
     this.backdrop.addEventListener('pointerdown', (e) => {
@@ -87,6 +90,7 @@ export class CalendarPanel {
     this.centre.replaceChildren(big, h('div', 'cal-dos', `${dos}/${per}`), h('div', 'cal-year', `Y${worldYear}`));
     this.centre.title = `${SEASONS[season].name}, day ${dos} of ${per}; year ${worldYear}, day ${g.day_number()} of the world`;
     this.drawDay(g.daylight_share(today), g.time_of_day());
+    drawForecast(g, this.sky);
     this.drawNext(season, per - dos + 1, per);
   }
 
