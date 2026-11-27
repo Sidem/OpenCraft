@@ -58,6 +58,7 @@ impl Game {
             c.checksums.clear();
         }
         self.surveyed = None;
+        self.forecast_memo = Default::default();
         self.static_boxes.reset();
         self.wire_props.reset();
         Ok(())

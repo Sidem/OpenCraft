@@ -9,7 +9,7 @@
 //!
 //! To give a new kind a pass of its own: a list here and its arm in `of`.
 
-use crate::block::{GROUND_STATION, OPTIMIZER, SWARM_HUB};
+use crate::block::{GROUND_STATION, OPTIMIZER, SWARM_HUB, WEATHER_STATION};
 
 use super::{Energy, Processor};
 
@@ -29,6 +29,8 @@ pub(in crate::factory) struct Kinds {
     pub ground: Vec<u32>,
     pub optimizer: Vec<u32>,
     pub hub: Vec<u32>,
+    /// Weather stations (`weather_station.rs`), for the map and the minimap's readout.
+    pub weather: Vec<u32>,
     /// Pod launchers and landing pads (`pods.rs`), research centers and AI labs (`center.rs`).
     pub launcher: Vec<u32>,
     pub pad: Vec<u32>,
@@ -61,6 +63,7 @@ impl Kinds {
                 GROUND_STATION => Some(&mut k.ground),
                 OPTIMIZER => Some(&mut k.optimizer),
                 SWARM_HUB => Some(&mut k.hub),
+                WEATHER_STATION => Some(&mut k.weather),
                 _ => None,
             };
             if let Some(list) = by_block {

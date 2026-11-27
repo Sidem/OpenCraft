@@ -188,6 +188,10 @@ pub struct Game {
     spawn: Vec3,
     /// Frame time not yet run as ticks, in seconds.
     accumulator: f64,
+    /// The console's time speed (`frame.rs`, `set_time_speed`): extra ticks run silently each frame.
+    fast: frame::FastTime,
+    /// The last weather forecast, kept until the air steps (`api/weather.rs`).
+    forecast_memo: api::weather::ForecastMemo,
     /// Player eye at the start of the latest tick, and this frame's camera, interpolated between it
     /// and the current eye (presentation only).
     prev_eye: Vec3,
@@ -338,6 +342,8 @@ impl Game {
             avatars: Avatars::default(),
             spawn,
             accumulator: 0.0,
+            fast: frame::FastTime::default(),
+            forecast_memo: Default::default(),
             prev_eye: eye,
             render_eye: eye,
             crouch_glide: CrouchGlide::default(),

@@ -73,11 +73,11 @@ pub(in crate::factory) fn sense_sources(
     processors: &mut [Processor],
     kinds: &Kinds,
     world: &mut World,
-    sats: &Satellites,
+    (sats, sun): (&Satellites, &crate::weather::SunGrid),
     tick: u64,
 ) {
     super::hydro::sense(processors, &kinds.hydro, world);
-    super::solar::sense(processors, &kinds.solar, world.generator(), tick);
+    super::solar::sense(processors, &kinds.solar, sun);
     super::ground::sense(processors, &kinds.ground, sats, tick);
     for &i in &kinds.rectenna {
         let p = &mut processors[i as usize];

@@ -118,6 +118,8 @@ pub struct Sim {
     pub felling: Felling,
     /// Active tree blazes and grass fire fronts (`sim/fire/`).
     pub fire: Fire,
+    /// The air over the world: pressure, temperature, humidity, cloud and wind (`weather/`, save 92).
+    pub atmosphere: crate::weather::Atmosphere,
     /// World-wide discovered items bitset for the periodic table & achievements (`codex/`).
     pub codex: Codex,
     /// Remaining Paint Sprayer surface charges per pigment colour (`colour/`).
@@ -163,6 +165,7 @@ impl Sim {
             leds: Leds::default(),
             felling: Felling::default(),
             fire: Fire::default(),
+            atmosphere: crate::weather::Atmosphere::default(),
             codex: Codex::default(),
             paint: crate::colour::PaintCharges::default(),
             fallen: Vec::new(),
@@ -220,6 +223,7 @@ impl Sim {
         }
         self.run_crafting();
         self.run_helpers();
+        self.step_air();
         self.run_timers();
         self.run_water();
         let made_from = self.events.len();
@@ -238,6 +242,15 @@ impl Sim {
         self.factory.note_research(&self.events[events_from..]);
         self.codex.note(&self.events[events_from..]);
         self.tick += 1;
+    }
+
+    /// Moves the air on when a step falls due, and hands the factory the sun its clouds let through (`weather/`).
+    fn step_air(&mut self) {
+        let before = self.atmosphere.tick;
+        self.atmosphere.advance(self.world.generator(), self.tick);
+        if self.atmosphere.tick != before || self.factory.sun.is_empty() {
+            self.factory.sun = self.atmosphere.sun_grid();
+        }
     }
 
     /// Fingerprint of the core state (including the world's generator layers). Two cores with equal

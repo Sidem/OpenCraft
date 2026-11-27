@@ -10,10 +10,14 @@
 //! A column the player cleared with the sickle (U3, `world/cover_clear.rs`, which is core state) grows nothing: one
 //! bit test per candidate column, and an empty `cleared` (a chunk column never touched) costs no more than that.
 
-use super::{pidx, Mesher, N, P, P2};
+use super::foliage::{sheds_litter, species_of};
+use super::shaped::{pack, Shaped, Vert, KIND_CARD};
+use super::{neighbor_index, pidx, Mesher, N, P, P2};
 use crate::block::{
-    tex, BlockId, AIR, BASALT, DIRT, GRANITE, GRASS, LIQUID, PALE_SAND, PALE_SOIL, RUSTY_SAND, RUSTY_SOIL, SAND,
+    tex, BlockId, AIR, BASALT, DIRT, FACE_TEX, GRANITE, GRASS, LIQUID, PALE_SAND, PALE_SOIL, RUSTY_SAND, RUSTY_SOIL,
+    SAND,
 };
+use crate::chunk::Chunk;
 use crate::math::hash2;
 use crate::worldgen::Biome;
 
@@ -29,9 +33,11 @@ pub struct Cover<'a> {
     pub cleared: &'a [u32],
 }
 
-/// Least sky light (of 15) a cell needs to grow anything.
+/// Least sky light (of 15) a cell needs to grow ground cover, and under a shaded canopy for fallen leaf litter.
 const SKY_MIN: u8 = 12;
+const LITTER_SKY_MIN: u8 = 6;
 const SEED: u32 = 0xC0FE_7A1F;
+const LITTER_SEED: u32 = 0xFA11_1EAF;
 /// Flower chance is multiplied by this inside a meadow, a 4 × 4 patch of columns picked by hash.
 const MEADOW_BOOST: u32 = 7;
 const MEADOW_PERMILLE: u32 = 220;
@@ -76,10 +82,11 @@ fn ground_of(b: BlockId) -> Option<Ground> {
 
 impl Mesher {
     /// Adds the cover of the centre chunk, after its blocks are in `pad` (`light` is the padded light).
-    pub(super) fn mesh_cover(&mut self, light: &[u8], cover: &Cover) {
+    pub(super) fn mesh_cover(&mut self, n: &[&Chunk; 27], light: &[u8], cover: &Cover) {
         if cover.biomes.len() != N * N {
             return;
         }
+        let has_litter = has_shedding_leaves(&self.pad, n);
         for z in 0..N {
             for x in 0..N {
                 let (wx, wz) = (cover.x0 + x as i32, cover.z0 + z as i32);
@@ -92,11 +99,27 @@ impl Mesher {
                     }
                     let below = self.pad[p - P2];
                     let Some(ground) = ground_of(below) else { continue };
-                    if (light[p] & 15) < SKY_MIN {
+                    let sky = light[p] & 15;
+                    if sky < LITTER_SKY_MIN {
                         continue;
                     }
                     if cover.cleared.get(z).is_some_and(|row| row >> x & 1 != 0) {
                         break;
+                    }
+                    if has_litter && matches!(ground, Ground::Turf | Ground::Dirt) {
+                        if let Some((leaf_b, direct)) = self.canopy_above(n, x as i32, y as i32, z as i32) {
+                            push_litter(
+                                &mut self.shaped,
+                                [x as i32, y as i32, z as i32],
+                                [wx, wz],
+                                leaf_b,
+                                direct,
+                                light[p],
+                            );
+                        }
+                    }
+                    if sky < SKY_MIN {
+                        continue;
                     }
                     let (h, meadow) = *rolls.get_or_insert_with(|| {
                         (hash2(SEED, wx, wz), hash2(SEED ^ 1, wx >> 2, wz >> 2) % 1000 < MEADOW_PERMILLE)
@@ -112,6 +135,47 @@ impl Mesher {
         }
     }
 
+    /// Block at chunk-local `(x, y, z)` where `x, z` in `-1..=32` and `y` in `0..64` (reads `pad` then upper chunks).
+    fn block_at(&self, n: &[&Chunk; 27], x: i32, y: i32, z: i32) -> BlockId {
+        if y < N as i32 {
+            self.pad[pidx((x + 1) as usize, (y + 1) as usize, (z + 1) as usize)]
+        } else {
+            let map = |v: i32| {
+                if v < 0 {
+                    (-1, N - 1)
+                } else if v >= N as i32 {
+                    (1, 0)
+                } else {
+                    (0, v as usize)
+                }
+            };
+            let (cx, lx) = map(x);
+            let (cz, lz) = map(z);
+            n[neighbor_index(cx, 1, cz)].get(lx, (y - N as i32) as usize, lz)
+        }
+    }
+
+    /// The shedding leaf block overhead of `(x, y, z)` (`direct = true` straight above, `false` on the 1-block drip edge).
+    fn canopy_above(&self, n: &[&Chunk; 27], x: i32, y: i32, z: i32) -> Option<(BlockId, bool)> {
+        let top = (y + 16).min(2 * N as i32 - 1);
+        for yy in (y + 2)..=top {
+            let b = self.block_at(n, x, yy, z);
+            if sheds_litter(b) {
+                return Some((b, true));
+            }
+        }
+        let edge_top = (y + 12).min(2 * N as i32 - 1);
+        for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+            for yy in (y + 2)..=edge_top {
+                let b = self.block_at(n, x + dx, yy, z + dz);
+                if sheds_litter(b) {
+                    return Some((b, false));
+                }
+            }
+        }
+        None
+    }
+
     /// Water at the ground level of a side neighbour of air cell `p` (chunk row `y`), or one lower: a bank.
     fn water_beside(&self, p: usize, y: usize) -> bool {
         let lowest = if y >= 1 { 2 } else { 1 };
@@ -119,6 +183,65 @@ impl Mesher {
             (1..=lowest).any(|down| LIQUID[self.pad[(p as isize + side - down * P2 as isize) as usize] as usize])
         })
     }
+}
+
+/// Fast pre-check: whether the chunk or its upper neighbours hold any deciduous/shedding leaves at all.
+fn has_shedding_leaves(pad: &[BlockId], n: &[&Chunk; 27]) -> bool {
+    if pad.iter().any(|&b| sheds_litter(b)) {
+        return true;
+    }
+    for dz in -1..=1 {
+        for dx in -1..=1 {
+            let c = n[neighbor_index(dx, 1, dz)];
+            match c.dense() {
+                Some(d) if d.iter().any(|&b| sheds_litter(b)) => return true,
+                None if sheds_litter(c.get(0, 0, 0)) => return true,
+                _ => {}
+            }
+        }
+    }
+    false
+}
+
+/// Emits one flat ground-hugging fallen-leaf scatter card (`KIND_CARD`, `is_litter = 1`), revealed in the shader when
+/// its overhead species sheds (autumn leaves or spring cherry petals).
+fn push_litter(out: &mut Shaped, cell: [i32; 3], world_xz: [i32; 2], leaf: BlockId, direct: bool, light: u8) {
+    let h = hash2(LITTER_SEED, world_xz[0], world_xz[1]);
+    let chance = if direct { 72 } else { 32 };
+    if h % 100 >= chance {
+        return;
+    }
+    let f = |shift: u32| ((h >> shift) & 31) as f32 / 31.0;
+    let cx = 0.25 + f(5) * 0.50;
+    let cz = 0.25 + f(10) * 0.50;
+    let cy = 0.016 + ((h >> 15) & 7) as f32 * 0.0012;
+    let half = 0.44 + f(18) * 0.22;
+    let yaw = f(23) * std::f32::consts::TAU;
+    let (s, c) = yaw.sin_cos();
+    let (rx, rz) = (c * half, -s * half);
+    let (fx, fz) = (s * half, c * half);
+    let at = |su: f32, sv: f32| [cx + rx * su + fx * sv, cy, cz + rz * su + fz * sv];
+    let part = (h >> 12) & 15;
+    let drop_hi = (h >> 28) & 3;
+    let span_bits = 9u32; // ~1.125 blocks of leaf texture across the scatter patch
+    let corners = [(0, 0, at(-1.0, -1.0)), (1, 0, at(1.0, -1.0)), (1, 2, at(1.0, 1.0)), (0, 2, at(-1.0, 1.0))];
+    let q = corners.map(|(u, v, off)| {
+        let bits = u | v << 1 | part << 3 | span_bits << 7;
+        let mut w = pack(&Vert {
+            cell,
+            off,
+            normal: [0.0, 1.0, 0.0],
+            u: bits as f32 / 256.0,
+            kind: KIND_CARD,
+            occlusion: 6,
+            light,
+            layer: 0,
+        });
+        w[0] |= drop_hi << 30;
+        w
+    });
+    let packed_layer = (FACE_TEX[leaf as usize][0] & 0x7FF) | (u16::from(species_of(leaf)) << 11) | (1u16 << 15);
+    out.packed(true, q, packed_layer);
 }
 
 /// The plant (a texture layer) for a column of this biome over this ground, if any. `h` is the column's

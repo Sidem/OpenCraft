@@ -49,6 +49,7 @@ mod tree_grid;
 mod water;
 pub use cover::{bears_cover, Cover};
 use face_layer::face_layer;
+pub use foliage::{pack_foliage, pack_ground, season_layers};
 pub use quad::MeshOutput;
 use quad::{corner, corners_of, emit_quad, CORNER_BITS, KEY_CUTOUT, KEY_FLAG, KEY_LAYER, KEY_LIQUID, KEY_TRANSLUCENT};
 pub use tree_grid::REACH as TREE_REACH;
@@ -169,7 +170,7 @@ impl Mesher {
             }
             self.mesh_plants(light);
             if let Some(cover) = cover {
-                self.mesh_cover(light, cover);
+                self.mesh_cover(n, light, cover);
             }
             if n[neighbor_index(0, 0, 0)].has_shapes() {
                 let paint = if self.has_paint { Some(self.centre_paint.as_slice()) } else { None };

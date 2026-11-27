@@ -54,6 +54,14 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
 - Queries must not create core state: `target_detail` uses `deposits::owner_of` and
   `DepositState::survey`, never `Deposits::lookup` (which starts tracking).
 
+## Keep the round planet possible (`docs/ROADMAP_SPACE.md`; rows of 2026-11-16 in `docs/DECISIONS.md`)
+
+A later world type is a round planet, so new work: (1) asks one function of position for up and gravity, no new
+hard-coded -y outside grid-space physics; (2) keeps generator passes local (a column's neighbourhood and noise, never a
+pass over an unbounded plane); (3) keeps orbits pure functions of the tick; (4) saves no state that assumes an infinite
+plane (no wrap distances or global x/z grids; ATMOS's air grid is the noted exception); (5) has the space elevator rise
+along up; (6) keeps `u16` block-id headroom. Anything tied to latitude, the hour or the season reads them per place.
+
 ## Gotchas
 
 - A `pub` field of a parent-private type trips `private_interfaces`: make the type `pub(crate)`.

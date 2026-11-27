@@ -15,8 +15,7 @@
 use crate::block::tex;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::daytime::sunlight;
-use crate::weather::Climate;
-use crate::worldgen::WorldGen;
+use crate::weather::SunGrid;
 use crate::TICK_RATE;
 
 use super::super::footprint::{Footprint, Port};
@@ -148,16 +147,16 @@ impl Processor {
     }
 }
 
-/// Each panel's share of the sun through the clouds this tick (thousandths, `weather::Climate::sun_share`), kept in
+/// Each panel's share of the sun through the clouds this tick (thousandths, `weather::SunGrid`), kept in
 /// `store.flow` for `run`. Read at the corner of the panel's `CLOUD_CELL`, so a field of panels costs a few lookups.
-pub(in crate::factory) fn sense(processors: &mut [Processor], panels: &[u32], gen: &WorldGen, tick: u64) {
+pub(in crate::factory) fn sense(processors: &mut [Processor], panels: &[u32], sun: &SunGrid) {
     let mut last: Option<((i32, i32), u32)> = None;
     for &i in panels {
         let p = &mut processors[i as usize];
         let cell = (p.pos.x.div_euclid(CLOUD_CELL) * CLOUD_CELL, p.pos.z.div_euclid(CLOUD_CELL) * CLOUD_CELL);
         let share = match last {
             Some((c, share)) if c == cell => share,
-            _ => Climate::at(gen, cell.0, cell.1).sun_share(gen.seed(), cell.0, cell.1, tick),
+            _ => sun.share_at(cell.0, cell.1),
         };
         last = Some((cell, share));
         p.store.flow = share;

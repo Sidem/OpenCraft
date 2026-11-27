@@ -15,7 +15,9 @@ use super::{pidx, N};
 use crate::block::{is_leaves, BlockId, ALT_TEX, FACE_TEX};
 use crate::math::hash3;
 
+mod season;
 mod style;
+pub use season::{pack_foliage, pack_ground, season_layers, sheds_litter, species_of};
 pub use style::{style_of, Lie, Style};
 
 const SEED: u32 = 0x1EAF_CA2D;
@@ -84,7 +86,7 @@ fn leaf(g: &TreeGrid, light: &[u8], origin: [i32; 3], c: [i32; 3], b: BlockId, o
         light: light[pidx(c[0] as usize + 1, c[1] as usize + 1, c[2] as usize + 1)],
         occlusion: (7.0 - ((a.depth - 0.3).max(0.0) * 9.0)).round().clamp(1.0, 7.0) as u32,
         lit: unit([a.out[0] * 0.75, a.out[1] * 0.75 + 0.25, a.out[2] * 0.75]),
-        layer: leaf_layer(b, w),
+        layer: (leaf_layer(b, w) & 0x7FF) | (u16::from(species_of(b)) << 11),
     };
     for k in 0..count {
         let h = hash3(SEED ^ k.wrapping_mul(0x9E37_79B9), w[0], w[1], w[2]);
@@ -181,7 +183,10 @@ impl Card {
             light: self.light,
             layer: 0,
         };
-        pack(&vert)
+        let mut w = pack(&vert);
+        // Bits 30..32 of word 0 carry 2 extra hash bits (paired with `part` in word 1) for gradual per-card leaf drop.
+        w[0] |= (h2 >> 24 & 3) << 30;
+        w
     }
 }
 

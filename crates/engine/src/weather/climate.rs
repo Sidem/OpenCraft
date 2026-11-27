@@ -1,12 +1,11 @@
-//! A place's climate as the weather reads it, and its temperature: the climate's warmth + the season + the time of day
-//! − the height above the sea, in tenths of a degree Celsius. The year is warmest in the middle of summer and coldest in
-//! the middle of winter; the day is warmest at 15:00 and coldest at 03:00. Integer maths after the climate field.
-//! To tune: `MILD`, `WARMTH_SPAN`, `YEAR_SWING`, `DAY_SWING`, `LAPSE_BLOCKS`, and `WETNESS` / `DRYNESS` for the rain.
+//! A place's climate, the ground the weather stands on: its temperature without the weather (the climate's warmth + the
+//! season + the time of day − the height above the sea, in tenths of a degree Celsius) and how much water its ground
+//! gives the air. The year is warmest in the middle of summer and coldest in the middle of winter; the day is warmest at
+//! 15:00 and coldest at 03:00. Integer maths after the climate field. The air's own warm and cold masses come on top
+//! (`air.rs`). To tune: `MILD`, `WARMTH_SPAN`, `YEAR_SWING`, `DAY_SWING`, `LAPSE_BLOCKS`, `DAMP` and `SEA_DAMP`.
 
 use crate::daytime::{DAY_TICKS, START, YEAR_DAYS};
 use crate::worldgen::{WorldGen, SEA_LEVEL};
-
-use super::{storminess, Sky};
 
 /// A neutral climate's yearly mean (tenths of a degree), and how far the climate's warmth (thousandths, about ±600)
 /// moves it: tenths per thousand.
@@ -17,15 +16,18 @@ const YEAR_SWING: i64 = 120;
 const DAY_SWING: i64 = 40;
 /// A degree colder for every this many blocks above the sea.
 const LAPSE_BLOCKS: i64 = 8;
-/// How much the climate's moisture wets the weather and its warmth dries it (thousandths of storminess per thousandth).
-const WETNESS: i64 = 300;
-const DRYNESS: i64 = 150;
+/// The relative humidity (thousandths) a neutral land's ground keeps the air at, how far the climate's moisture
+/// (thousandths) moves it, how much its warmth dries it, and what open sea keeps it at.
+const DAMP: i32 = 700;
+const MOISTURE_DAMP: i32 = 250;
+const WARMTH_DRY: i32 = 200;
+const SEA_DAMP: i32 = 880;
 
-/// The climate of a column, in thousandths: its warmth and the shift it gives the storminess.
+/// The climate of a column, in thousandths of the generator's climate field (about ±600).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Climate {
     pub warmth: i32,
-    pub wet: i32,
+    pub moisture: i32,
 }
 
 impl Climate {
@@ -35,31 +37,37 @@ impl Climate {
         Climate::of((t * 1000.0) as i32, (m * 1000.0) as i32)
     }
 
-    /// The climate of a warmth and moisture in thousandths.
     pub fn of(warmth: i32, moisture: i32) -> Climate {
-        let wet = i64::from(moisture) * WETNESS / 1000 - i64::from(warmth.max(0)) * DRYNESS / 1000;
-        Climate { warmth, wet: wet as i32 }
+        Climate { warmth, moisture }
     }
 
-    /// The sky over (x, z) at `tick`, this climate's storminess.
-    pub fn sky(self, seed: u32, x: i32, z: i32, tick: u64) -> Sky {
-        Sky::from_storminess(storminess(seed, x, z, tick) + i64::from(self.wet))
+    /// The relative humidity (thousandths) this ground keeps the air at by evaporation, `sea` thousandths of it open
+    /// water: wet climates and the sea more, warm dry land less.
+    pub fn damp(self, sea: i32) -> i32 {
+        let land = DAMP + self.moisture * MOISTURE_DAMP / 1000 - self.warmth.max(0) * WARMTH_DRY / 1000;
+        (land.clamp(250, 800) * (1000 - sea) + SEA_DAMP * sea) / 1000
     }
 
-    /// The share of sunlight that reaches (x, z) at `tick`, in thousandths.
-    pub fn sun_share(self, seed: u32, x: i32, z: i32, tick: u64) -> u32 {
-        self.sky(seed, x, z, tick).sun_share()
-    }
-
-    /// The temperature at height `y` at `tick`, in tenths of a degree Celsius.
+    /// The temperature at height `y` at `tick`, in tenths of a degree Celsius, before the weather's warm or cold air.
     pub fn temperature(self, y: i32, tick: u64) -> i32 {
-        const YEAR: u64 = YEAR_DAYS * DAY_TICKS;
         let at = tick + START;
-        // The year's wave crests at 3/8 (mid-summer), the day's at 15:00.
-        let year = YEAR_SWING * wave((at + YEAR - YEAR / 8) % YEAR, YEAR) / 1000;
+        // The day's wave crests at 15:00.
         let day = DAY_SWING * wave((at + DAY_TICKS - DAY_TICKS * 3 / 8) % DAY_TICKS, DAY_TICKS) / 1000;
+        (i64::from(self.day_mean(y, tick)) + day) as i32
+    }
+
+    /// The day's mean temperature at height `y` at `tick` (tenths of a degree): `temperature` without the hour.
+    pub fn day_mean(self, y: i32, tick: u64) -> i32 {
         let height = i64::from((y - SEA_LEVEL).max(0)) * 10 / LAPSE_BLOCKS;
-        (MILD + i64::from(self.warmth) * WARMTH_SPAN / 1000 + year + day - height) as i32
+        (i64::from(self.mean_temperature(tick)) - height) as i32
+    }
+
+    /// The day's mean temperature at sea level at `tick` (tenths of a degree): the climate and the season, no hour.
+    pub fn mean_temperature(self, tick: u64) -> i32 {
+        const YEAR: u64 = YEAR_DAYS * DAY_TICKS;
+        // The year's wave crests at 3/8 (mid-summer).
+        let year = YEAR_SWING * wave((tick + START + YEAR - YEAR / 8) % YEAR, YEAR) / 1000;
+        (MILD + i64::from(self.warmth) * WARMTH_SPAN / 1000 + year) as i32
     }
 }
 

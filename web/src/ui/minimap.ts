@@ -5,7 +5,7 @@
 // machine marks (`minimap_marks`, colours from the engine) and the player's pins (pins.ts; those out of
 // range sit on the rim, pointing the way) go on an overlay canvas at the same rate, clipped by the round
 // frame; the map filters (map-filter.ts) hide marks and pins, and resting the cursor on one shows what it is
-// (map-info.ts, while the cursor is free: in a menu or panel). Under it sit the XYZ readout with its facing signs (compass.ts) and the season chip (season-chip.ts). N toggles them all for this page only: a new game or reload always starts with the map shown, and `update`
+// (map-info.ts, while the cursor is free: in a menu or panel). Under it sit the XYZ readout with its facing signs (compass.ts), the season chip (season-chip.ts) and the weather chip (weather-chip.ts). N toggles them all for this page only: a new game or reload always starts with the map shown, and `update`
 // puts it back if anything else hid it. While shown it sets `--map-space` on #hud so the other top-right
 // HUD items move below it.
 
@@ -15,6 +15,7 @@ import { h } from './dom';
 import { drawMark, drawPin, type Pin, type Pins } from './pins';
 import { Compass, COMPASS_PX } from './compass';
 import { CHIP_PX, SeasonChip } from './season-chip';
+import { WEATHER_CHIP_PX, WeatherChip } from './weather-chip';
 import type { MapFilter } from './map-filter';
 import { infoAt, type MapInfo } from './map-info';
 
@@ -22,7 +23,7 @@ const REDRAW_MS = 250;
 /** How near (CSS px) the pointer must rest to a mark or a pin for the info box. */
 const HOVER_PX = 7;
 const FRAME_PX = 150; // must match .minimap in minimap.css
-const MAP_SPACE_PX = FRAME_PX + 12 + 6 + COMPASS_PX + 6 + CHIP_PX; // the map, the XYZ readout, the season chip
+const MAP_SPACE_PX = FRAME_PX + 12 + 6 + COMPASS_PX + 6 + CHIP_PX + 6 + WEATHER_CHIP_PX; // the map, XYZ, season, weather
 
 export class Minimap {
   private readonly el = h('div', 'minimap');
@@ -35,6 +36,7 @@ export class Minimap {
   private readonly others: HTMLDivElement[] = [];
   private readonly compass: Compass;
   private readonly chip: SeasonChip;
+  private readonly weather: WeatherChip;
   private readonly size: number;
   private lastDraw = -Infinity;
   private shown = true;
@@ -54,7 +56,8 @@ export class Minimap {
     this.el.append(this.canvas, this.overlay, this.me, h('span', 'mm-north', 'N'));
     this.compass = new Compass(game);
     this.chip = new SeasonChip(game);
-    document.getElementById('hud')!.append(this.el, this.compass.el, this.chip.el);
+    this.weather = new WeatherChip(game);
+    document.getElementById('hud')!.append(this.el, this.compass.el, this.chip.el, this.weather.el);
     this.show(true);
     this.el.addEventListener('pointermove', (e) => this.hover(e));
     this.el.addEventListener('pointerleave', () => info.hide());
@@ -74,6 +77,7 @@ export class Minimap {
     this.me.style.transform = `rotate(${g.yaw()}rad)`;
     this.compass.update();
     this.chip.update();
+    this.weather.update(now);
     if (now - this.lastDraw < REDRAW_MS) return;
     this.lastDraw = now;
     if (g.minimap_redraw()) {
@@ -89,6 +93,7 @@ export class Minimap {
     this.el.classList.toggle('hidden', !on);
     this.compass.el.classList.toggle('hidden', !on);
     this.chip.el.classList.toggle('hidden', !on);
+    this.weather.el.classList.toggle('hidden', !on);
     this.lastDraw = -Infinity;
     document.getElementById('hud')!.style.setProperty('--map-space', on ? `${MAP_SPACE_PX}px` : '0px');
   }

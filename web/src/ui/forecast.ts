@@ -7,6 +7,7 @@ import './forecast.css';
 import type { Game } from '../wasm/engine.js';
 import { h } from './dom';
 import { icon } from './seasons';
+import { tempColour } from './weather-scale';
 
 /** Days in the forecast, today first. */
 const DAYS = 6;
@@ -18,12 +19,6 @@ const SKIES = [
   { name: 'Storm', icon: 'storm', colour: '#b49cf2' },
 ] as const;
 const SNOW = { name: 'Snow', colour: '#ffffff' };
-
-/** A temperature's colour: blue at -10 °C and below, through green, to red at 32 °C and above. */
-export function tempColour(c: number): string {
-  const t = Math.min(1, Math.max(0, (c + 10) / 42));
-  return `hsl(${Math.round(210 - 210 * t)} 75% 68%)`;
-}
 
 /** Draws the weather row into `into`. */
 export function drawForecast(game: Game, into: HTMLElement): void {
@@ -49,7 +44,7 @@ export function drawForecast(game: Game, into: HTMLElement): void {
   into.replaceChildren(now, ahead);
 }
 
-function skyIcon(kind: number, snow: boolean): SVGSVGElement {
+export function skyIcon(kind: number, snow: boolean): SVGSVGElement {
   const sky = SKIES[kind] ?? SKIES[0];
   const wet = kind >= 2;
   const i = icon(wet && snow ? 'winter' : sky.icon);
@@ -57,12 +52,12 @@ function skyIcon(kind: number, snow: boolean): SVGSVGElement {
   return i;
 }
 
-function skyName(kind: number, snow: boolean): string {
+export function skyName(kind: number, snow: boolean): string {
   const sky = SKIES[kind] ?? SKIES[0];
   return kind >= 2 && snow ? (kind === 3 ? 'Blizzard' : SNOW.name) : sky.name;
 }
 
-function degrees(c: number): HTMLElement {
+export function degrees(c: number): HTMLElement {
   const span = h('span', 'fc-temp', `${Math.round(c)}°`);
   span.style.color = tempColour(c);
   return span;

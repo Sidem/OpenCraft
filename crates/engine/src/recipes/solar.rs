@@ -1,4 +1,5 @@
-//! Hand recipes of solar power (`factory/process/solar.rs`), listed in `RECIPES`. To add one: a `pub const` here,
+//! Hand recipes of solar power (`factory/process/solar.rs`) and the weather station that watches the sky over it
+//! (`factory/process/weather_station.rs`), listed in `RECIPES`. To add one: a `pub const` here,
 //! and its name at the end of `RECIPES`.
 
 use crate::block::*;
@@ -23,4 +24,14 @@ pub const ACCUMULATOR_RECIPE: Recipe = Recipe {
     inputs: &[(STEEL_PLATE, 6), (CIRCUIT, 2), (COPPER_WIRE, 12)],
     blurb: "A 2×2×2 battery: stores 10 MJ of spare solar power and gives it back, up to 60 kW, when the grid \
             wants more than the sun gives. Hang it on a power pole.",
+};
+
+pub const WEATHER_STATION_RECIPE: Recipe = Recipe {
+    output: WEATHER_STATION_ITEM,
+    group: Group::Science,
+    count: 1,
+    inputs: &[(STEEL_PLATE, 4), (b(GLASS), 2), (COPPER_WIRE, 8), (CIRCUIT, 2)],
+    blurb: "A mast of instruments: on a powered pole it measures the air (temperature, humidity, pressure, wind, \
+            clouds and rain) for 640 blocks around and shows it on the map (M); standing in its range, the readout \
+            under the minimap shows humidity and pressure too.",
 };

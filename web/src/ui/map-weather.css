@@ -1,0 +1,43 @@
+/* The world map's weather layer buttons (ui/map-weather.ts), in the view's bottom-right corner. */
+
+.mw-bar {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 8px;
+  background: rgba(18, 20, 26, 0.9);
+  border: 1px solid var(--panel-border);
+  cursor: default;
+}
+
+.mw-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #c9d2e0;
+  font: 700 15px/1 var(--mono);
+  cursor: pointer;
+}
+
+.mw-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mw-btn.on {
+  border-color: #7fd4ff;
+  background: rgba(127, 212, 255, 0.16);
+  color: #fff;
+}
+
+.mw-btn .sn-icon {
+  width: 18px;
+  height: 18px;
+}

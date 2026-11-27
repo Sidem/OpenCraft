@@ -1,0 +1,43 @@
+/* Co-op chat lines over the game while the command line is closed (ui/chat-feed.ts): in the HUD's left column
+   (#hud-left, hud-columns.css), at its foot just above the onboarding tip, which then gives up its push down. */
+
+#hud-left > .chat-feed {
+  order: 1;
+  margin-top: auto;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  pointer-events: none;
+}
+
+#hud-left > .chat-feed:empty {
+  display: none;
+}
+
+#hud-left:has(> .chat-feed:not(:empty):not(.hidden)) > .hint {
+  margin-top: 0;
+}
+
+.chat-line {
+  align-self: flex-start;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: rgba(14, 16, 21, 0.78);
+  font: 14px/1.4 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  color: var(--text, #e8eaf0);
+  text-shadow: 0 1px 2px #000;
+  overflow-wrap: anywhere;
+  transition: opacity 1s;
+}
+
+.chat-line.gone {
+  opacity: 0;
+}
+
+.chat-from {
+  color: #fa9549;
+  font-weight: 700;
+}

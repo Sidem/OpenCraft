@@ -1,10 +1,11 @@
 // The admin console's commands, as pure functions of a line of text and a `ConsoleHost` (no DOM, no wasm; tested in
-// web/test/commands.test.mjs). `runCommand(line, host)` answers with the lines to print. The host (main.ts) wires each
+// web/test/commands.test.mjs). A line is a command when it starts with `/` or `!` (`lineKind`); anything else is chat
+// (ui/console.ts sends it). `runCommand(line, host)` answers with the lines to print. The host (main.ts) wires each
 // capability to the game or renderer; a command that changes the shared world (`time`, `tp`) refuses in a co-op world,
 // where it would put this player out of step with everyone else. To add a command: a function here that takes the
 // arguments and the host, a row in `COMMANDS`, and a line in the test.
 
-import { weatherOf, type Weather, type WeatherKind } from '../render/sky/weather.ts';
+import { HELD_SNOW_TEMP, weatherOf, type Weather, type WeatherKind } from '../render/sky/weather.ts';
 
 export interface ConsoleHost {
   /** Draw this weather instead of the model's; `undefined` goes back to the model. */
@@ -16,6 +17,19 @@ export interface ConsoleHost {
   daySeconds(): number;
   /** Runs the world forward by `seconds` at once. */
   skip(seconds: number): void;
+  /** 0 spring, 1 summer, 2 autumn, 3 winter; the day of the season from 1; days in a season. */
+  season(): number;
+  dayOfSeason(): number;
+  daysPerSeason(): number;
+  /** The engine's weather here (`game.weather_here`): cover, gloom, precip, snow (1/0), °C, sky kind (0–3). */
+  weatherHere(): number[];
+  /** `days` days from today, 4 numbers each (`game.weather_forecast`): worst sky 0–3, snow, low and high in tenths °C. */
+  forecast(days: number): number[];
+  /** Seconds until the sky here turns to `want` (0 clear, 1 cloudy, 2 rain, 3 storm, 4 snow); -1 if not within a year. */
+  weatherAhead(want: number): number;
+  /** The world runs this many times as fast (1 normal); the engine clamps it. */
+  setTimeSpeed(speed: number): void;
+  timeSpeed(): number;
   position(): [number, number, number];
   teleport(x: number, y: number, z: number): void;
   find(query: string): { id: number; name: string }[];
@@ -60,8 +74,10 @@ export function parseTime(word: string): number | undefined {
 }
 
 function weather(args: string[], host: ConsoleHost): string[] {
-  const kind = KINDS[args[0] ?? ''];
-  if (!kind) return [`Weather is one of: clear, cloudy, gloomy, rain, snow, auto.`];
+  if (args.length === 0) return [`Now: ${skyText(host.weatherHere())}.`, stationText(host.weatherHere())];
+  if (args[0] === 'wait') return weatherWait(args.slice(1), host);
+  const kind = KINDS[args[0]];
+  if (!kind) return [`Weather is one of: clear, cloudy, gloomy, rain, snow, auto (or weather wait <kind>).`];
   if (kind === 'auto') {
     host.setWeather(undefined);
     return ['The weather follows the world again.'];
@@ -70,6 +86,9 @@ function weather(args: string[], host: ConsoleHost): string[] {
   if (!Number.isFinite(amount)) return ['The strength is a number from 0 to 1.'];
   host.setWeather(weatherOf(kind, amount));
   const out = [`The weather is held at ${kind}${kind === 'rain' || kind === 'snow' ? ` (${Math.round(Math.min(1, Math.max(0, amount)) * 100)}%)` : ''}.`];
+  const temp = host.weatherHere()[4];
+  if (kind === 'rain' && temp < 0) out.push(`It is ${degrees(temp)} here, so it falls as snow.`);
+  if (kind === 'snow' && temp > HELD_SNOW_TEMP) out.push(`It is held at ${degrees(HELD_SNOW_TEMP)} too, so the snow lies.`);
   if (host.weatherOff()) out.push('The weather is turned off in the sky settings, so you will not see it.');
   return out;
 }
@@ -84,6 +103,95 @@ function time(args: string[], host: ConsoleHost): string[] {
   host.skip(ahead * host.daySeconds());
   return [`It is ${clockText(target)} (moved ${Math.round(ahead * 24 * 60)} minutes ahead).`];
 }
+
+/** The sky kinds the engine reports (api/weather.rs), and what `weather wait` can look for. */
+const SKIES = ['clear', 'cloudy', 'rain', 'storm'];
+const WAITS: Record<string, number> = { clear: 0, sun: 0, cloudy: 1, clouds: 1, rain: 2, storm: 3, snow: 4 };
+const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+/** Where `season` lands in the day: the morning, as a new world starts. */
+const SEASON_MORNING = 7 / 24;
+const UNITS: Record<string, number> = { d: 1, h: 1 / 24, m: 1 / 1440 };
+
+const degrees = (c: number) => `${Math.round(c * 10) / 10} °C`;
+
+/** The 16 points of the compass, clockwise from north. */
+const COMPASS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+
+/** What a weather station reads here (`weather_here` from index 6): pressure, humidity, dew point and wind. */
+export function stationText(w: number[]): string {
+  const [humidity, dew, pressure, wind, from] = w.slice(6);
+  const point = COMPASS[Math.round(from / 22.5) % 16];
+  return `Pressure ${Math.round(pressure)} hPa, humidity ${Math.round(humidity)}%, dew point ${degrees(dew)}, wind ${Math.round(wind * 10) / 10} m/s from the ${point}.`;
+}
+
+/** One line for the engine's weather here: the sky, how hard it falls, the temperature. */
+export function skyText(w: number[]): string {
+  const [, , precip, snow, temp, kind] = w;
+  const sky = precip >= 0.15 && snow ? 'snow' : SKIES[kind] ?? 'clear';
+  const falling = precip >= 0.15 ? ` (${Math.round(precip * 100)}%)` : '';
+  return `${sky}${falling}, ${degrees(temp)}`;
+}
+
+function weatherWait(args: string[], host: ConsoleHost): string[] {
+  const want = WAITS[args[0] ?? ''];
+  if (want === undefined) return ['Use weather wait <clear|cloudy|rain|storm|snow>.'];
+  if (host.shared()) return ['The weather is shared with the other players: it can be waited for in a world of your own.'];
+  const seconds = host.weatherAhead(want);
+  if (seconds < 0) return [`No ${args[0]} here in the next 60 days. Try another place or season (snow needs cold: high up, far north or winter).`];
+  host.skip(seconds);
+  const hours = Math.round((seconds / host.daySeconds()) * 24);
+  return [`Ran ${hours} hours ahead. Now: ${skyText(host.weatherHere())}.`];
+}
+
+function forecast(_args: string[], host: ConsoleHost): string[] {
+  const days = 7;
+  const f = host.forecast(days);
+  const out = [`Now: ${skyText(host.weatherHere())}.`];
+  for (let d = 0; d * 4 < f.length; d++) {
+    const [sky, snow, low, high] = f.slice(d * 4, d * 4 + 4);
+    const name = snow && sky >= 2 ? 'snow' : SKIES[sky] ?? '?';
+    out.push(`Day ${host.dayNumber() + d}${d === 0 ? ' (today)' : ''}: ${name}, ${degrees(low / 10)} to ${degrees(high / 10)}`);
+  }
+  return out;
+}
+
+function season(args: string[], host: ConsoleHost): string[] {
+  const now = `${cap(SEASONS[host.season()])}, day ${host.dayOfSeason()} of ${host.daysPerSeason()} (day ${host.dayNumber()}).`;
+  if (args.length === 0) return [now];
+  const target = SEASONS.indexOf(args[0] === 'fall' ? 'autumn' : args[0]);
+  if (target < 0) return ['Use season <spring|summer|autumn|winter>.'];
+  if (host.shared()) return ['The season is shared with the other players: it can be changed in a world of your own.'];
+  if (host.season() === target) return [`It is ${SEASONS[target]} already: ${now} skip <days> moves on within it.`];
+  const per = host.daysPerSeason();
+  const intoYear = host.season() * per + host.dayOfSeason() - 1;
+  const ahead = (target * per - intoYear + 4 * per) % (4 * per); // whole days to that season's first day
+  const days = ahead + SEASON_MORNING - host.timeOfDay();
+  host.skip(days * host.daySeconds());
+  return [`Ran ${Math.round(days * 10) / 10} days ahead. ${cap(SEASONS[host.season()])}, day ${host.dayOfSeason()}.`];
+}
+
+function skip(args: string[], host: ConsoleHost): string[] {
+  const m = /^(\d+(?:\.\d+)?)([dhm]?)$/.exec(args[0] ?? '');
+  if (!m) return ['Use skip <n>[d|h|m]: skip 3d (days), skip 6h (hours), skip 30m (minutes). A bare number is days.'];
+  const days = Number(m[1]) * UNITS[m[2] || 'd'];
+  if (days > 4 * 36) return ['At most 144 days at once (four years).'];
+  if (host.shared()) return ['The time is shared with the other players: it can be changed in a world of your own.'];
+  host.skip(days * host.daySeconds());
+  return [`Ran ${args[0]} ahead. Day ${host.dayNumber()}, ${clockText(host.timeOfDay())}, ${SEASONS[host.season()]}.`];
+}
+
+function speed(args: string[], host: ConsoleHost): string[] {
+  if (args.length === 0) return [`The world runs at ${host.timeSpeed()}× (speed 1 is normal).`];
+  const n = Number(args[0]);
+  if (!Number.isFinite(n) || n < 1) return ['Use speed <1 to 120>: speed 60 makes a day last 20 seconds. speed 1 is normal.'];
+  if (host.shared()) return ['The time is shared with the other players: it can be sped up in a world of your own.'];
+  host.setTimeSpeed(Math.round(n));
+  const s = host.timeSpeed();
+  const day = host.daySeconds() / s;
+  return [`The world runs at ${s}×: a day lasts ${day >= 60 ? `${Math.round(day / 6) / 10} minutes` : `${Math.round(day)} seconds`}.`];
+}
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function teleport(args: string[], host: ConsoleHost): string[] {
   const here = host.position();
@@ -124,25 +232,47 @@ function help(_args: string[], _host: ConsoleHost): string[] {
 const COMMANDS: Record<string, Command> = {
   help: { usage: 'help', about: 'this list', run: help },
   weather: {
-    usage: 'weather <clear|cloudy|gloomy|rain|snow|auto> [strength]',
-    about: 'hold the weather (auto: let the world decide)',
+    usage: 'weather [clear|cloudy|gloomy|rain|snow|auto] [strength]',
+    about: 'show the weather, or hold how the sky looks (auto: back to the world\'s)',
     run: weather,
   },
+  'weather wait': {
+    usage: 'weather wait <clear|cloudy|rain|storm|snow>',
+    about: 'run the world ahead until that weather really comes here',
+    run: weatherWait,
+  },
+  forecast: { usage: 'forecast', about: 'the weather now and for the next 6 days here', run: forecast },
   time: {
     usage: 'time [noon|midnight|dawn|dusk|night|18:30]',
     about: 'show the time, or run the world ahead to it',
     run: time,
   },
+  season: {
+    usage: 'season [spring|summer|autumn|winter]',
+    about: 'show the season, or run ahead to the first morning of that one',
+    run: season,
+  },
+  skip: { usage: 'skip <n>[d|h|m]', about: 'run the world ahead that many days, hours or minutes', run: skip },
+  speed: { usage: 'speed [1-120]', about: 'run the world faster (60: a day in 20 seconds); speed 1 is normal', run: speed },
   tp: { usage: 'tp <x> <y> <z>', about: 'move there (~ means where you are)', run: teleport },
   pos: { usage: 'pos', about: 'where you are', run: position },
   give: { usage: `give <item> [count]`, about: `put items in your pack (${GIVE_DEFAULT} if no count)`, run: give },
 };
 
-/** Runs one line; the answer is the lines to print (empty for an empty line). A leading `/` is allowed. */
+/** The characters that start a command; any other line is words to the other players. */
+export const COMMAND_PREFIXES = ['/', '!'];
+
+/** What a typed line is: a command (it starts with `/` or `!`), chat (anything else), or nothing (blank). */
+export function lineKind(line: string): 'command' | 'chat' | 'empty' {
+  const t = line.trim();
+  return t === '' ? 'empty' : COMMAND_PREFIXES.includes(t[0]) ? 'command' : 'chat';
+}
+
+/** Runs one line; the answer is the lines to print (empty for an empty line). A leading `/` or `!` is allowed. */
 export function runCommand(line: string, host: ConsoleHost): string[] {
-  const words = line.trim().replace(/^\//, '').toLowerCase().split(/\s+/).filter(Boolean);
+  const words = line.trim().replace(/^[/!]/, '').toLowerCase().split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
   const command = COMMANDS[words[0]] ?? (words[0] === 'teleport' ? COMMANDS.tp : undefined);
-  if (!command) return [`There is no command "${words[0]}". Type help for the list.`];
+  if (!command) return [`There is no command "${words[0]}". Type /help for the list.`];
   return command.run(words.slice(1), host);
 }

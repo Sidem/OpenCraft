@@ -204,6 +204,7 @@ pub const SPECS: &[ProcessSpec] = &[
     super::thumper::THUMPER_SPEC,
     super::anchor::ANCHOR_SPEC,
     super::kiln::GLASS_KILN_SPEC,
+    super::weather_station::WEATHER_STATION_SPEC,
     super::basic::SMELTER_SPEC,
     super::basic::CONSTRUCTOR_SPEC,
     super::basic::ASSEMBLER_SPEC,

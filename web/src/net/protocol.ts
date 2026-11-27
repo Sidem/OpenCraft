@@ -17,9 +17,14 @@
 //   pong     client → host   the clock from that ping, straight back
 //   resync   client → host   asks for a fresh snapshot: the cores went apart, or it fell far behind
 //   snapshot host → client   the answer (`game.snapshot()`, taken between frames like a welcome's)
+//   chat     either way      a line typed to everyone (`CHAT_MAX` characters at most): a client sends it with any
+//                            player id, the host puts the sender's on it and passes it to every client
 // To add a message: a type number (append), a `Message` case, and its arm in `encode` and `decode`.
 
 import { buildIdOf } from './build-id';
+
+/** The longest chat line passed on (characters). */
+export const CHAT_MAX = 300;
 
 export type Message =
   | { type: 'hello'; build: string; key: bigint; name: string }
@@ -36,7 +41,8 @@ export type Message =
   | { type: 'ping'; time: number; host: number; pings: [number, number][] }
   | { type: 'pong'; time: number }
   | { type: 'resync' }
-  | { type: 'snapshot'; bytes: Uint8Array };
+  | { type: 'snapshot'; bytes: Uint8Array }
+  | { type: 'chat'; from: number; text: string };
 
 /** Which build this page runs. Peers must match: the lockstep needs the same engine everywhere. The id is
  * this module's file name (see `buildIdOf`): in production it carries the bundle's content hash, and in
@@ -45,7 +51,7 @@ export const BUILD_ID = buildIdOf(import.meta.url);
 
 const TYPES = [
   'hello', 'welcome', 'refuse', 'actions', 'frames', 'checksum', 'bye', 'state', 'states', 'items', 'names',
-  'ping', 'pong', 'resync', 'snapshot',
+  'ping', 'pong', 'resync', 'snapshot', 'chat',
 ] as const;
 const utf8 = new TextEncoder();
 const text = new TextDecoder('utf-8', { fatal: true });
@@ -97,6 +103,10 @@ export function encode(m: Message): Uint8Array {
     case 'pong':
       w.f64(m.time);
       break;
+    case 'chat':
+      w.u8(m.from);
+      w.str(m.text.slice(0, CHAT_MAX));
+      break;
     case 'bye':
     case 'resync':
       break;
@@ -145,6 +155,9 @@ export function decode(b: Uint8Array): Message | null {
       }
       case 'pong':
         m = { type, time: r.f64() };
+        break;
+      case 'chat':
+        m = { type, from: r.u8(), text: r.str().slice(0, CHAT_MAX) };
         break;
       case 'bye':
       case 'resync':

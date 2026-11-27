@@ -15,7 +15,7 @@ export const GLOW_UNIT = 4;
 /** Dynamic point lights the shader can show at once: up to 4 held torches + up to 12 fire lights (engine `held_light::MAX_LIGHTS`). */
 export const HELD_LIGHT_SLOTS = 16;
 
-const FOG = /* glsl */ `
+export const FOG = /* glsl */ `
 uniform vec3 u_fogColor;
 uniform vec2 u_fog; // start, end (world units from the camera)
 vec3 applyFog(vec3 col, vec3 rel) {
@@ -32,7 +32,7 @@ const float CAVE_FLOOR = 0.05;
 // The lights players hold (engine held_light.rs; render/held-light.ts fills the uniform): a torch in a hand lights what
 // is near it, in the lamps' colour, as bright as the baked light there or brighter. Added per fragment, not per vertex,
 // because one merged quad can span the whole lit circle.
-const HELD_LIGHT = /* glsl */ `
+export const HELD_LIGHT = /* glsl */ `
 ${LAMP_COLOUR}
 const int HELD_LIGHTS = ${HELD_LIGHT_SLOTS};
 uniform vec4 u_held[HELD_LIGHTS]; // camera-relative x, y, z and the reach in blocks (0: no light)
@@ -92,7 +92,9 @@ out vec2 v_ground;
 out vec2 v_open; // how much open sky this vertex has (0..1) and 1 on an upward face: where rain wets and snow lies
 #ifndef WATER
 flat out uint v_paintId;
+flat out uint v_seasonRole;
 uniform uvec4 u_turns[32]; // two bits per layer (2048 layers): how its blocks may turn (engine block/turn.rs)
+uniform uvec4 u_seasonMask[32]; // two bits per layer: 0 none, 1 grass, 2 woodland, 3 flower
 // The face's offset in world tile cells (xy), its plane and side (z), and how it may turn (w): 0 not, 1 mirror,
 // 2 mirror and flip upside down, 3 any of eight ways.
 flat out vec4 v_turn;
@@ -149,6 +151,7 @@ void main() {
   float plane = face < 2u ? w.x : (face < 4u ? w.y : w.z);
   uint tw = li >> 4u;
   uint how = li < 2048u ? ((u_turns[tw >> 2u][tw & 3u] >> ((li & 15u) * 2u)) & 3u) : 0u;
+  v_seasonRole = li < 2048u ? ((u_seasonMask[tw >> 2u][tw & 3u] >> ((li & 15u) * 2u)) & 3u) : 0u;
   v_turn = vec4(faceUv(face, u_worldOrigin), plane * 8.0 + float(face), float(how));
 #endif
   v_tint = lightTint(a_light.x, u_skyLight);
@@ -185,8 +188,10 @@ uniform vec2 u_xray; // the X-ray pass (drawXray): its radius in blocks (0: not 
 in vec2 v_ground;
 in vec2 v_open;
 flat in uint v_paintId;
+flat in uint v_seasonRole;
 uniform vec2 u_ground; // wet ground and snow cover, 0..1 (render/precip.ts)
 uniform vec3 u_colourPalette[17]; // 0 = unpainted, 1..=16 = surface paint hues (engine colour/mod.rs)
+uniform vec4 u_seasonGround[3]; // [0] grass tint, [1] woodland tint, [2] (budding, flowerCover, 0, 0)
 float terrainHash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -230,12 +235,15 @@ vec2 turnUv(vec2 uv, inout vec2 dx, inout vec2 dy) {
 #endif
 #endif
 #ifdef SHAPED
-// Branches and leaf cards (render/shaped.ts). A card's outline is rounded off (a frond's along its length), so a
-// card reads as a clump of leaves rather than a square; its corner is (-1, -1) for wood.
+// Branches and leaf cards (render/shaped.ts); cards round off and scale with spring buds.
 in vec2 v_card;
+flat in uint v_leafMeta;
+in float v_leafHash;
+in float v_bud;
+uniform vec4 u_seasonFoliage[30];
 float cardMask() {
   if (v_card.x < 0.0) return 1.0;
-  vec2 d = v_card * 2.0 - 1.0;
+  vec2 d = (v_card * 2.0 - 1.0) / max(v_bud, 0.35);
   return 1.0 - smoothstep(0.8, 1.0, dot(d, d));
 }
 #endif
@@ -335,6 +343,27 @@ void main() {
   float field = terrainField(v_ground / 16.0, ${TERRAIN_TINT_PERIOD / 16}.0) * 0.65
               + terrainField(v_ground / 64.0, ${TERRAIN_TINT_PERIOD / 64}.0) * 0.35;
   c.rgb *= mix(vec3(0.93, 0.96, 1.0), vec3(1.05, 1.03, 0.95), field);
+#ifdef SHAPED
+  if ((v_leafMeta & 32u) != 0u) {
+    uint sp = v_leafMeta & 15u;
+    float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+    if ((v_leafMeta & 16u) != 0u) {
+      vec3 lc = u_seasonFoliage[20u + sp].rgb;
+      if (lc.r >= 0.0) c.rgb = clamp(lc * mix(vec3(0.88, 0.94, 0.96), vec3(1.12, 1.04, 0.92), v_leafHash) * lum, 0.0, 1.0);
+    } else {
+      vec4 la = u_seasonFoliage[sp], lb = u_seasonFoliage[10u + sp];
+      if (la.w > 0.001) {
+        vec3 target = mix(la.rgb, lb.rgb, clamp(field * 0.58 + v_leafHash * 0.52 - 0.06, 0.0, 1.0));
+        c.rgb = mix(c.rgb, clamp(target * lum, 0.0, 1.0), clamp(la.w + (field - 0.5) * 0.96 * la.w * (1.0 - la.w), 0.0, 1.0));
+      }
+    }
+  }
+#endif
+  if (v_seasonRole == 1u) {
+    c.rgb = mix(c.rgb, clamp(c.rgb * u_seasonGround[0].rgb, 0.0, 1.0), smoothstep(-0.02, 0.08, c.g - c.r * 0.88) * u_seasonGround[0].w);
+  } else if (v_seasonRole == 2u) {
+    c.rgb = clamp(c.rgb * u_seasonGround[1].rgb, 0.0, 1.0);
+  }
   // Rain darkens the ground that sees the sky; snow settles in patches on the faces that look up, thicker as it builds.
   c.rgb *= 1.0 - 0.3 * u_ground.x * v_open.x;
   float cover = smoothstep(field * 0.7, field * 0.7 + 0.3, u_ground.y) * v_open.x * v_open.y;

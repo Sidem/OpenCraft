@@ -3,7 +3,8 @@
 // reads its `game.weather_here()` numbers, which main.ts polls a few times a second into `FrameInfo.weather`.
 // `WeatherEase` smooths what is drawn (a front arriving, a time skip, the menu switch) over a few seconds, and
 // `WeatherSky` (one per renderer) turns the sky settings and the eased weather into the `SkyLook` that the sky shader and
-// `skyAt` (render/sky.ts) take. The console's `weather` command forces a kind (`weatherOf`). To tune what is drawn: the
+// `skyAt` (render/sky.ts) take. The console's `weather` command holds a kind (`weatherOf`, `WeatherSky.hold`), drawn in
+// the place's real temperature (`heldIn`: rain turns to snow below 0 °C, held snow brings the cold). To tune what is drawn: the
 // ease's time constant and the kinds in `weatherOf`; the weather itself is tuned in the engine.
 
 export type WeatherKind = 'clear' | 'cloudy' | 'gloomy' | 'rain' | 'snow';
@@ -56,12 +57,29 @@ export function weatherOf(kind: WeatherKind, amount = 1): Weather {
   }
 }
 
+/** The coldest a held snow keeps it, in degrees Celsius: cold enough that the snow lies. */
+export const HELD_SNOW_TEMP = -4;
+
+/** A held weather in the place's real temperature (`model.temp`): a held snow holds the cold too (`HELD_SNOW_TEMP` at
+ * most); any other keeps the real temperature, so what falls is snow below 0 °C and rain above it, as in the engine. */
+export function heldIn(held: Weather, model: Weather): Weather {
+  const temp = held.snow ? Math.min(model.temp, HELD_SNOW_TEMP) : model.temp;
+  return { ...held, temp, snow: temp < 0 };
+}
+
 /** The weather as drawn: the engine's, eased, and turned into the `SkyLook` for the sky's settings (the renderer owns one). */
 export class WeatherSky {
   readonly ease = new WeatherEase();
-  /** When set, this weather is drawn instead of the engine's (the console's `weather` command; never saved). */
+  /** When set, this weather is drawn instead of the engine's, in its temperature (`heldIn`; the console's `weather`
+   * command; never saved). Set it with `hold`. */
   forced: Weather | undefined;
   private last = 0;
+
+  /** Holds `w` (`undefined`: back to the engine's weather); the sky snaps to it at once rather than easing over. */
+  hold(w: Weather | undefined): void {
+    this.forced = w;
+    this.ease.reset();
+  }
 
   /** The look for this frame (`now` in milliseconds), or `undefined` when weather and red dusk are both off: today's plain sky. */
   look(settings: { weather: 0 | 1 | 2; dusk: boolean }, model: Weather, now: number): SkyLook | undefined {
@@ -71,7 +89,7 @@ export class WeatherSky {
       this.ease.reset();
       return settings.dusk ? { cover: 0, gloom: 0, precip: 0, dusk: true, clouds: 0 } : undefined;
     }
-    const w = this.ease.update(this.forced ?? model, dt);
+    const w = this.ease.update(this.forced ? heldIn(this.forced, model) : model, dt);
     return { cover: w.cover, gloom: w.gloom, precip: w.precip, dusk: settings.dusk, clouds: settings.weather };
   }
 }

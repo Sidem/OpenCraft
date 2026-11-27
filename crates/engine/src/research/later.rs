@@ -2,14 +2,16 @@
 //! a new tech goes here whatever its ring, and its `ring` and `wedge` place it on the research screen.
 //! To add one: a row here, its index in `ids.rs`, and `TECHS` grows by itself.
 
-use crate::item::{BLUE_PACK, ELEVATOR_ANCHOR_ITEM, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
+use crate::item::{
+    BLUE_PACK, ELEVATOR_ANCHOR_ITEM, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK, WEATHER_STATION_ITEM,
+};
 use crate::recipes::{AMBER_ROW, CLAY_BRICK_ROW, PORCELAIN_ROW, TERRACOTTA_ROW, TURQUOISE_ROW};
 
 use super::ids::*;
 use super::rings::{Ring, Wedge};
 use super::{Tech, Unlock};
 
-pub(super) const LATER: [Tech; 3] = [
+pub(super) const LATER: [Tech; 4] = [
     Tech {
         name: "Clay & Kilns",
         blurb: "Clay from river banks and lake beds: any furnace fires it into clay bricks, and the Glass Kiln into \
@@ -52,5 +54,18 @@ pub(super) const LATER: [Tech; 3] = [
         units: 400,
         seconds: 60.0,
         unlocks: &[Unlock::Recipe(ELEVATOR_ANCHOR_ITEM)],
+    },
+    Tech {
+        name: "Meteorology",
+        blurb: "The Weather Station measures the air around it: temperature, humidity, pressure, wind, clouds and rain, \
+                drawn on the map. Lows bring rain from the west; highs clear the sky.",
+        ring: Ring::Blue,
+        wedge: Wedge::Survey,
+        deed: None,
+        needs: &[ELECTRONICS],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
+        units: 40,
+        seconds: 15.0,
+        unlocks: &[Unlock::Recipe(WEATHER_STATION_ITEM)],
     },
 ];

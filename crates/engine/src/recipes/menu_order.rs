@@ -88,6 +88,7 @@ const MENU: &[ItemId] = &[
     b(CABLE),
     // Science.
     b(LAB),
+    b(WEATHER_STATION),
     b(RESEARCH_CENTER),
     RED_PACK,
     GREEN_PACK,

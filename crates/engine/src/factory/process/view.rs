@@ -10,7 +10,7 @@ use super::super::buffer::Buffer;
 use super::super::panel::{Panel, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT, ROLE_STORE};
 use super::super::power::{FULL_SPEED, NOT_WIRED};
 use super::super::ticks;
-use super::{Energy, Pick, Processor, Status};
+use super::{Pick, Processor, Status};
 
 /// Items, each with tenths of an item a minute.
 pub type Rates = Vec<(ItemId, u32)>;
@@ -43,6 +43,7 @@ impl Processor {
             .or_else(|| self.optimizer_text())
             .or_else(|| self.hub_text())
             .or_else(|| self.ground_text())
+            .or_else(|| self.weather_station_text())
             .or_else(|| self.forest_text())
             .or_else(|| self.laser_text());
         if let Some(text) = special.or_else(|| self.pump_text()) {
@@ -194,6 +195,7 @@ impl Processor {
             .or_else(|| self.optimizer_text())
             .or_else(|| self.hub_text())
             .or_else(|| self.ground_text())
+            .or_else(|| self.weather_station_text())
             .or_else(|| self.forest_text())
             .or_else(|| self.laser_text())
             .or_else(|| self.pump_text());
@@ -269,12 +271,8 @@ impl Processor {
             lines.extend(hud_stats(&[format!("Fire {} s", self.fire_seconds())]));
         }
         lines.extend(self.launch_line());
-        if self.spec.pick != Pick::Eject
-            && !matches!(
-                self.energy(),
-                Energy::Turbine | Energy::Solar | Energy::Accumulator | Energy::Hydro | Energy::Rectenna
-            )
-        {
+        // Only what right-click opens (`interaction.rs`: a machine whose `MachineDef` has a panel).
+        if super::super::machine(self.spec.block).is_some_and(|m| m.panel) {
             lines.push("\tRMB=Open".to_string());
         }
         lines.join("\n")

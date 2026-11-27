@@ -118,14 +118,26 @@ fn clouds_dim_the_panels_a_little() {
     let world = World::new(1, 2);
     let gen = world.generator();
     let cell = (0, -32); // the panel at (0, 0, -4) reads the clouds at its square's corner
-    let climate = crate::weather::Climate::at(gen, cell.0, cell.1);
-    let share = |t: u64| climate.sun_share(gen.seed(), cell.0, cell.1, t);
+    let mut air = crate::weather::Atmosphere::default();
     let noon = |day: u64| day * DAY_TICKS + DAY_TICKS * 5 / 24; // tick 0 is 7:00
-    let clear = (0..200).map(noon).find(|&t| share(t) == 1000).expect("a clear noon");
-    let storm = (0..200).map(noon).min_by_key(|&t| share(t)).expect("a noon");
-    assert!(share(storm) < 800, "the darkest noon in 200 days lets {} through", share(storm));
-    for (tick, want) in [(clear, SOLAR_KW), (storm, SOLAR_KW * share(storm) / 1000)] {
+    let (mut clear, mut storm) = (None, None);
+    for day in 0..40 {
+        air.advance(gen, noon(day));
+        let sun = air.sun_grid();
+        let share = sun.share_at(cell.0, cell.1);
+        if share == 1000 && clear.is_none() {
+            clear = Some((noon(day), sun.clone()));
+        }
+        if storm.as_ref().is_none_or(|(_, s): &(u64, crate::weather::SunGrid)| share < s.share_at(cell.0, cell.1)) {
+            storm = Some((noon(day), sun));
+        }
+    }
+    let (clear, storm) = (clear.expect("a clear noon"), storm.expect("a noon"));
+    let dark = storm.1.share_at(cell.0, cell.1);
+    assert!(dark < 900, "the darkest noon in 40 days lets {dark} through");
+    for ((tick, sun), want) in [(clear, SOLAR_KW), (storm, SOLAR_KW * dark / 1000)] {
         let mut f = plant(1, 0);
+        f.sun = sun;
         f.update(&mut World::new(1, 2), tick, &mut Vec::new());
         let panel = f.processors.iter().find(|p| p.spec.block == SOLAR_PANEL).expect("a panel");
         assert_eq!(panel.store.sun, want, "at tick {tick}");

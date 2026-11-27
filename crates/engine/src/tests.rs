@@ -927,10 +927,12 @@ mod forest_bench;
 mod frame_bench;
 mod machine_panels;
 mod machine_upgrade;
+mod time_console;
 mod train_aim;
 mod train_journey;
 mod tree_gallery;
 mod tree_spikes;
+mod weather_map;
 
 #[test]
 fn the_console_finds_items_by_name_and_knows_the_day_length() {

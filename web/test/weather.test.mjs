@@ -3,7 +3,7 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { CLEAR, kindOf, weatherFrom, weatherOf, WeatherEase, WeatherSky } from '../src/render/sky/weather.ts';
+import { CLEAR, HELD_SNOW_TEMP, heldIn, kindOf, weatherFrom, weatherOf, WeatherEase, WeatherSky } from '../src/render/sky/weather.ts';
 
 test('the engine\'s numbers read as a weather', () => {
   assert.deepEqual(weatherFrom([0.9, 0.8, 0.7, 1, -3.5]), { cover: 0.9, gloom: 0.8, precip: 0.7, snow: true, temp: -3.5 });
@@ -44,4 +44,24 @@ test('the ease snaps the first time, then follows the target over a few seconds'
   e.reset();
   e.update(storm, 0.016);
   assert.equal(e.value.gloom, 1, 'snaps again after a reset');
+});
+
+test('a held weather falls as snow below 0 °C and rain above it, and held snow brings the cold', () => {
+  const freezing = { ...CLEAR, temp: -6 }, mild = { ...CLEAR, temp: 14 };
+  assert.deepEqual([heldIn(weatherOf('rain'), freezing).snow, heldIn(weatherOf('rain'), mild).snow], [true, false]);
+  assert.equal(heldIn(weatherOf('rain'), mild).temp, 14, 'rain keeps the real temperature');
+  const snow = heldIn(weatherOf('snow'), mild);
+  assert.deepEqual([snow.snow, snow.temp], [true, HELD_SNOW_TEMP]);
+  assert.equal(heldIn(weatherOf('snow'), freezing).temp, -6, 'colder than the held cold stays colder');
+  assert.equal(heldIn(weatherOf('clear'), freezing).temp, -6, 'a held clear sky does not warm a winter');
+});
+
+test('holding a weather snaps the sky to it at once', () => {
+  const sky = new WeatherSky(), settings = { weather: 2, dusk: false };
+  sky.look(settings, { ...CLEAR, temp: 10 }, 0);
+  sky.look(settings, { ...CLEAR, temp: 10 }, 1000);
+  sky.hold(weatherOf('snow'));
+  const look = sky.look(settings, { ...CLEAR, temp: 10 }, 1016);
+  assert.equal(look.precip, 1, 'full snow on the next frame, not after an ease');
+  assert.equal(sky.ease.value.snow, true);
 });

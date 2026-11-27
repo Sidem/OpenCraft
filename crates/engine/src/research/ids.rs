@@ -96,3 +96,5 @@ pub const CLAY_AND_KILNS: u8 = 76;
 pub const PORCELAIN_AND_GLAZES: u8 = 77;
 #[cfg_attr(not(test), allow(dead_code))]
 pub const SPACE_ELEVATOR: u8 = 78;
+#[cfg_attr(not(test), allow(dead_code))]
+pub const METEOROLOGY: u8 = 79;

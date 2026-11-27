@@ -142,7 +142,7 @@ const LISTS: Record<Kind, string> = {
   player: 'Hauler Gear|Field Gear|Exosuit|Jetpack|Hover Pack|X-ray Goggles',
   build: 'Earthworks|Hoists|Settlements|Stone Styles|Glass|Metalwork|Paint|LED Lamps|Clay & Kilns|Porcelain & Glazes',
   nature: 'Forestry',
-  survey: 'Ore Scanning|Advanced Scanning|Seismic Prospecting|AI Survey',
+  survey: 'Ore Scanning|Advanced Scanning|Seismic Prospecting|AI Survey|Meteorology',
   space: 'Rocketry|Orbital Comms|Orbital Science|Drop Pods|Space Elevator',
   endless: 'Mining Productivity|Machine Speed|Drone Speed',
   general: '',

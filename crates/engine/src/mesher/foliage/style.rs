@@ -1,5 +1,6 @@
-//! How each kind of leaf block is drawn as cards (`foliage.rs`): how many, how big and how they lie. Data: a row per
-//! leaf block. To give a new leaf block its look: a row in `style_of` (blocks without one draw as broad leaves).
+//! How each kind of leaf block is drawn as cards (`foliage.rs`): how many, how big and how they lie. Seasonal
+//! colour, budding, leaf drop and fallen litter per species live beside this in `season.rs`. Data: a row per leaf
+//! block. To give a new leaf block its look: a row in `style_of` (blocks without one draw as broad leaves).
 
 use crate::block::{
     BlockId, ACACIA_LEAVES, BAMBOO_LEAVES, BAOBAB_LEAVES, BIRCH_LEAVES, CHERRY_BLOSSOM, EUCALYPTUS_LEAVES, PALM_FRONDS,

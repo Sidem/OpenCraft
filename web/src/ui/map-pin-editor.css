@@ -1,0 +1,60 @@
+/* The world map's pin editor (ui/map-pin-editor.ts): kind buttons, a note and Save / Remove / Cancel, over the view. */
+
+.wm-editor {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: min(330px, calc(100% - 24px));
+  padding: 10px 12px 12px;
+  border-radius: 8px;
+  background: rgba(18, 20, 26, 0.95);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+
+.wm-editor h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.wm-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.wm-kind {
+  padding: 3px 8px 3px 6px;
+  border: 1px solid var(--panel-border);
+  border-left: 8px solid var(--kind);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font: 12px var(--font);
+  cursor: pointer;
+}
+
+.wm-kind.on {
+  border-color: var(--accent);
+  border-left-color: var(--kind);
+  background: var(--accent-soft);
+}
+
+.wm-note {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text);
+  font: 13px var(--font);
+}
+
+.wm-editor-buttons {
+  display: flex;
+  gap: 6px;
+}

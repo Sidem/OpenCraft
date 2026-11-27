@@ -28,6 +28,10 @@ const ICONS = {
   cloud: '<path d="M4.5 12.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.6-1A3.3 3.3 0 0 1 12 12.5z"/>',
   rain: '<path d="M4.5 9.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.6-1A3.3 3.3 0 0 1 12 9.5z"/><path class="ln" d="M5 11.5l-1 2.5M8.5 11.5l-1 2.5M12 11.5l-1 2.5"/>',
   storm: '<path d="M4.5 9a3 3 0 0 1-.3-6 4 4 0 0 1 7.6-1A3.3 3.3 0 0 1 12 9z"/><path d="M8.8 9.5L6 13h2.2l-1 2.8 3.6-4.3H8.6l1.2-2z"/>',
+  thermo: '<path class="ln" d="M8 2.2v7.3"/><circle cx="8" cy="11.8" r="2.6"/><path class="ln" d="M10.5 3.5h2M10.5 6h2M10.5 8.5h1.6"/>',
+  gauge: '<path class="ln" d="M2.5 11.5a5.5 5.5 0 1 1 11 0"/><path class="ln" d="M8 11.5l3-4"/><circle cx="8" cy="11.5" r="1.4"/>',
+  wind: '<path class="ln" d="M1.5 6h8.5a2 2 0 1 0-2-2M1.5 9.5h11a2 2 0 1 1-2 2M1.5 13h5"/>',
+  drop: '<path d="M8 1.5C5.5 5 3.8 7.4 3.8 9.8a4.2 4.2 0 0 0 8.4 0C12.2 7.4 10.5 5 8 1.5z"/>',
 } as const;
 const SEASON_ICONS = ['spring', 'summer', 'autumn', 'winter'] as const;
 

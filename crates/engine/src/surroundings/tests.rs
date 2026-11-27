@@ -184,3 +184,42 @@ fn town_reading_reports_nearest_awake_town_stage() {
     g.sim.settlements.towns[0].dormant = true;
     assert_eq!(read(&g, eye)[TOWN], 0.0);
 }
+
+#[test]
+fn grass_cells_finds_open_lit_turf_and_skips_cleared_bare_and_covered() {
+    let mut g = world();
+    let eye = above_ground(&g, 0, 0);
+    let cell = eye.floor();
+    let gy = g.sim.world.generator().height_at(cell.x, cell.z);
+    let here = IVec3::new(cell.x, gy, cell.z);
+    g.sim.world.set_block_anywhere(here, crate::block::GRASS);
+    g.sim.world.set_block_anywhere(here + IVec3::new(0, 1, 0), crate::block::AIR);
+
+    let has = |cells: &[u32], p: IVec3| {
+        let (ox, oy, oz) = (cells[0] as i32, cells[1] as i32, cells[2] as i32);
+        cells[3..].iter().any(|&w| {
+            let x = ox + (w & 127) as i32;
+            let y = oy + ((w >> 7) & 127) as i32;
+            let z = oz + ((w >> 14) & 127) as i32;
+            IVec3::new(x, y, z) == p
+        })
+    };
+
+    let initial = grass::grass_cells(&mut g.sim.world, eye);
+    assert!(initial.len() > 200, "spawn meadow should yield many turf cells (got {})", initial.len() - 3);
+    assert!(has(&initial, here), "open lit grass under the player should be included");
+
+    // Covering grass with stone excludes it.
+    g.sim.world.set_block_anywhere(here + IVec3::new(0, 1, 0), STONE);
+    assert!(!has(&grass::grass_cells(&mut g.sim.world, eye), here), "covered grass must be excluded");
+    g.sim.world.set_block_anywhere(here + IVec3::new(0, 1, 0), crate::block::AIR);
+
+    // Marking the top face bare (freshly dug sod) excludes it.
+    g.sim.world.set_bare_anywhere(here, 1 << 2);
+    assert!(!has(&grass::grass_cells(&mut g.sim.world, eye), here), "bare-top sod must be excluded");
+    g.sim.world.set_bare_anywhere(here, 0);
+
+    // Sickle-clearing the column excludes it.
+    g.sim.world.clear_column(here.x, here.z);
+    assert!(!has(&grass::grass_cells(&mut g.sim.world, eye), here), "sickle-cleared column must be excluded");
+}

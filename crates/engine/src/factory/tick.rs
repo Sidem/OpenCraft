@@ -44,12 +44,13 @@ impl Factory {
             order,
             changed,
             manual_off,
+            sun,
             ..
         } = self;
         orbit.now = tick;
         let kinds: &process::Kinds = kinds;
         let unlocked = research.machine_recipes_unlocked();
-        process::sense_sources(processors, kinds, world, orbit, tick);
+        process::sense_sources(processors, kinds, world, (orbit, sun), tick);
         power.balance(
             generators, miners, processors, kinds, labs, pipework, quarries, research, &unlocked, manual_off, tick,
         );

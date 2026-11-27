@@ -14,14 +14,36 @@ use crate::{block, factory, Game, TICK};
 pub(crate) const MAX_TICKS_PER_FRAME: u32 = 8;
 /// Float slack when comparing accumulated frame time with `TICK`, so 60 frames of 1/60 s run 60 ticks.
 const TICK_SLACK: f64 = 1e-9;
+/// The fastest the console may run the world (`set_time_speed`): a 20-minute day in 10 seconds.
+pub const MAX_TIME_SPEED: u32 = 120;
+
+/// The console's time speed: the world runs `speed` times as fast, the extra ticks silent (as `skip_time`). Testing
+/// only, never saved; the core still advances in whole ticks, so it stays deterministic.
+#[derive(Default)]
+pub(crate) struct FastTime {
+    /// 0 or 1 is normal speed.
+    speed: u32,
+    /// Extra time not yet run as ticks, in seconds.
+    carry: f64,
+}
 
 #[wasm_bindgen]
 impl Game {
+    /// Runs the world `speed` times as fast (1 is normal, at most `MAX_TIME_SPEED`): for testing days and seasons.
+    pub fn set_time_speed(&mut self, speed: u32) {
+        self.fast = FastTime { speed: speed.clamp(1, MAX_TIME_SPEED), carry: 0.0 };
+    }
+
+    pub fn time_speed(&self) -> u32 {
+        self.fast.speed.max(1)
+    }
+
     /// Per frame: runs the whole ticks that `dt` seconds of frame time add up to, then prepares this
     /// frame's camera and box instances.
     pub fn update(&mut self, dt: f64) {
         self.sim.world.advance_clock(dt);
         self.stream_around_players();
+        self.run_fast(dt);
         self.accumulator += dt.max(0.0);
         let mut ran = 0;
         while self.accumulator >= TICK - TICK_SLACK && ran < MAX_TICKS_PER_FRAME {
@@ -110,5 +132,18 @@ impl Game {
         factory::split_round(&self.instances, &mut self.round_instances);
         self.write_xray(factory_from..factory_to, eye);
         self.minimap.atlas.refresh_some(&self.sim.world);
+    }
+}
+
+impl Game {
+    /// The extra ticks the time speed adds for `dt` seconds of frame time (the host's cap of 0.1 s), run silently.
+    fn run_fast(&mut self, dt: f64) {
+        if self.fast.speed <= 1 {
+            return;
+        }
+        self.fast.carry += dt.clamp(0.0, 0.1) * f64::from(self.fast.speed - 1);
+        let n = ((self.fast.carry + TICK_SLACK) / TICK) as u32;
+        self.fast.carry = (self.fast.carry - f64::from(n) * TICK).max(0.0);
+        self.skip_time(f64::from(n) * TICK);
     }
 }

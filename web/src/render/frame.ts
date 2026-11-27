@@ -48,6 +48,11 @@ export interface FrameInfo {
   days: number;
   /** The engine's weather at the camera (`game.weather_here()`, sky/weather.ts), before the ease. */
   weather: Weather;
+  /** Downwind push vector and speed at the camera: `[dirX, dirZ, speedMs]` from `game.weather_here()`. */
+  wind: [number, number, number];
+  /** Seasonal foliage (`game.season_foliage()`, 120 floats) and ground (`game.season_ground()`, 12 floats) uniforms. */
+  seasonFoliage: Float32Array;
+  seasonGround: Float32Array;
   /** Box instances (dropped items, belt items, machine parts), `INSTANCE_FLOATS` each. */
   boxes: Float32Array;
   boxCount: number;

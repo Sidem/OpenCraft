@@ -34,6 +34,8 @@ export class QualityPanel {
       h('p', 'comfort-help', 'Draws fewer pixels and stretches them to fit. The first thing to lower on a slow graphics card.'),
       this.choices('Render distance', RADII.map(String), () => RADII.indexOf(store.settings.radius as (typeof RADII)[number]), (i) => store.choose('radius', RADII[i])),
       h('p', 'comfort-help', 'How many chunks away the world is shown. Shorter is easier on both the processor and the graphics card.'),
+      this.choices('Lush grass', ['Off', 'Low', 'Full'], () => store.settings.grass, (i) => store.choose('grass', i as 0 | 1 | 2)),
+      h('p', 'comfort-help', '3D grass blades around you that follow the seasons and bend in the wind.'),
       this.choices('Smooth edges', ['Off', 'On'], () => Number(store.settings.antialias), (i) => store.choose('antialias', i === 1)),
       h('p', 'comfort-help', 'Antialiasing. A change here applies the next time you load the game.'),
       this.choices('Automatic', ['Off', 'On'], () => Number(store.settings.auto), (i) => store.set('auto', i === 1)),
@@ -100,6 +102,7 @@ export class QualityPanel {
     const { store, game, renderer } = this.src;
     renderer.setScale(store.settings.scale / 100);
     renderer.setViewRadius(store.settings.radius);
+    renderer.setGrassQuality(store.settings.grass);
     game.set_view_radius(store.settings.radius);
   }
 

@@ -142,6 +142,7 @@ async function main(): Promise<void> {
   renderer.setTextures(texPixels, texSize, game.texture_layers(), art?.glow ?? null);
   renderer.setTurns(new Uint32Array(game.texture_turns()));
   renderer.setColourPalette(new Float32Array(game.colour_palette()));
+  renderer.setSeasonLayers(new Uint32Array(game.season_layers()));
   renderer.setWaterLayer(game.water_layer());
   const hud = new Hud(game, texPixels, texSize);
   wireTierPalette(game, renderer, hud, texPixels, texSize, document.getElementById('tier-palette')!);
@@ -273,14 +274,15 @@ async function main(): Promise<void> {
       else if (a.kind === 'take-item') game.take_target_item();
       else if (a.kind === 'scan-target') prospect.nextTarget();
       else if (a.kind === 'blueprint-mark') game.blueprint_mark();
-      else if (a.kind === 'blueprint-copy') game.blueprint_copy_selection();
       else if (a.kind === 'mute') sound.toggleMute();
       else if (a.kind === 'sound-lab') {
         // Open on the block being looked at, else on whatever was heard last (e.g. the ground).
         input.unlock();
         soundLab.open(game.has_target() ? game.block_sound(game.target_block()) : sound.lastMaterial);
+      } else if (a.kind === 'console' && !a.typed && game.ghost_stage() === 2) {
+        game.blueprint_copy_selection(); // Enter copies a box marked in ghost mode; otherwise it opens the chat line
       } else if (a.kind === 'console') {
-        adminConsole.open();
+        adminConsole.open(a.typed);
         input.unlock();
       } else if (a.kind === 'inventory') {
         inventory.open();
@@ -342,13 +344,30 @@ async function main(): Promise<void> {
 
   // The engine's weather at the camera (render/sky/weather.ts), read four times a second; the renderer eases it.
   renderer.precip.roofSource = () => game.rain_roof(); // where rain stops (roofs, caves)
-  let weather = weatherFrom(game.weather_here()), weatherRead = -1e9;
+  renderer.grass.cellSource = () => game.grass_cells(); // nearby lit turf for lush 3D grass blades
+  const readWeather = () => {
+    const raw = game.weather_here();
+    const rad = ((raw[10] ?? 270) * Math.PI) / 180;
+    return { w: weatherFrom(raw), wind: [-Math.sin(rad), Math.cos(rad), raw[9] ?? 0] as [number, number, number] };
+  };
+  let { w: weather, wind } = readWeather(), weatherRead = -1e9;
   const weatherNow = (now: number) => {
     if (now - weatherRead > 250) {
       weatherRead = now;
-      weather = weatherFrom(game.weather_here());
+      ({ w: weather, wind } = readWeather());
     }
     return weather;
+  };
+
+  // Seasonal foliage and ground uniforms, re-read only when the year fraction moves noticeably (or after a time jump).
+  let seasonYear = -1, seasonFoliage = new Float32Array(game.season_foliage()), seasonGround = new Float32Array(game.season_ground());
+  const seasonNow = () => {
+    const yf = game.year_fraction();
+    if (Math.abs(yf - seasonYear) > 1e-4) {
+      seasonYear = yf;
+      seasonFoliage = new Float32Array(game.season_foliage());
+      seasonGround = new Float32Array(game.season_ground());
+    }
   };
 
   const frame = (now: number) => {
@@ -357,6 +376,7 @@ async function main(): Promise<void> {
     frames.tick(now, menu.isOpen);
     const dt = advance(now);
     const ready = game.ready();
+    seasonNow();
 
     if (!wasReady) {
       const loaded = game.chunks_loaded(), pending = game.chunks_pending();
@@ -378,6 +398,9 @@ async function main(): Promise<void> {
       time: game.sun_time(),
       days: game.day_number() - 1 + game.time_of_day(),
       weather: weatherNow(now),
+      wind,
+      seasonFoliage,
+      seasonGround,
       ...boxViews(game, wasm.memory, instanceFloats),
       lineCells: game.line_cells(),
       quarryBoxes: machine.quarryBox() ?? game.placement_box(),
@@ -417,12 +440,15 @@ async function main(): Promise<void> {
     requestAnimationFrame(frame);
   };
 
-  // A co-op session, from the URL or the menu: notices, its end (back to the menu, the world stopped),
+  // A co-op session, from the URL or the menu: notices, chat (the console's line), its end (back to the menu, the world stopped),
   // and ticking on while this tab gets no frames (net/ticker.ts), so a hidden host doesn't stop everyone.
   function beginCoop(c: Coop): Coop {
     coop = handles.coop = c;
     c.onNotice = (text) => playerList.notice(text);
+    c.onChat = (from, text) => adminConsole.hear(from, text);
+    adminConsole.say = (text) => c.say(text);
     c.onEnd = (reason) => {
+      adminConsole.say = null;
       menu.play.disabled = true;
       input.unlock();
       pause();

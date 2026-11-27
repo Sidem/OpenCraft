@@ -5,7 +5,8 @@
 // Drag to move, wheel or the buttons to zoom, click to pin a spot or edit a pin; resting on a mark or pin shows what it
 // is (map-info.ts). The image is redrawn only when the view or the explored map changes; marks, pins and players at most
 // 10 times a second. Pins live in pins.ts, their list in map-pin-list.ts. `showMachines` (analytics' "Show on map")
-// rings every machine of a kind and fits the view to them (map-focus-layer.ts).
+// rings every machine of a kind and fits the view to them (map-focus-layer.ts); the pin editor is map-pin-editor.ts and the
+// weather measured by Weather Stations, with its layer buttons, map-weather.ts.
 // The dialog frame reuses the machine panel's styles (machine.css).
 
 import './machine.css';
@@ -16,9 +17,11 @@ import { FilterPanel } from './map-filter-panel';
 import { MapKey } from './map-key';
 import { fitView } from './map-focus';
 import { MapFocus } from './map-focus-layer';
+import { MapWeather } from './map-weather';
 import { infoAt, type MapInfo } from './map-info';
 import type { MapFilter } from './map-filter';
 import { fillPinList } from './map-pin-list';
+import { PinEditor } from './map-pin-editor';
 import { OreGuide } from './ore-guide';
 import { arrow, drawMark, drawPin, hex, type Pin, type Pins } from './pins';
 
@@ -48,16 +51,16 @@ export class WorldMap {
   private readonly coords = h('span', 'wm-coords');
   private readonly scaleLabel = h('span', 'wm-scale');
   private readonly pinList = h('div', 'wm-pins');
-  private readonly editor = h('div', 'wm-editor hidden');
   private readonly legend = h('div', 'wm-legend hidden');
   private readonly ctx: CanvasRenderingContext2D;
   private readonly focus: MapFocus;
+  private readonly weather: MapWeather;
+  private readonly editor: PinEditor;
   private centre = { x: 0, z: 0 };
   private zoom = START_ZOOM;
   private drawnKey = '';
   private lastMarks = -Infinity;
   private press: { x: number; y: number; cx: number; cz: number; moved: boolean } | null = null;
-  private editing: { pin: Pin | null; x: number; z: number; kind: string } | null = null;
 
   constructor(
     private readonly game: Game,
@@ -68,6 +71,8 @@ export class WorldMap {
   ) {
     this.ctx = this.image.getContext('2d')!;
     this.focus = new MapFocus(game);
+    this.weather = new MapWeather(game);
+    this.editor = new PinEditor(pins);
     this.focus.onClear = () => {
       this.focus.clear();
       this.lastMarks = -Infinity;
@@ -87,7 +92,7 @@ export class WorldMap {
       button('secondary-btn', '+', () => this.zoomBy(-1)),
       this.scaleLabel,
       button('secondary-btn', 'Centre on me', () => this.centreOnPlayer()),
-      button('secondary-btn', 'Pin where I stand', () => this.editAt(this.game.player_x(), this.game.player_z(), null)),
+      button('secondary-btn', 'Pin where I stand', () => this.editor.open(this.game.player_x(), this.game.player_z(), null)),
       this.coords,
     );
     this.legend.append(h('strong', '', 'Where a town fits'));
@@ -98,7 +103,7 @@ export class WorldMap {
       row.append(swatch, game.town_kind_name(k));
       this.legend.append(row);
     }
-    this.view.append(this.image, this.overlay, this.legend, this.focus.chip, this.editor);
+    this.view.append(this.image, this.overlay, this.legend, this.weather.el, this.focus.chip, this.editor.el);
     const side = h('aside', 'wm-side');
     side.append(new FilterPanel(game, filter, pins.kinds).el, new MapKey(game).el, h('h3', '', 'Pins'), this.pinList, new OreGuide(game).el);
     const main = h('div', 'wm-main');
@@ -146,7 +151,7 @@ export class WorldMap {
   close(resume: boolean): void {
     if (!this.isOpen) return;
     this.focus.clear();
-    this.closeEditor();
+    this.editor.close();
     this.info.hide();
     this.backdrop.classList.add('hidden');
     this.onClose(resume);
@@ -210,6 +215,7 @@ export class WorldMap {
       c.fillRect(x, y, size, size);
     }
     c.globalAlpha = 1;
+    this.weather.draw(c, at, dpr, v);
     const n = this.game.minimap_mark_fields();
     const marks = this.filter.marks(this.game.world_map_marks(Math.floor(v.left), Math.floor(v.top), x1, z1), n);
     c.lineWidth = dpr;
@@ -241,7 +247,7 @@ export class WorldMap {
         this.close(true);
       } else if (e.key === 'Escape') {
         e.preventDefault();
-        if (this.editing) this.closeEditor();
+        if (this.editor.isOpen) this.editor.close();
         else this.close(false);
       }
     });
@@ -266,7 +272,7 @@ export class WorldMap {
       this.press = null;
       if (!p || p.moved) return;
       const world = this.toWorld(e.clientX, e.clientY);
-      if (world) this.editAt(world.x, world.z, this.pinNear(e.clientX, e.clientY));
+      if (world) this.editor.open(world.x, world.z, this.pinNear(e.clientX, e.clientY));
     });
     o.addEventListener('pointerleave', () => this.info.hide());
     o.addEventListener('wheel', (e) => {
@@ -283,7 +289,8 @@ export class WorldMap {
     const ringed = this.focus.near(world.x, world.z, reach);
     // A ringed machine's line replaces the engine's plain line for its kind.
     const rest = infoAt(this.game, this.filter, this.pins, this.pinNear(clientX, clientY), world.x, world.z, reach);
-    const lines = [...ringed, ...rest.filter((l) => ringed.length === 0 || l.title !== this.focus.name)].slice(0, 3);
+    const others = rest.filter((l) => ringed.length === 0 || l.title !== this.focus.name);
+    const lines = [...ringed, ...others, ...this.weather.near(world.x, world.z)].slice(0, 3);
     this.info.show(lines, clientX, clientY);
   }
 
@@ -333,62 +340,10 @@ export class WorldMap {
     this.coords.textContent = `x ${Math.floor(x)}, z ${Math.floor(z)} · ${d} blocks from you`;
   }
 
-  /** Opens the pin editor for `pin`, or for a new pin at (x, z). */
-  private editAt(x: number, z: number, pin: Pin | null): void {
-    const kind = pin?.kind ?? this.editing?.kind ?? this.pins.kinds[1].id;
-    this.editing = { pin, x: pin?.x ?? Math.floor(x), z: pin?.z ?? Math.floor(z), kind };
-    const e = this.editor;
-    e.replaceChildren();
-    const kinds = h('div', 'wm-kinds');
-    for (const k of this.pins.kinds) {
-      const b = button('wm-kind', k.label, () => {
-        this.editing!.kind = k.id;
-        kinds.querySelectorAll('.wm-kind').forEach((el) => el.classList.toggle('on', el === b));
-      });
-      b.style.setProperty('--kind', k.color);
-      b.classList.toggle('on', k.id === kind);
-      kinds.append(b);
-    }
-    const note = h('input', 'wm-note');
-    note.placeholder = 'A few words (optional)';
-    note.maxLength = 40;
-    note.value = pin?.note ?? '';
-    const save = () => {
-      const ed = this.editing!;
-      if (ed.pin) this.pins.update(ed.pin, ed.kind, note.value.trim());
-      else this.pins.add({ x: ed.x, z: ed.z, kind: ed.kind, note: note.value.trim() });
-      this.closeEditor();
-    };
-    note.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter') save();
-      else if (ev.key === 'Escape') {
-        ev.preventDefault();
-        this.closeEditor();
-      }
-    });
-    const buttons = h('div', 'wm-editor-buttons');
-    buttons.append(button('secondary-btn active', pin ? 'Save' : 'Add pin', save));
-    if (pin) {
-      buttons.append(button('secondary-btn danger', 'Remove', () => {
-        this.pins.remove(pin);
-        this.closeEditor();
-      }));
-    }
-    buttons.append(button('secondary-btn', 'Cancel', () => this.closeEditor()));
-    e.append(h('h4', '', `${pin ? 'Pin' : 'New pin'} at x ${this.editing.x}, z ${this.editing.z}`), kinds, note, buttons);
-    e.classList.remove('hidden');
-    note.focus();
-  }
-
-  private closeEditor(): void {
-    this.editing = null;
-    this.editor.classList.add('hidden');
-  }
-
   private fillPinList(): void {
     fillPinList(this.pinList, this.game, this.pins, this.filter, (pin) => {
       this.centre = { x: pin.x + 0.5, z: pin.z + 0.5 };
-      this.editAt(pin.x, pin.z, pin);
+      this.editor.open(pin.x, pin.z, pin);
     });
   }
 }

@@ -11,7 +11,7 @@
 
 import type { Game } from '../wasm/engine.js';
 import { message } from '../save/session';
-import { BUILD_ID, decode, encode, type Message } from './protocol';
+import { BUILD_ID, CHAT_MAX, decode, encode, type Message } from './protocol';
 import { type Coop, defaultName, type PlayerInfo, PING_MS, SILENT_MS } from './coop';
 import type { Transport } from './transport';
 
@@ -19,6 +19,7 @@ export class CoopHost implements Coop {
   /** How others join: a room code (WebRTC) or a room name (tabs of this browser), once open. */
   code = '';
   onNotice = (_text: string) => {};
+  onChat = (_from: string, _text: string) => {};
   onEnd = (_reason: string) => {};
   /** Set by whoever feeds `addPeer`, to stop accepting joiners on `close`. */
   stopListening = () => {};
@@ -85,6 +86,10 @@ export class CoopHost implements Coop {
     }
   }
 
+  say(text: string): void {
+    this.relay(this.local, text);
+  }
+
   close(): void {
     this.stopListening();
     for (const peer of [...this.peers]) {
@@ -106,6 +111,8 @@ export class CoopHost implements Coop {
     } else if (m?.type === 'resync' && peer.id !== null) {
       console.info(`co-op: sending ${peer.name} a fresh copy of the world`);
       peer.t.send(encode({ type: 'snapshot', bytes: this.game.snapshot() }));
+    } else if (m?.type === 'chat' && peer.id !== null) {
+      this.relay(peer.id, m.text);
     } else if (m?.type === 'bye') {
       peer.t.close();
       this.drop(peer);
@@ -143,6 +150,15 @@ export class CoopHost implements Coop {
     const list: [number, number][] = [];
     for (const p of this.peers) if (p.id !== null && p.ping !== null) list.push([p.id, p.ping]);
     return list;
+  }
+
+  /** A chat line from player rom: shown here and passed to every client, the sender too. */
+  private relay(from: number, text: string): void {
+    const line = text.trim().slice(0, CHAT_MAX);
+    if (line === '') return;
+    this.onChat(this.names.get(from) ?? defaultName(from), line);
+    const m = encode({ type: 'chat', from, text: line });
+    for (const peer of this.peers) if (peer.id !== null) peer.t.send(m);
   }
 
   private sendNames(): void {

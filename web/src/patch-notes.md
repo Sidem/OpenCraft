@@ -5,10 +5,15 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
 ## 2026-11-27 · v0.18.6 · Weather
-- **Weather moves across the world.** Fronts drift in from the west: clear skies, clouds, rain and storms, and snow wherever it is below freezing.
+- **A real atmosphere.** Weather is simulated like the real thing: air pressure, temperature, humidity, clouds and wind across the whole world. Highs bring clear skies, lows bring cloud and rain, and they drift in from the west. Warm fronts, cold air over warm ground, and wind blowing up mountains all make rain, so windward slopes and coasts are wetter. Rain and storms come and go on their own, and it snows wherever it is below freezing.
 - **Every place has its own temperature** from its climate, the season, the hour and its height, so mountains and cold forests see snow first and deserts never freeze. Snow stays on open ground while it is cold and melts as it warms up.
 - **Weather works on your base:** clouds dim solar panels a little (down to 60% in a storm), and rain makes grass and saplings grow faster.
-- **The calendar (Shift+N) shows a forecast:** the temperature now and the weather for the next six days.
+- **The calendar (Shift+N) shows a forecast:** the temperature now and the weather for the next six days. It is the same simulation run ahead, so it is right.
+- **Weather Station** (research Meteorology, after Electronics): put it on a power pole and it measures the weather 640 blocks around. On the map (M), buttons in the corner show the measured temperature, rain and snow, air pressure or wind arrows inside each station's circle; rest the mouse on a spot for its numbers.
+- **The weather under the minimap:** the sky, the temperature and the wind's direction and speed, plus humidity and air pressure where a Weather Station measures.
+- **Enter opens chat.** In a world shared with friends, type and press Enter to talk to everyone; their lines show over the game for a while. Commands now start with / or ! (try /help); / and the backquote key still open the line with the / typed.
+- **Trees and grass follow the year.** Oaks and birches bud fresh green in spring, turn amber, russet and bright gold in autumn, and shed their leaves leaf-by-leaf into bare winter branches. Cherry trees bloom pink in spring, grow deep green for summer, flare orange-red in autumn, and bare their dark bark in winter. Baobabs drop bare and acacias thin out in the dry season, while pines, redwoods, eucalyptus, palms and bamboo stay evergreen all year.
+- **Fallen leaves, petals and seasonal meadows.** Grass, tufts, ferns and reeds shift from lush spring green to warm golden autumn and muted winter; wildflowers bloom through spring and summer and rest in winter (ore-indicator plants always stay visible); and shedding trees scatter fallen leaves—and cherry petals in late spring—onto the ground beneath them.
 
 ## 2026-11-27 · v0.18.5 · Whole trees
 - **A tree's leaves stay on it.** You can no longer pick leaves off a grown tree one by one; fell the trunk and the whole crown comes down with it.

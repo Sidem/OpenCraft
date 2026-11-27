@@ -8,6 +8,7 @@
 //!                      below, v along that axis), 4..=6 a log's end, flat across x, y, z, 7 a ground-cover plant
 //!                      quad (u holds 6-bit u and v in 60ths, drawn from both sides without the card mask)
 //!         bits 27..30  occlusion (0 darkest .. 7 open)
+//!         bits 30..32  for a leaf card (`kind == 0`): 2 extra hash bits (with `part` in word 1: 6-bit drop hash)
 //! word 1: bits  0..12  z
 //!         bits 12..24  u   (a log: texture tiles in 1/256 around it; a card: bit 0 its corner across, bits 1..3
 //!                      its corner along in halves, bits 3..7 which part of the texture, bits 7..12 the blocks the
@@ -15,7 +16,8 @@
 //!         bits 24..32  light (sky | block << 4, as the cube mesher's light byte)
 //! word 2: bits  0..16  normal, octahedral (8 bits each)
 //!         bits 16..27  texture layer (11 bits, 0..=2047)
-//!         bits 27..32  surface paint palette index (5 bits, 0..=16)
+//!         bits 27..32  surface paint palette index (5 bits, 0..=16); for `kind == 0` (leaf card), bits 27..31 are
+//!                      the species index (`mesher/foliage/season.rs`) and bit 31 marks fallen leaf litter on ground
 //! ```
 //!
 //! Invariant: a vertex's position is its cell (an integer) plus an offset computed only from the blocks around it,

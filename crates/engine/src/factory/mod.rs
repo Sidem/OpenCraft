@@ -233,6 +233,9 @@ pub struct Factory {
     pub pods: Pods,
     /// Blocks the machines changed this tick, with the one each replaced (not state: `Sim::step` drains it).
     pub changed: Vec<(IVec3, BlockId)>,
+    /// The sun the clouds let through, for solar panels (a copy `Sim::step` hands over after each step of the air:
+    /// derived from the saved atmosphere, so not saved here).
+    pub sun: crate::weather::SunGrid,
 }
 
 impl Factory {

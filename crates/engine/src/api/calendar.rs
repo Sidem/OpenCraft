@@ -43,4 +43,22 @@ impl Game {
         let s = [Season::Spring, Season::Summer, Season::Autumn, Season::Winter];
         daytime::growth_percent(s[season as usize % 4])
     }
+
+    /// Packed 2-bit seasonal role per texture layer (128 words = 32 `uvec4`s, same layout as `texture_turns`):
+    /// 0 none, 1 grass/turf, 2 woodland ferns/reeds, 3 seasonal wildflowers (`mesher/foliage/season.rs`).
+    pub fn season_layers(&self) -> Vec<u32> {
+        crate::mesher::season_layers()
+    }
+
+    /// This frame's seasonal foliage uniforms (`mesher::FOLIAGE_FLOATS` floats = 30 `vec4`s: `leafA[10]`, `leafB[10]`,
+    /// `litter[10]`) evaluated from the current `year_fraction`.
+    pub fn season_foliage(&self) -> Vec<f32> {
+        crate::mesher::pack_foliage(daytime::year_fraction(self.sim.tick) as f32).to_vec()
+    }
+
+    /// This frame's seasonal ground uniforms (`mesher::GROUND_FLOATS` floats = 3 `vec4`s: grass tint, woodland tint,
+    /// budding + flower cover) evaluated from the current `year_fraction`.
+    pub fn season_ground(&self) -> Vec<f32> {
+        crate::mesher::pack_ground(daytime::year_fraction(self.sim.tick) as f32).to_vec()
+    }
 }

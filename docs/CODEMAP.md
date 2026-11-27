@@ -16,7 +16,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `api/`: the JS API, one `#[wasm_bindgen] impl Game` per area; methods only forward. `engine.d.ts` (generated) lists them.
   `input`, `view`, `render`, `inventory`, `machine`, `crafting`, `research`, `creative`, `content`, `hud`, `sites`, `save`,
   `net`, `minimap`, `prospect`, `analytics`, `towns`, `orbit`, `ruins`, `signs`, `opening`, `blueprint`, `hand_waste`,
-  `lessons`, `guide`, `surroundings`, `xray`, `led`, `seismic`, `codex`, `static_boxes`, `calendar`, `weather`, `debug` (give, teleport, run_ticks, scene building).
+  `lessons`, `guide`, `surroundings`, `xray`, `led`, `seismic`, `codex`, `static_boxes`, `calendar`, `weather` (+ `weather_map`: stations and the map's samples), `debug` (give, teleport, run_ticks, scene building).
 - `events.rs`: `SimEvent`s → item spawns, sounds, toasts, analytics. `authority.rs`: bodies, loose items, join/leave. `grass_sweep.rs`: seeds grass on bare dirt near bodies (`Action::GrowGrass`).
 
 ### Deterministic core (changes only through `Action`s at a tick)
@@ -26,7 +26,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `action.rs`: the `Action` enum. `action/`: `apply.rs` (one arm each), `clicks.rs`, `blocks.rs`, `docks.rs`, `multiblock.rs`,
   `codec.rs` + `codec/read.rs` (bytes; tags append only).
 - `bytes.rs`: canonical encoding (a block id is one byte below 255, else 255 and a `u16`). `save.rs`: the file, `SAVE_VERSION`. `join.rs`: const-table joins. `math.rs`: vectors, hashes, `Rng`.
-- `doors.rs`, `deposits.rs` (pools, tiers, `HAND_YIELD`), `daytime.rs` (clock and calendar: seasons, day length, growth by season), `weather/` (fronts, rain and snow, `climate.rs` temperature, `forecast.rs`: pure functions of place and tick), `crafting.rs`, `take_apart.rs`, `perks.rs`, `mode.rs`, `tools.rs` (tool classes, retired tools).
+- `doors.rs`, `deposits.rs` (pools, tiers, `HAND_YIELD`), `daytime.rs` (clock and calendar: seasons, day length, growth by season), `weather/` (the atmosphere, core state saved since 92: `air.rs` a wrapping grid of temperature, vapour, cloud, pressure and wind stepped every 10 in-game minutes; `physics.rs` saturation, dew point, noise; `reading.rs` a station's reading at a place; `climate.rs` the ground's temperature and damp; `forecast.rs` the air run ahead on a copy), `crafting.rs`, `take_apart.rs`, `perks.rs`, `mode.rs`, `tools.rs` (tool classes, retired tools).
 - `inventory.rs` + `inventory/stacks.rs` + `inventory/kinds.rs`; `equipment.rs` (worn gear, packs, upgrades); `tool_belt/` (the worn Tool Belt: speeds, crouch reach, the hand's head, migration); `offhand.rs`.
 - `research.rs`; `research/`: `techs.rs` (`TECHS`), `ids.rs`, `rings.rs` (rings, wedges, thresholds, red deeds), `red_green.rs`, `blue.rs`, `violet.rs`, `gold_sky.rs`, `later.rs` (techs added since, at the open end), `migrate.rs` (save < 86 migration), `queue.rs`, `bonus.rs`.
 - `codex/`: world-wide obtained-items bitset (save 83), `data.rs` (periodic table forms/facts), `achievements.rs`.
@@ -58,7 +58,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs` (+ `pump/view.rs`, `Look::Jack`), `refinery.rs`, `gas.rs`, `washer.rs`, `recycler.rs`,
   `center.rs`, `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs` (+ `rocket.rs`),
   `pods.rs` + `pods/channels.rs`, `hangar.rs`, `hoist.rs`, `docks.rs`, `depot.rs`, `anchor.rs` (the elevator's, a `Pick::Depot`), `ejector.rs`, `upgrader.rs`, `laser.rs`,
-  `forester.rs` + `forester/` (`patch.rs`, `work.rs`, `fell.rs`, `view.rs`, `crane.rs`, `scene.rs`; `Look::Crane`), `thumper.rs` (`Look::Thumper`), `kiln.rs` (`GLASS_KILN`).
+  `forester.rs` + `forester/` (`patch.rs`, `work.rs`, `fell.rs`, `view.rs`, `crane.rs`, `scene.rs`; `Look::Crane`), `thumper.rs` (`Look::Thumper`), `kiln.rs` (`GLASS_KILN`), `weather_station.rs` (what a station measures: `Factory::weather_covers`).
 - Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs`, `render.rs` (instances; `push_round`, `push_cone`,
   `push_framed`; `plume.rs`, `capsule.rs`; `render/fake_round.rs` and `tests/face_fight.rs` are checks), `static_view.rs` (chunk index and static/dynamic split), `hitbox.rs`, `smoke.rs`,
   `placed.rs` (what blueprints copy).
@@ -74,6 +74,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   Seismic prospecting (F-SEIS): block 261 (`block/thumper.rs`), items 442–444 (Mk1–Mk3), `recipes/thumper.rs`, `item_models/thumper.rs`, `textures/thumper.rs`.
   Glass Kiln & Paint Sprayer (L-COLOUR): block 262 (`block/kiln.rs`), items 445–446, `item_models/kiln.rs`, `textures/kiln.rs`.
   Space elevator (M14A): block 270 (`block/elevator.rs`), item 463, `recipes/towns.rs`, tech 78 (`research/later.rs`).
+  Weather Station (ATMOS): block 271 (`block/weather_station.rs`), item 464, `recipes/solar.rs`, tech 79 Meteorology (`research/later.rs`).
   Clay & kilns (MAT-CLAY): blocks 263–269 (`block/clay.rs`; wide, paired in `WIDE_BLOCK_ITEMS`), items 451–457, `recipes/clay.rs` (rows 232–236, `Category::Firing`), `worldgen/clay.rs` (v14 beds and pockets), `textures/clay.rs`; river towns' `WARES` in `settlements/orders.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs`): `ItemId`; ids below 256 are blocks, wider blocks pair with items in `WIDE_BLOCK_ITEMS`. `wood.rs`: the ten woods.
 - `recipes/`: `mod.rs` (`RECIPES`; `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`; `machine_later.rs`), `process_notes.rs` (one line of real chemistry a chemical machine row; shown on its card and in the item guide), `rows.rs`, `tiers.rs`,
@@ -104,7 +105,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
 - `mesher.rs` + `mesher/` (`quad.rs`, `face_layer.rs` (alternates, turf's lit grown faces), `plants.rs`, `water.rs`, `blocks/` + `blocks/slope.rs` shaped slabs/stairs/roofs, `cover.rs` + `cover/shape.rs`); trees: `shaped.rs`, `tree_grid.rs`, `logs.rs` + `logs/`
-  (`node.rs`, `ring.rs`), `foliage.rs` + `foliage/style.rs`.
+  (`node.rs`, `ring.rs`), `foliage.rs` + `foliage/style.rs` + `foliage/season.rs` (seasonal phenology, grass and litter).
 - `entities.rs` + `entities/merge.rs`, `avatars.rs` + `avatars/` (`grip.rs`, `hand.rs`, `tool_hold.rs`; first-person hand & character rig), `halos.rs`, `fire_view.rs` + `fire_view/torch.rs` (burning tree/ember emitters, ballistic torch plumes, flame lights & glow), `wire_props.rs`,
   `held_light.rs`, `drone_view.rs` + `companion_view.rs`, `orbit_fx.rs`, `sound.rs`.
 - `minimap.rs` + `minimap/` (`atlas.rs`, `marks.rs`, `describe.rs`, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
@@ -112,7 +113,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `static_boxes/`: per-chunk static machine and wire box cache (pre-lit, cube/round split, GPU-resident).
 - `tier_palette.rs`: the two palettes of the tier colours Mk1–Mk5 (standard, colour-blind) and the player's local choice.
 - `item_guide.rs`: every way to get an item and what uses it. `analytics/` (`series.rs`, `machines.rs`, `power.rs`; never saved).
-  `surroundings/` (ambient sound floats, `roof.rs`).
+  `surroundings/` (ambient sound floats, `roof.rs`, `grass.rs` nearby lit turf cells for instanced 3D grass).
 
 ### Co-op
 - `net/mod.rs`: `Role`, `INPUT_DELAY`, `CHECKSUM_TICKS`. `snapshot.rs`, `players.rs`, `items.rs`.
@@ -127,7 +128,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `main.ts`: bootstrap, frame loop. `pause.ts`, `input.ts` (keys, mouse, one-shot `Action`s), `controls/view.ts`, `base.css`,
   `patch-notes.md`.
 - `render/`: `renderer.ts` (+ `frame.ts`), `mesh-events.ts`, `shaped.ts`, `falling.ts`, `geometry.ts`, `shaders.ts`, `boxes.ts` +
-  `round-mesh.ts` + `box-glsl.ts`, `water.ts`, `outlines.ts`, `precip.ts`, `halos.ts`, `fire.ts` (instanced shader flames & embers), `sky.ts` + `sky/`, `art-pack.ts` (128 px pack),
+  `round-mesh.ts` + `box-glsl.ts`, `water.ts`, `outlines.ts`, `precip.ts`, `grass.ts` (GPU-instanced 3D grass blades), `halos.ts`, `fire.ts` (instanced shader flames & embers), `sky.ts` + `sky/`, `art-pack.ts` (128 px pack),
   `art/` (the pack's files), `held-light.ts`, `sign-faces.ts` + `sign-layout.ts`, `tier-paint.ts` + `tier-wire.ts` (a tier palette recolours the baked layers), `frame-stats.ts`, `gpu-probe.ts`, `quality.ts`, `auto-quality.ts`, `gl.ts`, `mat4.ts`.
 - `audio/`: `sound.ts` (master bus), `sound-actions.ts`, `synth.ts` + `synth-orbit.ts` + `synth-fire.ts` + `synth-seismic.ts` + `synth-chime.ts` (Codex unlock chimes) + `flame-loop.ts` (continuous torch audio), `settings.ts`, `ambience.ts` +
   `ambience-levels.ts` + `ambience-mix.ts` + `synth-ambience.ts`, `surroundings.ts`, `music.ts` + `music-director.ts` +
@@ -136,7 +137,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `save/`: `store.ts` (IndexedDB), `session.ts`, `export.ts`, `leave-guard.ts` (drawn by `ui/leave-prompt.ts`; `ui/no-storage.ts` fills Worlds without storage); `comfort/settings.ts`. `console/`: `commands.ts`, `host.ts`.
 - `ui/`: one component per `<name>.ts` + `<name>.css`; `dom.ts` builds elements.
   - HUD: `hud.ts` (+ `hud-columns.css`, `target-card.ts`, `target-card.css`, `target-controls.ts`; `itemIcon` via `icon-paint.ts`, `icon-geometry.ts`), `icon-sprite.ts`, `hints.ts`, `todo.ts` (pinned shopping list),
-    `key-prompt.ts`, `ghost-panel.ts` (ghost mode's controls card), `xray-badge.ts` (the goggles' icon and rim; keeps the on/off choice), `led-panel.ts` (an LED lamp's brightness and colour), `prospect.ts`, `nametags.ts`, `scope.ts`, `vignette.ts`, `minimap.ts`, `compass.ts`, `season-chip.ts` and `calendar.ts` (Shift+N; icons and rings in `seasons.ts`; weather row `forecast.ts`), `craftqueue.ts`.
+    `key-prompt.ts`, `ghost-panel.ts` (ghost mode's controls card), `xray-badge.ts` (the goggles' icon and rim; keeps the on/off choice), `led-panel.ts` (an LED lamp's brightness and colour), `prospect.ts`, `nametags.ts`, `scope.ts`, `vignette.ts`, `minimap.ts`, `compass.ts`, `season-chip.ts`, `weather-chip.ts` and `calendar.ts` (Shift+N; icons and rings in `seasons.ts`; weather row `forecast.ts`), `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`), `craft-family.ts`,
     `craft-tiers.ts`, `craft-card.ts`, `craft-info.ts`, `item-guide.ts`, `take-apart.ts`, `offhand.ts`, `held-name.ts`,
     `drag-throw.ts`, `craft-terms.ts`, `creative.ts`, `gear-upgrade.ts`, `box-label.ts`, `drone.ts`, `drone-slots.ts`, `slot-view.ts`.
@@ -145,14 +146,14 @@ local player's hands, presentation, then the **deterministic core**, which never
     `colour.ts`), `seismic.ts` + `seismic-controls.ts` + `seismic-render.ts` + `seismic-volume.ts` + `seismic-data.ts`, `train.ts`.
   - Research: `research.ts` (screen, HUD tracker), `research-frontier.ts` (pure: cells, discovery, wide rings, chains), `research-grid.ts` (rings × disciplines grid, hover lines), `research-chip.ts`, `research-now.ts` (now, ready, next-ring checklist), `research-detail.ts` (selected tech), `research-wedges.ts` (12 discipline rows), `research-kinds.ts`, `research-search.ts`, `research-queue.ts`, `codex.ts` (+ `codex-elements.ts`: periodic table & achievements; `codex-toast.ts`: unlock popups).
   - Maps: `worldmap.ts`, `pins.ts`, `map-pin-list.ts`, `map-filter.ts` + `map-filter-panel.ts`, `map-info.ts`, `map-key.ts` (+
-    `map-key-rows.ts`), `map-focus.ts` + `map-focus-layer.ts`, `ore-guide.ts`. Analytics (P): `analytics.ts`, a tab each in
+    `map-key-rows.ts`), `map-focus.ts` + `map-focus-layer.ts`, `map-pin-editor.ts`, `map-weather.ts` (stations' readings; numbers and colours in `weather-scale.ts`), `ore-guide.ts`. Analytics (P): `analytics.ts`, a tab each in
     `analytics-overview.ts`, `analytics-power.ts` (+ `analytics-grids.ts`), `analytics-items.ts`, `analytics-machines.ts`
     (base `analytics-tab.ts`), `analytics-chart.ts`, `analytics-format.ts`, `analytics-panels.css`.
   - Menu: `menu.ts` (+ `menu-pages.css`), `settings-tabs.ts`, `home.ts` (+ `home.css`, `home-text.ts`, `greetings.ts`, `tip-text.ts`),
     `controls.ts` (+ `controls.css`; `control-bindings.ts` mirrors `input.ts`, guarded by a test; `keyboard-view.ts`,
     `keyboard-geometry.ts`, `keyboard-layout.ts`), `worlds.ts`, `world-upgrade.ts` (+ `world-upgrade-text.ts`: deposits-layer upgrade card & notice), `coop.ts`, `players.ts`, `patch-notes.ts` (+ `inline-text.ts`),
     `comfort.ts`, `sky.ts`, `tier-palette.ts` (the colour-blind tier colours' choice and store), `desktop-only.ts`, `perf-report.ts` (+ `perf-text.ts`), `quality.ts`, `blueprints.ts` (+
-    `blueprint-plan.ts`), `console.ts`.
+    `blueprint-plan.ts`), `console.ts` (command line and co-op chat; `chat-feed.ts`).
   - Sound: `sound-panel.ts`, `master-volume.ts`, `volume-control.ts`, `knob.ts`, `sound-lab.ts` + `sound-lab-footer.ts` (key O only).
 - `wasm/`: generated by `npm run build:wasm` (gitignored); `engine.d.ts` is the API reference.
 - Pure logic tests: `web/test/*.test.mjs` (`node --test`).

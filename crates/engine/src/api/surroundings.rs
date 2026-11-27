@@ -18,4 +18,10 @@ impl Game {
     pub fn rain_roof(&self) -> Vec<f32> {
         surroundings::roof::roof_grid(&self.sim.world, self.render_eye)
     }
+
+    /// Nearby lit, open turf cells around the camera for GPU-instanced 3D grass blades (`surroundings/grass.rs`):
+    /// origin `(ox, oy, oz)` as `i32` bits, then packed `u32` grass cells.
+    pub fn grass_cells(&mut self) -> Vec<u32> {
+        surroundings::grass::grass_cells(&mut self.sim.world, self.render_eye)
+    }
 }

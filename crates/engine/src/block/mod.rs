@@ -242,6 +242,9 @@ pub use clay::*;
 /// The space elevator's anchor, id 270 (`elevator.rs`).
 mod elevator;
 pub use elevator::{ELEVATOR_ANCHOR, ELEVATOR_COUNT};
+/// The weather station, id 271 (`weather_station.rs`).
+mod weather_station;
+pub use weather_station::{WEATHER_STATION, WEATHER_STATION_COUNT};
 const BASE_COUNT: usize = 129;
 pub const BLOCK_COUNT: usize = BASE_COUNT
     + DECOR_COUNT
@@ -261,7 +264,8 @@ pub const BLOCK_COUNT: usize = BASE_COUNT
     + THUMPER_COUNT
     + KILN_COUNT
     + CLAY_COUNT
-    + ELEVATOR_COUNT;
+    + ELEVATOR_COUNT
+    + WEATHER_STATION_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;

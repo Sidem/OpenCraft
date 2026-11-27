@@ -263,7 +263,7 @@ impl Sim {
         let ticks = ((min - u.ln() * half_life / std::f64::consts::LN_2) * TICK_RATE as f64) as u64;
         let due = match kind {
             TimerKind::GrassGrow | TimerKind::SodGrow | TimerKind::SaplingGrow => {
-                growth_due(self.world.generator(), pos, self.tick, ticks)
+                growth_due(self.world.generator(), &self.atmosphere, pos, self.tick, ticks)
             }
             TimerKind::LeafDecay | TimerKind::GrassDie => self.tick + ticks,
         };

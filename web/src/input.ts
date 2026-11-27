@@ -24,7 +24,6 @@ export type Action =
   | { kind: 'take-item' }
   | { kind: 'scan-target' }
   | { kind: 'blueprint-mark' }
-  | { kind: 'blueprint-copy' }
   | { kind: 'blueprints' }
   | { kind: 'hint' }
   | { kind: 'map' }
@@ -32,7 +31,7 @@ export type Action =
   | { kind: 'world-map' }
   | { kind: 'build-ghost' }
   | { kind: 'toggle-xray' }
-  | { kind: 'console' }
+  | { kind: 'console'; typed: string }
   | { kind: 'debug' };
 
 export interface Movement {
@@ -173,12 +172,12 @@ export class Input {
       else if (e.code === 'KeyI') this.actions.push({ kind: 'take-item' });
       else if (e.code === 'KeyU') this.actions.push({ kind: 'scan-target' });
       else if (e.code === 'KeyZ') this.actions.push({ kind: 'blueprint-mark' });
-      else if (e.code === 'Enter') this.actions.push({ kind: 'blueprint-copy' });
       else if (e.code === 'KeyL') this.actions.push({ kind: 'blueprints' });
       else if (e.code === 'KeyT') this.actions.push({ kind: e.shiftKey ? 'codex' : 'research' });
       else if (e.code === 'KeyP') this.actions.push({ kind: 'analytics' });
       else if (e.code === 'KeyH') this.actions.push({ kind: 'hint' });
-      else if (e.code === 'Slash' || e.code === 'Backquote') this.actions.push({ kind: 'console' });
+      else if (e.code === 'Enter' || e.code === 'NumpadEnter') this.actions.push({ kind: 'console', typed: '' });
+      else if (e.code === 'Slash' || e.code === 'Backquote') this.actions.push({ kind: 'console', typed: '/' });
       else if (e.code === 'KeyN') this.actions.push({ kind: e.shiftKey ? 'calendar' : 'map' });
       else if (e.code === 'KeyX') this.actions.push({ kind: e.shiftKey ? 'toggle-xray' : 'build-ghost' });
     }

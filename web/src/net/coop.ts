@@ -26,6 +26,10 @@ export interface Coop {
   players(): PlayerInfo[];
   /** Called with a line for the player when someone joins or leaves. */
   onNotice: (text: string) => void;
+  /** Sends a chat line to everyone; it comes back through onChat (on the host at once, on a client from the host). */
+  say(text: string): void;
+  /** Called with each chat line, the sender's name and the text, this player's own lines too. */
+  onChat: (from: string, text: string) => void;
   /** Called once when the session ends from the other side (a client only), with a readable reason. */
   onEnd: (reason: string) => void;
 }

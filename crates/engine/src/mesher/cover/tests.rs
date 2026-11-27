@@ -211,3 +211,48 @@ fn meadow_plants_stay_compact_and_flowers_face_upward() {
         }
     }
 }
+
+#[test]
+fn fallen_leaf_litter_appears_under_deciduous_canopies_only() {
+    use crate::block::{BIRCH_LEAVES, CHERRY_BLOSSOM, LEAVES, PINE_LEAVES, REDWOOD_NEEDLES};
+    use crate::mesher::foliage::species_of;
+    use crate::mesher::shaped::KIND_CARD;
+
+    let litter_quads = |ground: BlockId, canopy: BlockId, cleared: &[u32]| {
+        let (air, mut c) = (Chunk::uniform(AIR), Chunk::uniform(AIR));
+        for z in 0..32 {
+            for x in 0..32 {
+                c.set(x, 3, z, ground);
+                if (8..20).contains(&x) && (8..20).contains(&z) {
+                    c.set(x, 9, z, canopy);
+                }
+            }
+        }
+        let mut refs = [&air; 27];
+        refs[neighbor_index(0, 0, 0)] = &c;
+        let biomes = vec![Biome::Plains; 1024];
+        let m = Mesher::new().mesh(&refs, &DAYLIGHT, Some(&Cover { x0: 0, z0: 0, biomes: &biomes, cleared }));
+        let start = m.shaped_opaque as usize * 12;
+        let cutout = &m.shaped[start..start + m.shaped_cutout as usize * 12];
+        cutout
+            .chunks_exact(12)
+            .filter(|q| (q[0] >> 24) & 7 == KIND_CARD && (q[2] >> 31) == 1)
+            .map(|q| ((q[2] >> 27) & 15, pos_of(&q[0..3])[1] - 4.0))
+            .collect::<Vec<_>>()
+    };
+
+    for leaf in [LEAVES, BIRCH_LEAVES, CHERRY_BLOSSOM] {
+        let got = litter_quads(GRASS, leaf, &[]);
+        assert!(got.len() > 60, "deciduous canopy {leaf} should scatter fallen litter on turf (got {})", got.len());
+        let want_sp = u32::from(species_of(leaf));
+        assert!(got.iter().all(|&(sp, y)| sp == want_sp && (0.01..0.05).contains(&y)));
+    }
+    for evergreen in [PINE_LEAVES, REDWOOD_NEEDLES] {
+        assert!(
+            litter_quads(GRASS, evergreen, &[]).is_empty(),
+            "evergreen canopy {evergreen} must not drop deciduous leaf litter"
+        );
+    }
+    assert!(litter_quads(STONE, LEAVES, &[]).is_empty(), "stone floors stay free of leaf litter");
+    assert!(litter_quads(GRASS, LEAVES, &[u32::MAX; 32]).is_empty(), "cleared ground stays free of leaf litter");
+}

@@ -69,6 +69,7 @@ mod tower;
 mod upgrader;
 mod view;
 mod washer;
+mod weather_station;
 mod work;
 
 pub(super) use center::{needs_center, step_centers};

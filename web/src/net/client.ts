@@ -6,7 +6,7 @@
 
 import { Game } from '../wasm/engine.js';
 import { message } from '../save/session';
-import { type Coop, type PlayerInfo, SILENT_MS } from './coop';
+import { type Coop, defaultName, type PlayerInfo, SILENT_MS } from './coop';
 import { BUILD_ID, decode, encode, type Message } from './protocol';
 import type { Transport } from './transport';
 
@@ -23,6 +23,7 @@ export class CoopClient implements Coop {
   mismatches = 0;
   resyncs = 0;
   onNotice = (_text: string) => {};
+  onChat = (_from: string, _text: string) => {};
   onEnd = (_reason: string) => {};
   private readonly hostHashes = new Map<bigint, bigint>();
   private readonly ownHashes = new Map<bigint, bigint>();
@@ -115,6 +116,10 @@ export class CoopClient implements Coop {
     }
   }
 
+  say(text: string): void {
+    if (!this.ended) this.t.send(encode({ type: 'chat', from: this.game.local_player(), text }));
+  }
+
   close(): void {
     this.ended = true;
     this.t.send(encode({ type: 'bye' }));
@@ -137,6 +142,8 @@ export class CoopClient implements Coop {
       this.t.send(encode({ type: 'pong', time: m.time }));
       this.hostId = m.host;
       this.pings = new Map(m.pings);
+    } else if (m?.type === 'chat') {
+      this.onChat(this.names.get(m.from) ?? defaultName(m.from), m.text);
     } else if (m?.type === 'snapshot') {
       this.resync(m.bytes);
     } else if (m?.type === 'bye') {

@@ -306,24 +306,17 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
 - [ ] (5.7, landed) Pump, pipe and outlet models (`factory/pipes.rs` `model`): placeholders built from
   `STEEL`, `FRAME` and `GENERATOR_SIDE` boxes; pipes join on every face (`arms`); the outlet shows a short
   `WATER` stream while pouring. Their item icons are plain cubes of the block faces (`block/mod.rs`).
-- [x] (P5, landed) Pickaxe, axe and shovel, stone, iron and steel (`tex::STONE_PICKAXE`.., `textures/tools.rs`): retired items
-  since GEAR-BELT; their held models are the heads the belt's swinging hand shows (`tool_belt::head`).
 - [ ] (GEAR-BELT, landed) Tool Belt Mk1–Mk5 (items 458–462): placeholder icons `tool_belt()` (`textures/gear.rs`), worn
   model `tool_belt(tier)` (`item_models/wear.rs`).
 - [ ] (M14A, landed) Elevator anchor (block 270, item 463; parts in `factory/process/anchor.rs`) and tether (`elevator/view.rs`):
   placeholders from steel, beam, frame and lamp layers.
-- [x] (Saplings, landed) A sapling: layer `tex::SAPLING` (57) by `textures/plants.rs`, drawn on two
-  crossed quads (`Render::Plant`), so keep the background transparent. Also its icon and loose item.
-- [x] (4.2, landed) Rocks and minerals for Milestone 4's biomes: granite, sandstone, basalt (building
-  rocks that fill whole regions underground, so they must tile well and read apart from stone),
-  limestone and quartz ore (deposit ores), glass (cutout: keep most texels transparent). Layers
-  `tex::GRANITE`..`tex::GLASS` (58–63) in `textures/geology.rs`; quartz uses `quartz_ore()` there.
-- [x] (4.6, landed; models done) Prospecting devices, drawn like the tools (flat item plates): a handheld scanner
-  (`tex::SCANNER`, 68) and a core drill (`tex::CORE_DRILL`, 69); `scanner()` and `core_drill()` in
-  `textures/tools.rs`.
-- [x] (4.5, landed) Stained soils that hint at ore below: rusty (iron), dark (coal), verdigris
-  (copper), pale (limestone, quartz). Readable from a distance and on the minimap, but still soil.
-  Layers `tex::RUSTY_SOIL`..`tex::PALE_SOIL` (64–67), `soil()` in `textures/geology.rs`.
+- [ ] (ATMOS station, landed) Weather Station (block 271, item 464; parts in `factory/process/weather_station.rs`): a
+  mast with a white louvred screen, rain gauge, cup anemometer and vane from pigment-white, steel, frame and brass
+  layers; the item icon is the `pillar` of those. Wanted: a louvred screen face and a proper icon.
+- [ ] (SEASON-TREES, landed) Seasonal crowns and fallen litter (`mesher/foliage/season.rs`, `render/shaders.ts`): the
+  leaf shader recolours every species from its existing leaf tile luminance across the year (including cherry's pink
+  blossom tile to deep green in summer and orange-red in autumn) and reuses each species' leaf tile for fallen litter
+  on open turf. Dedicated autumn/blossom reference palettes or a bespoke fallen-leaf scatter tile are optional polish.
 - [ ] (P3, landed) A leaf-decay particle or puff, if cheap; otherwise none. There is no particle system;
   the `LeafDecayed` event (`events.rs`) only plays a sound today.
 - [ ] (4.10, landed) The lamp block: glass in an iron frame that reads as a light source (warm pane,
@@ -360,11 +353,6 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   (`tex::ASSEMBLER_SIDE`/`TOP`, 121–122), the port hatches every multi-block machine gets (`tex::PORT_IN`,
   `PORT_OUT`, 123–124: in and out must read apart without colour too), concrete (block 63, `tex::CONCRETE`,
   125) and the motor item (278, `tex::MOTOR`, 126), all placeholders in `textures/assembly.rs`.
-- [x] (2026-11-01, user request) Five machines remodelled to look like the real thing (`factory/process/parts.rs`): the
-  assembler is a robot cell (two orange arms, `assembly_view.rs`; a conveyor, a gantry carrying the product display),
-  the blast furnace a tapered stack with bustle main, stove and skip bridge, the electrolytic cell a reduction pot, the
-  crusher a jaw crusher with flywheels, the arc furnace a water-cooled vessel with three electrodes. Pack faces in `tools/art`
-  (`arc_*`, `assembler_*` also the upgrader's housing, `blast_side` also the boiler's firebox, `cell_*`, `crusher_*`).
 - [ ] (6.6, landed) Steel: the blast furnace (block 64, 2×2×3; model parts `BLAST_PARTS` in `factory/process/specs.rs`; `tex::BLAST_SIDE`/`TOP`, 127–128), its byproduct hatch (`tex::PORT_SIDE`, 129: three hatches now, told apart by chevron shape as well as colour), slag (block 65, `tex::SLAG`, 130), the steel ingot, plate and beam (items 279–281, 131–133; models in `item_models.rs`) and the steel tools (282–284, 134–136, plus the head material `tex::STEEL_HEAD`, 137), all in `textures/steel.rs`.
 - [ ] (6.7, landed) Blue tier: the blue science pack (item 285, `tex::BLUE_PACK` 138: a flask like the red and green; model `BLUE_FLASK` in `item_models.rs`), the blue kit (286, wears `tex::stripe(2)`), the Mk3 belt top (`tex::BELT_MK3_TOP`, 139) and Mk3 miner housing (`tex::MINER_MK3_SIDE`, 140); the Mk3 and Mk2 multi-block items (287–294) reuse their block's faces with the tier chip, so they read as Mk only by the chip and the stripe on the machine.
 - [ ] (6.7b, landed) The Mk2 and Mk3 items of poles, boxes, pumps, quarries and labs, and the Mk2 generator (295–305) reuse their block's faces with the tier chip. On the machine a pole, pump, quarry and generator wear a `tex::stripe(tier)` band; a box is a plain cube, so nothing shows its tier but the readout: it wants a stripe on its faces (a new layer per tier).

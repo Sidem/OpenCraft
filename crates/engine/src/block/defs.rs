@@ -19,6 +19,7 @@ use super::street::STREET_DEFS;
 use super::thumper::THUMPER_DEFS;
 use super::tints::TINT_DEFS;
 use super::trees::TREES_DEFS;
+use super::weather_station::WEATHER_STATION_DEFS;
 use super::woods::WOODS_DEFS;
 use super::*;
 
@@ -44,6 +45,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = crate::join::join(&[
     &KILN_DEFS,
     &CLAY_DEFS,
     &ELEVATOR_DEFS,
+    &WEATHER_STATION_DEFS,
 ]);
 
 const BASE_DEFS: [BlockDef; BASE_COUNT] = [

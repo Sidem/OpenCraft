@@ -160,3 +160,5 @@ pub const TOOL_BELT_MK4: ItemId = ItemId(461);
 pub const TOOL_BELT_MK5: ItemId = ItemId(462);
 /// The Elevator Anchor as an item (M14A; it places `block::ELEVATOR_ANCHOR`).
 pub const ELEVATOR_ANCHOR_ITEM: ItemId = ItemId(463);
+/// The Weather Station as an item (ATMOS; it places `block::WEATHER_STATION`).
+pub const WEATHER_STATION_ITEM: ItemId = ItemId(464);

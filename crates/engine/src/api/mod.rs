@@ -42,7 +42,8 @@ mod telescope;
 mod towns;
 mod trains;
 mod view;
-mod weather;
+pub(crate) mod weather;
+mod weather_map;
 mod xray;
 
 use wasm_bindgen::prelude::*;

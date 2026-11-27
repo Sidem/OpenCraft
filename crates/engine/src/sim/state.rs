@@ -70,6 +70,7 @@ impl Sim {
         crate::elevator::write_state(&self.elevator, w);
         self.world.write_bare(w);
         self.world.write_wet(w);
+        self.atmosphere.write_state(w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed (`save.rs` lists the versions).
@@ -154,6 +155,8 @@ impl Sim {
         if r.version >= 91 {
             self.world.read_wet(r)?;
         }
+        // Older worlds start their air at rest on the next tick (`weather/air.rs`).
+        self.atmosphere = if r.version >= 92 { crate::weather::Atmosphere::read_state(r)? } else { Default::default() };
         Some(())
     }
 }
