@@ -3,9 +3,9 @@
 //! images (`web/src/ui/minimap.ts`, `web/src/ui/worldmap.ts`).
 //!
 //! Presentation only. The prospected deposits (`Known`) are the local player's memory, not core state:
-//! the scanner and core drill add veins and lodes (`remember`; outcrops show on the map by themselves),
-//! and the host keeps the list with the world's record in the browser (`export` / `import`), not in the
-//! save file. A deposit that runs dry keeps a mark of its own (`MARK_DRY`), and so does a miner that worked it
+//! the scanner and core drill add veins and lodes (`remember`; outcrops show on the map by themselves), the telescope
+//! adds the ruins it is turned on (`remember_ruin`), and the host keeps the list with the world's record in the browser
+//! (`export` / `import`, a ruin as a record of tier `RUIN_RECORD`, which older builds skip), not in the save file. A deposit that runs dry keeps a mark of its own (`MARK_DRY`), and so does a miner that worked it
 //! out, so a dead outpost stands out; deposits under the player's own miners are marked even if never scanned. Minimap records
 //! are relative to the column the image was last drawn around, so marks line up with its pixels; world
 //! map records are in world columns.
@@ -55,6 +55,11 @@ pub const MARK_DRY: i32 = 28;
 pub const MARK_DRY_MINER: i32 = 29;
 /// Where the first-steps guide sends the player (a flag on a ring, in the ore's colour): `Minimap::goal`.
 pub const MARK_GOAL: i32 = 30;
+/// A ruin seen through the telescope (broken walls), in `RUIN_COLOUR`.
+pub const MARK_RUIN: i32 = 31;
+const RUIN_COLOUR: i32 = 0xb8865b;
+/// The tier number of a ruin's record in `export` (no deposit tier uses it): tier, x, z, 0, 0.
+const RUIN_RECORD: i32 = 255;
 /// Numbers per deposit in `export` / `import`: tier, chunk column x and z, ore, index (a `DepositKey`).
 const KNOWN_FIELDS: usize = 5;
 /// The most deposits remembered; the oldest is forgotten first.
@@ -64,6 +69,8 @@ const MAX_KNOWN: usize = 1024;
 #[derive(Default)]
 pub struct Known {
     deposits: Vec<Deposit>,
+    /// Ruins seen through the telescope: their centres.
+    ruins: Vec<(i32, i32)>,
 }
 
 impl Known {
@@ -76,6 +83,15 @@ impl Known {
             self.deposits.remove(0);
         }
         self.deposits.push(*d);
+    }
+
+    /// Remembers the ruin centred at (x, z); true when it is new.
+    pub fn remember_ruin(&mut self, x: i32, z: i32) -> bool {
+        if self.ruins.contains(&(x, z)) || self.ruins.len() == MAX_KNOWN {
+            return false;
+        }
+        self.ruins.push((x, z));
+        true
     }
 
     fn has(&self, key: &DepositKey) -> bool {
@@ -94,13 +110,21 @@ impl Known {
             let k = d.key;
             out.extend_from_slice(&[k.tier as i32, k.cx, k.cz, k.ore as i32, k.index as i32]);
         }
+        for &(x, z) in &self.ruins {
+            out.extend_from_slice(&[RUIN_RECORD, x, z, 0, 0]);
+        }
         out
     }
 
     /// Replaces the list with `export`'s numbers, skipping any that name no deposit of this world.
     pub fn import(&mut self, data: &[i32], generator: &WorldGen) {
         self.deposits.clear();
+        self.ruins.clear();
         for r in data.chunks_exact(KNOWN_FIELDS) {
+            if r[0] == RUIN_RECORD {
+                self.remember_ruin(r[1], r[2]);
+                continue;
+            }
             let Some(tier) = u8::try_from(r[0]).ok().and_then(Tier::from_u8) else { continue };
             let (Ok(ore), Ok(index)) = (BlockId::try_from(r[3]), u16::try_from(r[4])) else { continue };
             let key = DepositKey { tier, cx: r[1], cz: r[2], ore, index };
@@ -163,6 +187,8 @@ pub enum Subject {
     Goal {
         ore: BlockId,
     },
+    /// A ruin seen through the telescope.
+    Ruin,
 }
 
 impl Subject {
@@ -182,6 +208,7 @@ impl Subject {
             Subject::Range { .. } => MARK_RANGE,
             Subject::Town { state, .. } => MARK_TOWN + i32::from(state),
             Subject::Goal { .. } => MARK_GOAL,
+            Subject::Ruin => MARK_RUIN,
         }
     }
 
@@ -197,6 +224,7 @@ impl Subject {
             Subject::Pod { channel, .. } => factory::channel_colour(channel) as i32,
             Subject::Cover { reach, .. } | Subject::Range { reach } => reach,
             Subject::Town { kind, .. } => KINDS[usize::from(kind)].colour,
+            Subject::Ruin => RUIN_COLOUR,
         }
     }
 }
@@ -229,7 +257,7 @@ impl Minimap {
     /// Calls `f` with the column and subject of every mark for columns `lo..=hi` (x, z): satellite footprints, with
     /// `ranges` every long-distance pole's reach, survey guesses, ore seen at the surface, then remembered deposits and
     /// those survey satellites saw (both while they hold ore), then terraforming sites, then machines (pod launchers and
-    /// pads last, with their channel), then towns (in place of their depots).
+    /// pads last, with their channel), then ruins seen through the telescope, then towns (in place of their depots).
     pub(super) fn each_mark(
         &self,
         factory: &Factory,
@@ -316,6 +344,9 @@ impl Minimap {
         });
         for (block, p, channel) in factory.pod_machines().filter(|&(_, p, _)| inside(p)) {
             f(p.x, p.z, Subject::Pod { launcher: block == block::POD_LAUNCHER, channel });
+        }
+        for &(x, z) in self.known.ruins.iter().filter(|r| inside(IVec3::new(r.0, 0, r.1))) {
+            f(x, z, Subject::Ruin);
         }
         for t in towns.iter().filter(|t| inside(t.pos)) {
             f(t.pos.x, t.pos.z, Subject::Town { kind: t.kind, state: t.state() });

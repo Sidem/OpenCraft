@@ -325,7 +325,16 @@ pub const TOOL_BELT_MK2: u16 = TOOL_BELT + 1;
 pub const TOOL_BELT_MK3: u16 = TOOL_BELT + 2;
 pub const TOOL_BELT_MK4: u16 = TOOL_BELT + 3;
 pub const TOOL_BELT_MK5: u16 = TOOL_BELT + 4;
-pub const COUNT: usize = TOOL_BELT_MK5 as usize + 1;
+/// A hanging rope's strand on crossed quads (GEAR-ROPE, `textures/plants.rs`).
+pub const ROPE: u16 = TOOL_BELT_MK5 + 1;
+/// Telescoping Bucket-Wheel Site Grader (`textures/grader.rs`, model/item layers past 512):
+/// weathered ochre-yellow hull plating, louvered diesel cowling, forged crawler treads, box-girder truss and buckets.
+pub const GRADER_YELLOW: u16 = ROPE + 1;
+pub const GRADER_LOUVRE: u16 = GRADER_YELLOW + 1;
+pub const GRADER_TREAD: u16 = GRADER_YELLOW + 2;
+pub const GRADER_TRUSS: u16 = GRADER_YELLOW + 3;
+pub const GRADER_BUCKET: u16 = GRADER_YELLOW + 4;
+pub const COUNT: usize = GRADER_BUCKET as usize + 1;
 
 /// The case layer of the kit of tier `tier` (1 is Mk2, the green kit).
 pub const fn kit_paint(tier: u8) -> u16 {

@@ -143,6 +143,12 @@ impl Sim {
         Sim::with_generator(WorldGen::new(seed), view_radius)
     }
 
+    /// How many actions wait for coming ticks (tests: a presentation-only hand queues none).
+    #[cfg(test)]
+    pub fn pending_len(&self) -> usize {
+        self.pending.len()
+    }
+
     pub fn with_generator(generator: WorldGen, view_radius: i32) -> Sim {
         let seed = generator.seed();
         Sim {

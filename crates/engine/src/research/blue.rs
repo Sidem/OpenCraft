@@ -6,8 +6,8 @@ use crate::block::{
     UNDERPASS_IN, WASHER, WINCH,
 };
 use crate::item::{
-    BLUE_PACK, GREEN_PACK, HAULER_PACK_MK3, RED_PACK, SCANNER_MK2, SPRING_BOOTS, TOOL_BELT_MK3, WORK_GLOVES_MK3,
-    XRAY_GOGGLES,
+    BLUE_PACK, GREEN_PACK, HAULER_PACK_MK3, LINE_HOOK, RED_PACK, SCANNER_MK2, SPRING_BOOTS, TOOL_BELT_MK3,
+    WORK_GLOVES_MK3, XRAY_GOGGLES,
 };
 use crate::recipes::{
     ACCUMULATOR_ROW, BLAST_CRUSHED_RECIPE, BLAST_WASHED_RECIPE, BLUE_RECIPES, CRUSH_RECIPES, ELECTRONICS_RECIPES,
@@ -172,7 +172,7 @@ pub(super) const BLUE: [Tech; 16] = [
     },
     Tech {
         name: "Field Gear",
-        blurb: "Spring boots: you jump 2 blocks high.",
+        blurb: "Spring boots: you jump 2 blocks high. The line hook: pull yourself up to a ledge, or ride power wires.",
         ring: Ring::Blue,
         wedge: Wedge::YourGear,
         deed: None,
@@ -180,7 +180,7 @@ pub(super) const BLUE: [Tech; 16] = [
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
         units: 60,
         seconds: 20.0,
-        unlocks: &[Unlock::Recipe(SPRING_BOOTS)],
+        unlocks: &[Unlock::Recipe(SPRING_BOOTS), Unlock::Recipe(LINE_HOOK)],
     },
     Tech {
         name: "Ore Washing",

@@ -17,6 +17,7 @@ mod debug;
 mod drone;
 mod elevator;
 mod felling;
+mod flares;
 mod guide;
 mod hand_waste;
 mod hud;

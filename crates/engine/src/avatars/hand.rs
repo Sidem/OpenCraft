@@ -1,5 +1,5 @@
 //! Shared Kestrel forearm and articulated mechanical hand, used by both the 3rd-person avatar (`model::push_avatar`)
-//! and the 1st-person POV arm (`model::push_view_hand`) so the two match in silhouette, materials and colour accents.
+//! and the 1st-person POV arms (`view_hand.rs`) so the two match in silhouette, materials and colour accents.
 //!
 //! Hand-local axes (for `side = +1.0` right hand, mirrored by `side` for left):
 //! `-z` points forward along the fingers, `+y` is the dorsal back of the hand, `-x * side` is the thumb/index edge

@@ -67,7 +67,12 @@ fn the_sign_is_followed_only_by_the_forester_and_the_trees() {
         usize::from(crate::block::ELEVATOR_ANCHOR) + crate::block::ELEVATOR_COUNT,
         usize::from(crate::block::WEATHER_STATION)
     );
-    assert_eq!(usize::from(crate::block::WEATHER_STATION) + crate::block::WEATHER_STATION_COUNT, BLOCK_COUNT);
+    assert_eq!(
+        usize::from(crate::block::WEATHER_STATION) + crate::block::WEATHER_STATION_COUNT,
+        usize::from(crate::block::SITE_GRADER)
+    );
+    assert_eq!(usize::from(crate::block::SITE_GRADER) + crate::block::GRADER_COUNT, usize::from(crate::block::ROPE));
+    assert_eq!(usize::from(crate::block::ROPE) + crate::block::ROPE_COUNT, BLOCK_COUNT);
 }
 
 #[test]

@@ -94,6 +94,7 @@ impl Factory {
             }
             m.pump(deposits, world, tick, share);
             m.forest(world, share, changed, events);
+            m.grade(world, share, changed, events);
             m.step(belts, share, &unlocked);
             m.report_made(events);
             if let Some(item) = m.take_lifted() {

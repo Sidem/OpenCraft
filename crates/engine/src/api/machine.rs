@@ -327,6 +327,192 @@ impl Game {
         self.act(Action::SetQuarry { pos: IVec3::new(x, y, z), width, depth, paused });
     }
 
+    /// Site Grader settings and live counters:
+    /// `[spare_ores, floor_block, hopper, hopper_cap, cut, filled, paved, trees, width, depth, offset_biased_128]`,
+    /// or empty if the machine at `(x, y, z)` is not a Site Grader.
+    pub fn grader_panel(&self, x: i32, y: i32, z: i32) -> Vec<u32> {
+        let Some(info) = self.sim.factory.grader_info(IVec3::new(x, y, z)) else {
+            return Vec::new();
+        };
+        vec![
+            u32::from(info.spare_ores),
+            u32::from(info.floor),
+            u32::from(info.hopper),
+            u32::from(factory::GRADER_HOPPER_CAP),
+            info.cut_count,
+            info.fill_count,
+            info.paved_count,
+            info.trees_felled,
+            u32::from(info.width),
+            u32::from(info.depth),
+            (i32::from(info.offset) + 128) as u32,
+        ]
+    }
+
+    /// Floor material choices offered in the Site Grader panel (block IDs; `0` is Natural / keep ground).
+    pub fn grader_floors(&self) -> Vec<u32> {
+        factory::GRADER_FLOORS.iter().map(|&b| u32::from(b)).collect()
+    }
+
+    /// Site Grader area bounds: `[min_width, max_width, min_depth, max_depth, max_offset]`.
+    pub fn grader_bounds(&self) -> Vec<u32> {
+        vec![
+            u32::from(factory::GRADER_MIN_WIDTH),
+            u32::from(factory::GRADER_MAX_WIDTH),
+            u32::from(factory::GRADER_MIN_DEPTH),
+            u32::from(factory::GRADER_MAX_DEPTH),
+            u32::from(factory::GRADER_MAX_OFFSET as u8),
+        ]
+    }
+
+    /// Configures the Site Grader at `(x, y, z)`: ore sparing, floor block (`0` = Natural), and custom area size/shift.
+    #[allow(clippy::too_many_arguments)]
+    pub fn set_grader(
+        &mut self,
+        x: i32,
+        y: i32,
+        z: i32,
+        spare_ores: bool,
+        floor: u16,
+        width: u8,
+        depth: u8,
+        offset: i8,
+    ) {
+        self.act(Action::SetGrader { pos: IVec3::new(x, y, z), spare_ores, floor, width, depth, offset });
+    }
+
+    /// Top-down bird's-eye survey scan centered on the Site Grader at `(x, y, z)` in its own local frame
+    /// (grader faces UP on the map). Header (8 bytes): `[cols, rows, ahead_neg, ahead_max, side_half, cur_x, cur_y, dir]`,
+    /// followed by `cols * rows * 5` bytes `[r, g, b, delta_biased_128, flags]` top-to-bottom, left-to-right.
+    pub fn grader_survey(&self, x: i32, y: i32, z: i32) -> Vec<u8> {
+        use crate::block::{is_leaves, is_log, is_ore, AIR, CLAY, KAOLIN, LIQUID, MACHINE_PART, SIGN};
+        let Some(info) = self.sim.factory.grader_info(IVec3::new(x, y, z)) else {
+            return Vec::new();
+        };
+        const SIDE_HALF: i32 = 32;
+        const AHEAD_MIN: i32 = -6;
+        const AHEAD_MAX: i32 = 40;
+        const COLS: usize = (2 * SIDE_HALF + 1) as usize;
+        const ROWS: usize = (AHEAD_MAX - AHEAD_MIN + 1) as usize;
+
+        let fwd = factory::DIRS[info.dir as usize % 4];
+        let right = factory::DIRS[(info.dir as usize + 1) % 4];
+        let centre_col = info.anchor + right;
+        let grade_y = info.anchor.y - 1;
+
+        // Project live bucket-wheel target `info.cur` into map pixel `(cur_x, cur_y)` (255 = idle/out of bounds).
+        let (mut cur_x, mut cur_y) = (255u8, 255u8);
+        if info.active != 0 && info.cur != IVec3::ZERO {
+            let rel = info.cur - centre_col;
+            let a = rel.x * fwd.x + rel.z * fwd.z;
+            let s = rel.x * right.x + rel.z * right.z;
+            if (AHEAD_MIN..=AHEAD_MAX).contains(&a) && (-SIDE_HALF..=SIDE_HALF).contains(&s) {
+                cur_x = (s + SIDE_HALF) as u8;
+                cur_y = (AHEAD_MAX - a) as u8;
+            }
+        }
+
+        let mut out = Vec::with_capacity(8 + COLS * ROWS * 5);
+        out.extend_from_slice(&[
+            COLS as u8,
+            ROWS as u8,
+            (-AHEAD_MIN) as u8,
+            AHEAD_MAX as u8,
+            SIDE_HALF as u8,
+            cur_x,
+            cur_y,
+            info.dir % 4,
+        ]);
+
+        for ahead in (AHEAD_MIN..=AHEAD_MAX).rev() {
+            for side in -SIDE_HALF..=SIDE_HALF {
+                let col = centre_col + fwd * ahead + right * side;
+                let mut top_block = AIR;
+                let mut top_y = grade_y - 10;
+                let mut solid_y = grade_y - 10;
+                let mut flags = 0u8;
+
+                // Scan loaded column from `grade_y + 18` down to `grade_y - 10`.
+                for yy in ((grade_y - 10)..=(grade_y + 18)).rev() {
+                    let b = self.sim.world.get_block(IVec3::new(col.x, yy, col.z)).unwrap_or(AIR);
+                    if b == AIR {
+                        continue;
+                    }
+                    if top_block == AIR {
+                        top_block = b;
+                        top_y = yy;
+                    }
+                    if yy >= grade_y && (is_ore(b) || matches!(b, CLAY | KAOLIN)) {
+                        flags |= 16; // Ore deposit at or above grade
+                    }
+                    if yy >= grade_y && (b == MACHINE_PART || b == SIGN || factory::machine(b).is_some()) {
+                        flags |= 32; // Existing machine / belt / structure
+                    }
+                    if is_log(b) || is_leaves(b) {
+                        if yy > grade_y {
+                            flags |= 8; // Tree / foliage above grade
+                        }
+                        continue;
+                    }
+                    if LIQUID[b as usize] {
+                        if yy <= grade_y {
+                            flags |= 4; // Water at/below grade
+                        }
+                        continue;
+                    }
+                    if solid_y == grade_y - 10 {
+                        solid_y = yy;
+                    }
+                    if yy > grade_y && (flags & 32) == 0 {
+                        flags |= 1; // Solid hill cut above grade
+                    }
+                    if yy <= grade_y {
+                        if info.floor != AIR && yy == grade_y && b == info.floor {
+                            flags |= 64; // Already paved with chosen floor
+                        }
+                        break;
+                    }
+                }
+
+                // Determine if hollow / water fill is needed at or below `grade_y`.
+                let surf = self.sim.world.get_block(IVec3::new(col.x, grade_y, col.z)).unwrap_or(AIR);
+                if crate::block::replaceable(surf) || solid_y < grade_y {
+                    flags |= 2; // Fill needed
+                }
+
+                let delta = if top_block == AIR {
+                    -10i32
+                } else if (flags & 8) != 0 && solid_y > grade_y {
+                    (solid_y - grade_y).clamp(-10, 18)
+                } else {
+                    (top_y - grade_y).clamp(-10, 18)
+                };
+
+                let mut rgb = if top_block == AIR {
+                    [28, 32, 38]
+                } else if (flags & 32) != 0 {
+                    // Highlight existing factory structures clearly so players avoid clipping them.
+                    [225, 138, 60]
+                } else {
+                    self.minimap.block_color(top_block)
+                };
+
+                // Gentle elevation relief shading: hills slightly brighter, hollows/water slightly deeper.
+                let shade = (delta * 7).clamp(-42, 48);
+                for c in &mut rgb {
+                    *c = (i32::from(*c) + shade).clamp(16, 255) as u8;
+                }
+
+                out.push(rgb[0]);
+                out.push(rgb[1]);
+                out.push(rgb[2]);
+                out.push((delta + 128) as u8);
+                out.push(flags);
+            }
+        }
+        out
+    }
+
     /// Takes the stack in the machine panel's slot `slot` (inputs and fuel too) into the inventory (next tick).
     pub fn take_machine_slot(&mut self, x: i32, y: i32, z: i32, slot: u8) {
         self.act(Action::TakeMachineSlot { pos: IVec3::new(x, y, z), slot });

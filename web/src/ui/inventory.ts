@@ -21,6 +21,7 @@ import { DragThrow } from './drag-throw';
 import { BoxLabel } from './box-label';
 import { MachineUpgrade } from './machine-upgrade';
 import { button, h } from './dom';
+import { GearFigure } from './gear-figure';
 import { GearUpgrades } from './gear-upgrade';
 import { Pager } from './pager';
 import { type SlotContext, SlotControls } from './slot-controls';
@@ -58,6 +59,7 @@ export class InventoryPanel {
   /** The left hand's slot (`offhand.ts` shows the same stack in the HUD). */
   private readonly offhand: SlotView;
   private readonly gearUpgrades: GearUpgrades;
+  private readonly figure: GearFigure;
   private readonly packPager = new Pager();
   private readonly cursor: SlotView;
   private version = -1;
@@ -129,7 +131,6 @@ export class InventoryPanel {
     pack.append(...this.slots.slice(hotbar).map((s) => s.root));
     const bar = h('div', 'inv-grid inv-hotbar');
     bar.append(...this.slots.slice(0, hotbar).map((s) => s.root));
-    const gearRow = h('div', 'inv-gear');
     for (let i = 0; i < game.gear_slots(); i++) {
       const slot = this.makeSlot(
         () => game.click_gear(i, this.shift),
@@ -137,16 +138,14 @@ export class InventoryPanel {
       );
       slot.root.dataset.slot = 'gear';
       this.gear.push(slot);
-      const cell = h('div', 'inv-gear-cell');
-      cell.append(slot.root, h('span', 'inv-gear-name', game.gear_slot_name(i)));
-      gearRow.append(cell);
     }
     // The left hand sits with the gear: a click puts the cursor stack in or takes it out (J swaps it with the hotbar).
     this.offhand = this.makeSlot(() => game.click_offhand(), () => {});
     this.offhand.root.dataset.slot = 'hand';
-    const handCell = h('div', 'inv-gear-cell');
-    handCell.append(this.offhand.root, h('span', 'inv-gear-name', 'Left hand (J)'));
-    gearRow.append(handCell);
+    this.offhand.root.append(h('span', 'key', 'J'));
+    const gearSlots = [...this.gear, this.offhand];
+    const examples = gearSlots.map((_, i) => game.gear_slot_example(i));
+    this.figure = new GearFigure(gearSlots.map((s) => s.root), examples, icon);
     const items = h('section', 'inv-items');
     const boxHead = h('div', 'inv-box-head');
     const takeAll = button('secondary-btn', 'Take all', () => this.box && game.take_machine_output(...this.box));
@@ -164,9 +163,9 @@ export class InventoryPanel {
     this.packPager.onChange = () => this.showPackPage();
     this.packPager.wheel(pack);
     this.gearUpgrades = new GearUpgrades(game, icon);
-    items.append(
-      h('h3', '', 'Equipment'), gearRow, this.gearUpgrades.el, packHead, pack, h('h3', '', 'Hotbar'), bar, drone.bar,
-    );
+    const gearRow = h('div', 'inv-gear-row');
+    gearRow.append(this.figure.el, this.gearUpgrades.el);
+    items.append(h('h3', '', 'Equipment'), gearRow, packHead, pack, h('h3', '', 'Hotbar'), bar, drone.bar);
 
     this.menu = new BuildMenu(game, icon, todo);
     this.menu.onCraft = () => this.onCraft();
@@ -303,9 +302,11 @@ export class InventoryPanel {
     this.gear.forEach((s, i) => {
       const item = g.worn_item(i);
       this.drawSlot(s, item, item ? 1 : 0);
-      if (!item) s.root.title = `${g.gear_slot_name(i)}: nothing worn`;
+      if (!item) s.root.title = `${g.gear_slot_name(i)}: nothing worn (Shift-click gear in your pack to wear it)`;
     });
     this.drawSlot(this.offhand, g.offhand_item(), g.offhand_count());
+    if (!g.offhand_count()) this.offhand.root.title = 'Left hand: empty (J swaps it with the selected slot)';
+    this.figure.update([...this.gear.map((_, i) => g.worn_item(i) !== 0), g.offhand_count() > 0]);
     this.gearUpgrades.update();
     this.drawSlot(this.cursor, g.cursor_item(), g.cursor_count());
     this.cursor.root.classList.toggle('hidden', g.cursor_count() === 0);

@@ -13,8 +13,8 @@
 
 use crate::block::{self, sound, BlockId};
 use crate::item::{
-    ItemId, CORE_DRILL, FLAMETHROWER, HOVER_PACK, IRON_AXE, IRON_PICKAXE, IRON_SHOVEL, JETPACK, PAINT_SPRAYER,
-    PERSONAL_DRONE, PLANNER, SCANNER, SCANNER_MK2, SICKLE, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL, STONE_AXE,
+    ItemId, BLADERANG, CORE_DRILL, FLAMETHROWER, HOVER_PACK, IRON_AXE, IRON_PICKAXE, IRON_SHOVEL, JETPACK, LINE_HOOK,
+    PAINT_SPRAYER, PERSONAL_DRONE, PLANNER, SCANNER, SCANNER_MK2, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL, STONE_AXE,
     STONE_PICKAXE, STONE_SHOVEL, TELESCOPE,
 };
 
@@ -33,12 +33,14 @@ pub enum ToolKind {
     Planner,
     /// Looks far and pins ground (`telescope.rs`).
     Telescope,
-    /// Cuts the ground plants of a patch (`sickle.rs`); breaks no block.
-    Sickle,
+    /// Thrown: cuts the ground plants along its loop and brings back loose items (`bladerang.rs`); breaks no block.
+    Bladerang,
     /// Throws a jet of flame that clears plants and burns trees to charcoal (`flame_hands.rs`).
     Flamethrower,
     /// Sprays surface paint onto concrete, plaster, masonry, metal and roof tiles (`colour_hands.rs`).
     PaintSprayer,
+    /// Fired from the left hand: pulls you to a block or along a power line (`line_hook.rs`).
+    LineHook,
 }
 
 pub struct Tier {
@@ -58,7 +60,7 @@ pub struct ToolDef {
     pub tier: &'static Tier,
 }
 
-pub const TOOLS: [ToolDef; 20] = [
+pub const TOOLS: [ToolDef; 21] = [
     ToolDef { item: STONE_PICKAXE, kind: ToolKind::Pickaxe, tier: &STONE_TIER },
     ToolDef { item: STONE_AXE, kind: ToolKind::Axe, tier: &STONE_TIER },
     ToolDef { item: STONE_SHOVEL, kind: ToolKind::Shovel, tier: &STONE_TIER },
@@ -76,9 +78,10 @@ pub const TOOLS: [ToolDef; 20] = [
     ToolDef { item: PLANNER, kind: ToolKind::Planner, tier: &DEVICE_TIER },
     ToolDef { item: HOVER_PACK, kind: ToolKind::HoverPack, tier: &DEVICE_TIER },
     ToolDef { item: TELESCOPE, kind: ToolKind::Telescope, tier: &DEVICE_TIER },
-    ToolDef { item: SICKLE, kind: ToolKind::Sickle, tier: &DEVICE_TIER },
+    ToolDef { item: BLADERANG, kind: ToolKind::Bladerang, tier: &DEVICE_TIER },
     ToolDef { item: FLAMETHROWER, kind: ToolKind::Flamethrower, tier: &DEVICE_TIER },
     ToolDef { item: PAINT_SPRAYER, kind: ToolKind::PaintSprayer, tier: &DEVICE_TIER },
+    ToolDef { item: LINE_HOOK, kind: ToolKind::LineHook, tier: &DEVICE_TIER },
 ];
 
 /// Which prospecting device `item` is, if any.

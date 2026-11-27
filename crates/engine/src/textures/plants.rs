@@ -1,4 +1,5 @@
-//! The torch on crossed transparent quads (a stick with a flame; the plants are in `hires.rs`). Transparent
+//! The torch and the rope on crossed transparent quads (a stick with a flame, a twisted strand; the plants are in
+//! `hires.rs`). Transparent
 //! texels keep a nearby RGB to avoid dark fringes in the mip chain.
 
 use super::{n, rgb};
@@ -20,6 +21,17 @@ pub fn torch(x: i32, y: i32) -> [u8; 4] {
         return rgb(c, 0.95 + 0.1 * n(285, x, y));
     }
     let mut c = rgb([255.0, 170.0, 60.0], 0.8);
+    c[3] = 0;
+    c
+}
+
+/// A twisted hemp strand two texels wide down the middle, its turns shaded on a diagonal.
+pub fn rope(x: i32, y: i32) -> [u8; 4] {
+    if (7..=8).contains(&x) {
+        let turn = (x + y).rem_euclid(3) == 0;
+        return rgb([176.0, 140.0, 88.0], if turn { 0.68 } else { 0.92 } + 0.12 * n(286, x, y));
+    }
+    let mut c = rgb([176.0, 140.0, 88.0], 0.8);
     c[3] = 0;
     c
 }

@@ -15,7 +15,8 @@ use crate::sound;
 use crate::tool_belt;
 use crate::Game;
 
-pub(crate) const REACH: f64 = 5.0;
+/// How far bare hands reach (`equipment::HAND_REACH`; an exo frame reaches further: `Inventory::reach`).
+pub(crate) const REACH: f64 = crate::equipment::HAND_REACH;
 pub(crate) const PLACE_REPEAT_SECONDS: f32 = 0.22;
 const BREAK_COOLDOWN_SECONDS: f32 = 0.12;
 const DIG_SOUND_INTERVAL: f32 = 0.24;
@@ -227,15 +228,15 @@ impl Game {
             }
             return self.update_ghosts();
         }
-        // A telescope in hand makes the use button raise it (telescope.rs); a sickle in hand, aimed at ground, cuts
-        // its plants (sickle.rs); a scanner or core drill, prospect instead (prospect.rs); with belts it lays lines
-        // (belt_line.rs); poles and cables have their own tools (power_tools.rs).
-        if self.update_telescope()
-            || self.update_sickle(dt)
+        // Nothing is placed while looking through the telescope (the left hand's: left_hand.rs); a bladerang in hand is
+        // thrown (bladerang.rs); with belts it lays lines (belt_line.rs); poles and cables have their
+        // own tools (power_tools.rs).
+        if self.scope_active()
+            || self.update_blade()
+            || self.update_rope()
             || self.update_flamethrower(dt)
             || self.update_paint_sprayer(dt)
             || self.update_planner()
-            || self.update_prospecting(dt)
             || self.update_belt_line()
             || self.update_rail_tools()
             || self.update_train_tools()

@@ -2,7 +2,8 @@
 //! ground, machines and other players around them as they walk. Presentation only: the chunk meshes keep their baked
 //! light, and the host adds this on top in the fragment shader (`render/held-light.ts`), so it moves with no remeshing.
 //! `Game::write_avatars` fills `Avatars::lights` each frame, [`LIGHT_FLOATS`] a player: the light's position relative to
-//! the camera, then its reach in blocks. To make another item shine: teach [`reach`] about it.
+//! the camera, then its reach in blocks. A headlamp or X-ray goggles worn on the head light the same way. To make
+//! another item shine: teach [`reach`] about it.
 
 use crate::block;
 use crate::inventory::Inventory;
@@ -27,9 +28,10 @@ pub fn reach(item: ItemId) -> f32 {
     }
 }
 
-/// The reach of the brighter of a player's two hands.
+/// The reach of the brightest of a player's two hands and a worn head light (`Inventory::head_light`).
 pub fn reach_of(inv: &Inventory) -> f32 {
-    reach(inv.selected_stack().item).max(reach(inv.offhand.item))
+    let head = if inv.head_light() { REACH } else { 0.0 };
+    reach(inv.selected_stack().item).max(reach(inv.offhand.item)).max(head)
 }
 
 #[cfg(test)]

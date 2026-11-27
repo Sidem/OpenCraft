@@ -33,23 +33,29 @@ export class UpgradeButton {
     this.el.classList.add('hidden');
   }
 
-  /** Shows an upgrade to `mk` ("Mk4") costing `kits` of `kit`, of which `held` are in the inventory. */
-  show(mk: string, kit: number, kits: number, held: number, unlocked: boolean, title: string): void {
+  /** Shows an upgrade to `mk` ("Mk4") costing `kits` of `kit`, of which `held` are in the inventory; `target`, when
+   * given, is the item it makes, drawn before the arrow (worn gear: which of the buttons is whose). */
+  show(mk: string, kit: number, kits: number, held: number, unlocked: boolean, title: string, target = 0): void {
     this.el.classList.remove('hidden');
     this.el.disabled = !unlocked || held < kits;
     if (this.el.title !== title) this.el.title = title;
-    const key = `${mk}|${kit}|${kits}|${held}|${unlocked}`;
+    const key = `${mk}|${kit}|${kits}|${held}|${unlocked}|${target}`;
     if (key === this.drawn) return;
     this.drawn = key;
     const label = h('span', 'mu-to');
-    label.innerHTML = unlocked ? ARROW : LOCK;
+    if (target) label.append(this.canvas(target, 'mu-target'));
+    label.insertAdjacentHTML('beforeend', unlocked ? ARROW : LOCK);
     label.append(mk);
-    const icon = h('canvas', 'mu-kit');
-    icon.width = icon.height = ICON_PX;
-    icon.getContext('2d')!.drawImage(this.icon(kit), 0, 0);
     const cost = h('span', held < kits ? 'mu-cost short' : 'mu-cost');
-    cost.append(icon, `${held}/${kits}`);
+    cost.append(this.canvas(kit, 'mu-kit'), `${held}/${kits}`);
     this.el.replaceChildren(label, cost);
+  }
+
+  private canvas(item: number, className: string): HTMLCanvasElement {
+    const c = h('canvas', className);
+    c.width = c.height = ICON_PX;
+    c.getContext('2d')!.drawImage(this.icon(item), 0, 0);
+    return c;
   }
 }
 

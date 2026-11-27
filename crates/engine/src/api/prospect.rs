@@ -21,11 +21,11 @@ impl Game {
         self.prospect.kind
     }
 
-    /// The latest reading's records, `prospect_fields` numbers each. A scan taken with the ore filter on
-    /// keeps only that ore's deposits.
+    /// The latest reading's records, `prospect_fields` numbers each. A scan read with an ore looked for
+    /// (`scan_filter`) keeps only that ore's deposits.
     pub fn prospect_records(&self) -> Vec<i32> {
         let p = &self.prospect;
-        match p.filter.filter(|_| p.kind == READING_SCAN && self.scanner_advanced()) {
+        match Some(self.scan_filter()).filter(|&ore| ore != 0 && p.kind == READING_SCAN) {
             Some(ore) => {
                 p.records.chunks_exact(SCAN_FIELDS).filter(|r| r[0] == ore as i32).flatten().copied().collect()
             }
@@ -33,14 +33,15 @@ impl Game {
         }
     }
 
-    /// Whether the scanner in hand has the advanced readout (the ore filter on the R key, reserves, tracking).
+    /// Whether the scanner in the left hand has the advanced readout (the ore filter on the R key, reserves, the way to
+    /// far ground).
     pub fn scanner_advanced(&self) -> bool {
-        is_advanced(self.inventory().selected_stack().item)
+        is_advanced(self.left_item())
     }
 
-    /// The ore the advanced scanner's list is limited to (0 for every ore).
+    /// The ore the scanner looks for (0 for every ore): the one in the right hand, else an advanced scanner's filter.
     pub fn scan_filter(&self) -> BlockId {
-        self.prospect.filter.filter(|_| self.scanner_advanced()).unwrap_or(0)
+        self.right_hand_ore().or(self.prospect.filter.filter(|_| self.scanner_advanced())).unwrap_or(0)
     }
 
     pub fn prospect_fields(&self) -> u32 {
@@ -53,18 +54,18 @@ impl Game {
         vec![o.x, o.y, o.z]
     }
 
-    /// The prospecting device in the local player's hand: 0 none, 1 scanner, 2 core drill.
+    /// The prospecting device in the local player's left hand: 0 none, 1 scanner, 2 core drill.
     pub fn held_device(&self) -> u8 {
-        match tools::device(self.inventory().selected_stack().item) {
+        match tools::device(self.left_item()) {
             Some(ToolKind::Scanner) => READING_SCAN,
             Some(_) => READING_DRILL,
             None => 0,
         }
     }
 
-    /// The range shown for scanning: the latest scan's, or else the held scanner's.
+    /// The range shown for scanning: the latest scan's, or else the left hand's scanner's.
     pub fn scan_range(&self) -> u32 {
-        let held = scan_range_of(self.inventory().selected_stack().item);
+        let held = scan_range_of(self.left_item());
         (if self.prospect.kind == READING_SCAN { self.prospect.range } else { held.unwrap_or(SCANNERS[0].1) }) as u32
     }
 

@@ -7,13 +7,14 @@ use crate::item::*;
 use super::{b, Group, Recipe};
 
 /// The first iron a smelter makes buys it: it breaks no block, so it never wears out and costs no stack of uses.
-pub const SICKLE_RECIPE: Recipe = Recipe {
-    output: SICKLE,
+pub const BLADERANG_RECIPE: Recipe = Recipe {
+    output: BLADERANG,
     group: Group::Tools,
     count: 1,
     inputs: &[(IRON_INGOT, 2), (STICK, 2)],
-    blurb: "Hold it and right-click the ground to cut the grass, flowers, ferns and other small plants of a 3 by 3 \
-            patch, to clear a place to build. They leave nothing behind and do not grow back. Trees are not touched. \
+    blurb:
+        "Right-click to throw it: it loops out 12 blocks and back, cutting the grass, flowers and other small plants \
+            under it so they do not grow back, and brings back the loose items it passes. Trees are not touched. \
             Never wears out.",
 };
 
@@ -80,4 +81,15 @@ pub const PLANNER_RECIPE: Recipe = Recipe {
             fill or flatten to a height and see what it would move. A drone port within reach does the work: it \
             digs into the storage boxes beside the pad and fills from them. Right-click a marked site to remove it. \
             Never wears out.",
+};
+
+pub const SITE_GRADER_RECIPE: Recipe = Recipe {
+    output: SITE_GRADER_ITEM,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(STEEL_BEAM, 8), (STEEL_PLATE, 10), (MOTOR, 4), (GEAR, 8)],
+    blurb: "Telescoping bucket-wheel site grader (3×3×2, 45 kW). Levels a 19×18 pad flush with the ground it sits on: \
+            cuts hills and fells trees above grade, auto-fills hollows from its internal cut-and-fill hopper, routes \
+            ores, logs and excess spoil out the rear port, and optionally paves the finished surface with solid \
+            building blocks fed into its left port.",
 };

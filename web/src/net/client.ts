@@ -120,6 +120,10 @@ export class CoopClient implements Coop {
     if (!this.ended) this.t.send(encode({ type: 'chat', from: this.game.local_player(), text }));
   }
 
+  flare(x: number, y: number, z: number): void {
+    if (!this.ended) this.t.send(encode({ type: 'flare', from: this.game.local_player(), x, y, z }));
+  }
+
   close(): void {
     this.ended = true;
     this.t.send(encode({ type: 'bye' }));
@@ -144,6 +148,8 @@ export class CoopClient implements Coop {
       this.pings = new Map(m.pings);
     } else if (m?.type === 'chat') {
       this.onChat(this.names.get(m.from) ?? defaultName(m.from), m.text);
+    } else if (m?.type === 'flare') {
+      this.game.light_flare(m.x, m.y, m.z, m.from);
     } else if (m?.type === 'snapshot') {
       this.resync(m.bytes);
     } else if (m?.type === 'bye') {

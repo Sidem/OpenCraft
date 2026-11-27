@@ -9,6 +9,7 @@ import { SoundSystem } from './audio/sound';
 import { ComfortStore } from './comfort/settings';
 import { ViewControls } from './controls/view';
 import type { Coop } from './net/coop';
+import { raiseFlare } from './flare';
 import { hostWorld, startCoop } from './net/session';
 import { tickWhenStalled } from './net/ticker';
 import { Input } from './input';
@@ -40,6 +41,7 @@ import { LogbookPanel } from './ui/logbook';
 import { CalendarPanel } from './ui/calendar';
 import { LedPanel } from './ui/led-panel';
 import { SeismicPanel } from './ui/seismic';
+import { GraderPanel } from './ui/grader';
 import { SignPanel } from './ui/sign';
 import { VaultPanel } from './ui/vault';
 import { ConsolePanel } from './ui/console';
@@ -191,6 +193,8 @@ async function main(): Promise<void> {
   const ledPanel = new LedPanel(game);
   const seismic = new SeismicPanel(game, pins);
   seismic.onPulse = () => sound.cue('thump');
+  const graderPanel = new GraderPanel(game, (id) => hud.itemIcon(id));
+  graderPanel.onOpenSlots = (x, y, z) => machine.open(x, y, z);
   const signFaces = new SignFaces(game, renderer, texSize);
   const adminConsole = new ConsolePanel(consoleHost(game, renderer, () => coop !== null));
   session?.keepPins(pins);
@@ -209,11 +213,11 @@ async function main(): Promise<void> {
   document.getElementById('coop')!.append(coopPanel.el);
   // Screens the keys open (the action's kind names them); each frees the mouse while open.
   const screens = { blueprints, research, codex, analytics, drone, calendar, 'world-map': worldMap };
-  const panels = [inventory, research, codex, worldMap, blueprints, sites, analytics, logbook, calendar, vault, signEditor, ledPanel, seismic, adminConsole, drone]; // a machine's panel is in the inventory
+  const panels = [inventory, research, codex, worldMap, blueprints, sites, analytics, logbook, calendar, vault, signEditor, ledPanel, seismic, graderPanel, adminConsole, drone]; // a machine's panel is in the inventory
   const panelOpen = () => panels.some((p) => p.isOpen);
 
   // ---- menu / pointer lock (pause.ts)
-  const closers = [research, codex, blueprints, sites, worldMap, analytics, logbook, calendar, vault, signEditor, ledPanel, seismic, adminConsole, drone];
+  const closers = [research, codex, blueprints, sites, worldMap, analytics, logbook, calendar, vault, signEditor, ledPanel, seismic, graderPanel, adminConsole, drone];
   const pause = wirePause({ game, opened, viewRadius: () => quality.settings.radius, menu, canvas, input, sound, soundLab, session, inventory, closers, panelOpen });
   wireHome(menu, game, sound, [
     { code: 'KeyE', name: 'Inventory and crafting', screen: inventory },
@@ -232,7 +236,8 @@ async function main(): Promise<void> {
   document.getElementById('quality-suggestion')!.append(qualityPanel.suggestion);
 
   const handles = {
-    frames, perf, quality, qualityPanel, game, menu, renderer, wasm, sound, soundLab, inventory, todo, machine, research, codex, analytics, blueprints, sites, drone, logbook, calendar, vault, signEditor, seismic, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
+    frames, perf, quality, qualityPanel, game, menu, renderer, wasm, sound, soundLab, inventory, todo, machine, research, codex, analytics, blueprints, sites, drone, logbook, calendar, vault, signEditor, seismic, graderPanel, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
+    iconCheck: async () => (await import('./ui/icon-check')).runIconCheck(game, (id) => hud.itemIcon(id)),
   };
   Object.assign(window, { opencraft: handles });
 
@@ -262,6 +267,7 @@ async function main(): Promise<void> {
       else if (a.kind === 'map') minimap.toggle();
       else if (a.kind === 'slot') game.select_slot(a.slot);
       else if (a.kind === 'fly') game.toggle_fly();
+      else if (a.kind === 'flare') raiseFlare(game, coop);
       else if (a.kind === 'drop') game.drop_selected();
       else if (a.kind === 'swap-hands') game.swap_offhand();
       else if (a.kind === 'pipette') playerList.notice(game.pipette());
@@ -301,7 +307,7 @@ async function main(): Promise<void> {
     if (request.length === 3) {
       const [x, y, z] = request;
       if (!trains.open(x, y, z) && game.box_slots(x, y, z).length > 0) inventory.open([x, y, z]);
-      else if (!trains.isOpen && !logbook.open(x, y, z) && !vault.open(x, y, z) && !signEditor.open(x, y, z) && !ledPanel.open(x, y, z) && !seismic.open(x, y, z)) machine.open(x, y, z);
+      else if (!trains.isOpen && !logbook.open(x, y, z) && !vault.open(x, y, z) && !signEditor.open(x, y, z) && !ledPanel.open(x, y, z) && !seismic.open(x, y, z) && !graderPanel.open(x, y, z)) machine.open(x, y, z);
       input.unlock();
       sound.ui();
     }
@@ -434,6 +440,7 @@ async function main(): Promise<void> {
     qualityPanel.update(now, frameMs, ready && !menu.isOpen && !panelOpen() && !document.hidden);
     hud.update(now, { frames, frameMs, workMs, ...renderer.stats });
     inventory.update(); // and the machine panel shown in it
+    graderPanel.update();
     research.update(now);
     codex.update();
     analytics.update(now);

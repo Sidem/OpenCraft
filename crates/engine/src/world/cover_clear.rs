@@ -1,4 +1,4 @@
-//! Cleared ground cover (U3, the sickle): the columns where the player cut the plants away. Ground cover itself is
+//! Cleared ground cover (U3, the Bladerang): the columns where the player cut the plants away. Ground cover itself is
 //! drawn from a hash by the mesher (`mesher/cover.rs`) and never saved, so a cut needs state of its own, and it is core
 //! state: `Action::ClearCover` sets it at a tick, `World::write_state` saves and hashes it, so a save and every co-op
 //! peer agree on which columns are bare.

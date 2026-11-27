@@ -106,10 +106,16 @@ pub enum Action {
         pos: IVec3,
         channel: u8,
     },
-    /// Cuts the ground plants of the 3 × 3 columns centred on the column of the ground block at `pos`, with the sickle
-    /// the player holds (`world/cover_clear.rs`). Does nothing without a sickle in the selected slot.
+    /// Cuts the ground plants of the 3 × 3 columns centred on the column of the ground block at `pos`, under the
+    /// player's thrown Bladerang (`bladerang.rs`, `world/cover_clear.rs`). Does nothing without one in the pack or left hand.
     ClearCover {
         pos: IVec3,
+    },
+    /// Hangs a coil of rope from `slot` down from the free cell `pos`, or on from the bottom of the strand when `pos`
+    /// holds rope: up to `rope::PER_COIL` cells, to the floor below (`action/rope.rs`).
+    HangRope {
+        pos: IVec3,
+        slot: u8,
     },
     /// Takes one `item` riding the belt at `pos` into the player's inventory (`factory/belt_items.rs`): of the belt's items
     /// of that kind, the one nearest `at` (its progress along the belt, in 255ths). Does nothing if none is there any more
@@ -444,6 +450,15 @@ pub enum Action {
         face: u8,
         colour: u8,
     },
+    /// Configures the Site Grader at `pos`: ore sparing, floor block (`AIR` = natural), and custom area size/shift.
+    SetGrader {
+        pos: IVec3,
+        spare_ores: bool,
+        floor: BlockId,
+        width: u8,
+        depth: u8,
+        offset: i8,
+    },
 }
 
 mod apply;
@@ -452,5 +467,7 @@ mod clicks;
 mod codec;
 mod docks;
 mod multiblock;
+mod rope;
+pub use rope::PER_COIL;
 #[cfg(test)]
 mod tests;

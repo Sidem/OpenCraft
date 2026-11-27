@@ -249,7 +249,7 @@ pub const RECIPES: &[Recipe] = &[
     UPGRADER_RECIPE,
     TOWN_DEPOT_RECIPE,
     TELESCOPE_RECIPE,
-    SICKLE_RECIPE,
+    BLADERANG_RECIPE,
     COAL_MINER_RECIPE,
     WOOD_DOOR_RECIPE,
     IRON_DOOR_RECIPE,
@@ -291,6 +291,10 @@ pub const RECIPES: &[Recipe] = &[
     WORK_GLOVES_MK3_RECIPE,
     WORK_GLOVES_MK4_RECIPE,
     WEATHER_STATION_RECIPE,
+    SITE_GRADER_RECIPE,
+    HEADLAMP_RECIPE,
+    ROPE_RECIPE,
+    LINE_HOOK_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

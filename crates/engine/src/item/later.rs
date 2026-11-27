@@ -59,7 +59,7 @@ pub const AI_ACCELERATOR: ItemId = ItemId(381);
 pub const HAULER_PACK_MK3: ItemId = ItemId(382);
 pub const HAULER_PACK_MK4: ItemId = ItemId(383);
 pub const HAULER_PACK_MK5: ItemId = ItemId(384);
-/// Fabricator gloves (worn in the Gloves slot, `equipment.rs`): hand crafting 50% faster.
+/// Work Gloves Mk5, once the Fabricator Gloves (worn in the Gloves slot, `equipment.rs`): hand crafting 125% faster.
 pub const CRAFT_GLOVES: ItemId = ItemId(385);
 /// Rocket parts (the Rocketry tech; `recipes/orbit.rs`): the assembler builds the light frame, engine, fuel tank and
 /// avionics, the chemical plant fills rocket fuel barrels, and the launch site consumes them all.
@@ -82,8 +82,9 @@ pub const DROP_POD: ItemId = ItemId(395);
 pub const SCRAP_METAL: ItemId = ItemId(396);
 /// The telescope (`telescope.rs`): look through it to pin faraway ground and see every pin as a column of light.
 pub const TELESCOPE: ItemId = ItemId(397);
-/// The sickle (`sickle.rs`): right-click cuts the ground plants of a 3 × 3 patch (`world/cover_clear.rs`).
-pub const SICKLE: ItemId = ItemId(398);
+/// The Bladerang, once the sickle (`bladerang.rs`): thrown, it cuts the ground plants along its loop
+/// (`world/cover_clear.rs`) and brings back loose items.
+pub const BLADERANG: ItemId = ItemId(398);
 /// The forester Mk2 and Mk3 (`factory/process/forester.rs`): faster, and a bigger patch where the ground allows.
 pub const FORESTER_MK2: ItemId = ItemId(399);
 pub const FORESTER_MK3: ItemId = ItemId(400);
@@ -162,3 +163,11 @@ pub const TOOL_BELT_MK5: ItemId = ItemId(462);
 pub const ELEVATOR_ANCHOR_ITEM: ItemId = ItemId(463);
 /// The Weather Station as an item (ATMOS; it places `block::WEATHER_STATION`).
 pub const WEATHER_STATION_ITEM: ItemId = ItemId(464);
+/// The Site Grader as an item (it places `block::SITE_GRADER`).
+pub const SITE_GRADER_ITEM: ItemId = ItemId(465);
+/// The Headlamp (GEAR-SLOTS): worn in the Head slot, it lights the ground like a lamp in hand (`held_light.rs`).
+pub const HEADLAMP: ItemId = ItemId(466);
+/// A coil of rope (GEAR-ROPE): the item of the wide block `block::ROPE`; one coil hangs `rope::PER_COIL` cells.
+pub const ROPE_ITEM: ItemId = ItemId(467);
+/// The Line Hook (GEAR-HOOK): a left-hand device, `G` pulls the body to a block or rides power wires (`line_hook.rs`).
+pub const LINE_HOOK: ItemId = ItemId(468);

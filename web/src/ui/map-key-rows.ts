@@ -4,7 +4,7 @@
 
 import {
   MARK_CHANNEL, MARK_COVER, MARK_DEPOSIT, MARK_DRY, MARK_DRY_MINER, MARK_GOAL, MARK_GUESS, MARK_LAUNCH, MARK_MACHINE,
-  MARK_ORE, MARK_RANGE, MARK_SITE, MARK_TOWN,
+  MARK_ORE, MARK_RANGE, MARK_RUIN, MARK_SITE, MARK_TOWN,
 } from './pins.ts';
 
 /** How a row's sample is coloured: in an ore's colour, a machine's, or the number the shape reads (a reach). */
@@ -37,6 +37,7 @@ export const KEY_ROWS: KeyRow[] = [
   { shape: MARK_TOWN, span: 1, tint: 'machine', label: 'Town' },
   { shape: MARK_TOWN + 1, span: 1, tint: 'machine', label: 'Town short of upkeep' },
   { shape: MARK_TOWN + 2, span: 1, tint: 'machine', label: 'Dormant town (its depot is broken)' },
+  { shape: MARK_RUIN, span: 1, tint: 'machine', label: 'Ruin you saw through the telescope' },
 ];
 
 /** Whether some row stands for `shape`. */

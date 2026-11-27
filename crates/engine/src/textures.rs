@@ -27,6 +27,7 @@ mod forest;
 mod gas;
 mod gear;
 mod geology;
+mod grader;
 mod grid;
 mod heavy;
 mod hires;
@@ -210,6 +211,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
             tools::tool(x, y, i % 3, if i >= 3 { tools::IRON_HEAD } else { tools::STONE_HEAD })
         }
         tex::TORCH => plants::torch(x, y),
+        tex::ROPE => plants::rope(x, y),
         tex::GRANITE => geology::granite(x, y),
         tex::SANDSTONE => geology::sandstone(x, y),
         tex::BASALT => geology::basalt(x, y),
@@ -271,6 +273,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::GAS_SHALE..=tex::REFORMER_TOP => gas::pixel(layer, x, y),
         tex::CHARCOAL..=tex::FLAMETHROWER_CHROME => fire::pixel(layer, x, y),
         tex::THUMPER_SIDE..=tex::THUMPER_PISTON => thumper::pixel(layer, x, y),
+        tex::GRADER_YELLOW..=tex::GRADER_BUCKET => grader::pixel(layer, x, y),
         tex::KILN_SIDE..=tex::PAINT_SPRAYER => kiln::pixel(layer, x, y),
         tex::CLAY..=tex::AMBER_TILES => clay::pixel(layer, x, y),
         l if l >= tex::planks_layer(0) => woods::pixel(layer, x, y),

@@ -27,6 +27,7 @@ export function consoleHost(game: Game, renderer: Renderer, shared: () => boolea
     teleport: (x, y, z) => game.teleport(x, y, z),
     find: (query) => Array.from(game.find_item(query), (id) => ({ id, name: game.item_name(id) })),
     give: (id, count) => game.give(id, count),
+    setupDemo: (name) => (name === 'grader' ? game.setup_grader_demo() : `Unknown demo "${name}".`),
     shared: () => shared() || game.is_client(),
   };
 }

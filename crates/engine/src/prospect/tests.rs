@@ -77,9 +77,8 @@ fn the_mk2_filters_by_ore_and_reports_reserves() {
     hold(&mut g, SCANNER);
     assert!(!g.rotate_target() && g.prospect.filter.is_none());
     hold(&mut g, SCANNER_MK2);
-    g.using = true;
-    g.run_tick();
-    g.using = false;
+    g.run_ticks(2 * 60 + 1); // the Mk1's ping has cooled down: the Mk2 pings by itself
+    assert_eq!(g.prospect.range, 96);
     let all = g.prospect_records();
     assert_eq!(all.len() % SCAN_FIELDS, 0);
     assert!(!all.is_empty());
@@ -190,41 +189,67 @@ fn core_samples_match_the_deposit_figures() {
     assert!(s.top < top.y, "the vein lies below the surface");
 }
 
-/// Gives the local player `item`, selects it, and looks straight down.
-fn hold(g: &mut Game, item: ItemId) {
+/// Gives the local player `item`, puts it in the left hand, and looks straight down.
+pub(crate) fn hold(g: &mut Game, item: ItemId) {
     g.act(Action::Give { item, count: 1 });
     g.run_ticks(1);
     let slot = g.inventory().slots.iter().position(|s| s.item == item).unwrap();
     g.act(Action::SelectSlot { slot: slot as u8 });
     g.run_ticks(1);
+    g.act(Action::Offhand { swap: true });
+    g.run_ticks(1);
+    assert_eq!(g.left_item(), item);
     g.set_look(0.0, -1.55);
 }
 
 #[test]
-fn prospecting_leaves_the_core_alone() {
+fn prospecting_from_the_left_hand_leaves_the_core_alone() {
     for device in [SCANNER, SCANNER_MK2, CORE_DRILL] {
         let (mut a, mut b) = (Game::new(2024, 2), Game::new(2024, 2));
         for g in [&mut a, &mut b] {
             run_until_ready(g);
             hold(g, device);
         }
-        a.using = true;
+        a.left.using = true;
         for _ in 0..(4 * 60) {
             a.run_tick();
             b.run_tick();
             assert_eq!(a.sim.state_hash(), b.sim.state_hash(), "prospecting changed the core");
+            assert_eq!(a.sim.pending_len(), 0, "the left hand queues no action");
         }
         assert_eq!(a.sim.factory.deposits.tracked(), b.sim.factory.deposits.tracked());
-        assert_eq!(b.prospect.seq, 0);
         if device != CORE_DRILL {
-            // Once at once, then every two seconds while held.
-            assert_eq!((a.prospect.kind, a.prospect.seq), (READING_SCAN, 2));
-            assert_eq!(Some(a.prospect.range), scan_range_of(device));
-            assert!(!a.prospect.records.is_empty());
+            // It pings by itself, G or not; standing still, later pings find the same deposits and keep the reading.
+            for g in [&a, &b] {
+                assert_eq!((g.prospect.kind, g.prospect.seq), (READING_SCAN, 1));
+                assert_eq!(Some(g.prospect.range), scan_range_of(device));
+                assert!(!g.prospect.records.is_empty());
+            }
         } else {
-            // One sample after three seconds, which releases the button.
-            assert_eq!((a.prospect.kind, a.prospect.seq, a.using), (READING_DRILL, 1, false));
+            // One sample after three seconds of G, which releases the key; nothing without G.
+            assert_eq!((a.prospect.kind, a.prospect.seq, a.left.using), (READING_DRILL, 1, false));
             assert_eq!(a.prospect.origin, a.body().pos.floor() - IVec3::new(0, 1, 0));
+            assert_eq!(b.prospect.seq, 0);
         }
+    }
+}
+
+#[test]
+fn a_device_in_the_right_hand_does_nothing() {
+    let mut g = Game::new(2024, 2);
+    run_until_ready(&mut g);
+    for device in [SCANNER, CORE_DRILL] {
+        hold(&mut g, device);
+        g.act(Action::Offhand { swap: true });
+        g.run_ticks(1);
+        assert_eq!(g.inventory().selected_stack().item, device);
+        let seq = g.prospect.seq;
+        g.using = true;
+        g.left.using = true;
+        g.run_ticks(4 * 60);
+        g.using = false;
+        g.left.using = false;
+        assert_eq!((g.prospect.seq, g.held_device()), (seq, 0), "{}", crate::item::name(device));
+        assert!(g.left_hand_label().is_some_and(|l| l.contains("J=To left hand")));
     }
 }

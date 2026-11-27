@@ -32,6 +32,12 @@
   height: 22px;
 }
 
+.mu-target {
+  width: 26px;
+  height: 26px;
+  margin-right: 2px;
+}
+
 /* Not enough kits: the count you hold is in red. */
 .mu-cost.short {
   color: #ff8a80;

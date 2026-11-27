@@ -190,6 +190,7 @@ fn boxed(p: &Part) -> bool {
             | Look::Jack
             | Look::Thumper
             | Look::WaterWheel
+            | Look::Grader
     )
 }
 

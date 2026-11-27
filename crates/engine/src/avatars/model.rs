@@ -1,12 +1,13 @@
 //! Procedural Kestrel rig: an articulated survey robot with a sculpted helmet, layered armor and asymmetric pack.
 //! All parts use the shared instance draw call. Legs solve a two-link chain to planted/lifting feet; arms pivot at
-//! shoulder and elbow, and BOTH the 3rd-person arms and 1st-person POV arm share `hand.rs` so materials, gauntlet
-//! armor and the articulated hand match 1:1.
+//! shoulder and elbow, and BOTH the 3rd-person arms and the 1st-person POV arms (`view_hand.rs`) share `hand.rs` so materials,
+//! gauntlet armor and the articulated hand match 1:1.
 
-use super::grip::{self, apply, mul, rx_m, rz_m, yaw_m};
+use super::grip::{self, apply, mul, rx_m, rz_m, yaw_m, HeldPart};
 use super::hand::{self, HandGrip, HandPart};
 use super::motion::Motion;
 use super::tool_hold::{self, Pose, Stroke};
+use super::worn::{self, Outfit};
 use crate::block::tex;
 use crate::factory::{make_round, push_box, Axis, INSTANCE_FLOATS};
 use crate::item::ItemId;
@@ -24,22 +25,23 @@ pub(super) struct Muzzle {
     pub bell: f32,
 }
 
-/// `hands` is what the right and then the left hand hold.
+/// `hands` is what the right and then the left hand hold; nothing is worn.
 #[cfg(test)]
 pub(super) fn push_avatar(out: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64, m: &Motion, hands: [ItemId; 2]) -> bool {
-    push_avatar_muzzle(out, at, yaw, pitch, m, hands, &mut None)
+    push_avatar_muzzle(out, at, yaw, pitch, m, &Outfit::bare(hands), &mut None)
 }
 
-/// `hands` is what the right and then the left hand hold. Writes any held flamethrower's nozzle into `muzzle`.
+/// A robot holding and wearing `outfit` (`worn.rs`). Writes any held flamethrower's nozzle into `muzzle`.
 pub(super) fn push_avatar_muzzle(
     out: &mut Vec<f32>,
     at: Vec3,
     yaw: f64,
     pitch: f64,
     m: &Motion,
-    hands: [ItemId; 2],
+    outfit: &Outfit,
     muzzle: &mut Option<Muzzle>,
 ) -> bool {
+    let hands = outfit.hands;
     let hip_y = 0.83 - m.crouch * 0.26;
     if (at + Vec3::new(0.0, hip_y + 0.78, 0.0)).length() < NEAR {
         return false;
@@ -74,32 +76,9 @@ pub(super) fn push_avatar_muzzle(
     }
     rig.part(torso + v(0.0, 0.10, -0.184), [0.10, 0.035, 0.016], lean, roll, 1.0, tex::AVATAR_TRIM);
 
-    // Offset field pack, cylindrical canister, thruster bells and comms antenna.
-    rig.part(torso + v(-0.045, -0.01, 0.23), [0.32, 0.37, 0.17], lean, roll, 0.82, tex::AVATAR_PACK);
-    rig.part(torso + v(-0.045, -0.02, 0.323), [0.24, 0.065, 0.025], lean, roll, 1.0, tex::AVATAR_HELMET);
-    rig.round_part(torso + v(0.20, -0.03, 0.21), [0.105, 0.29, 0.105], lean, roll, 0.95, tex::AVATAR_SKIN);
-    rig.round_part(torso + v(0.20, 0.125, 0.21), [0.085, 0.045, 0.085], lean, roll, 0.9, tex::AVATAR_JOINT);
-    for side in [-1.0, 1.0] {
-        rig.round_part(
-            torso + v(-0.045 + side * 0.09, -0.20, 0.245),
-            [0.075, 0.07, 0.075],
-            lean,
-            roll,
-            0.75,
-            tex::AVATAR_JOINT,
-        );
-    }
-    rig.part(torso + v(-0.15, 0.30, 0.24), [0.024, 0.25, 0.024], lean, 0.15, 1.0, tex::AVATAR_JOINT);
-    rig.part(torso + v(-0.17, 0.43, 0.24), [0.052, 0.042, 0.052], 0.0, 0.0, 1.0, tex::AVATAR_TRIM);
-    if m.thrust > 0.02 {
-        let long = m.thrust * (0.42 + 0.07 * m.flicker.sin() + 0.04 * (m.flicker * 2.7).cos());
-        for (side, beat) in [(-1.0, 0.0), (1.0, 1.9)] {
-            let nozzle = torso + v(-0.045 + side * 0.09, -0.22, 0.25);
-            let core = long * (0.55 + 0.06 * (m.flicker + beat).sin());
-            rig.part(nozzle - v(0.0, long / 2.0, 0.0), [0.06, long as f32, 0.08], 0.0, 0.0, 2.2, tex::LAMP_YELLOW);
-            rig.part(nozzle - v(0.0, core / 2.0, 0.0), [0.035, core as f32, 0.05], 0.0, 0.0, 2.0, tex::LAMP);
-        }
-    }
+    // What is worn on the back and round the waist (packs, their flame and antenna, exo frame, tool belt).
+    worn::back(&mut rig, &outfit.worn, torso, waist, lean, roll, m);
+    worn::waist(&mut rig, &outfit.worn, waist, lean);
 
     // Neck and sculpted survey helmet (visor stays first AVATAR_VISOR part for crosshair-tracking tests).
     let neck = waist + v(0.0, 0.55, -0.05 * m.crouch);
@@ -116,6 +95,7 @@ pub(super) fn push_avatar_muzzle(
     rig.head_part(head, v(0.0, 0.005, -0.167), [0.37, 0.115, 0.025], tilt, 0.0, 0.88, tex::AVATAR_VISOR);
     rig.head_part(head, v(0.0, 0.013, -0.184), [0.27, 0.032, 0.012], tilt, 0.0, 1.0, tex::AVATAR_TRIM);
     rig.head_part(head, v(0.0, -0.105, -0.125), [0.26, 0.06, 0.11], tilt, 0.0, 0.84, tex::AVATAR_JOINT);
+    worn::head(&mut rig, &outfit.worn, head, tilt);
 
     for side in [-1.0, 1.0] {
         // Helmet ear pods + amber rim.
@@ -150,6 +130,7 @@ pub(super) fn push_avatar_muzzle(
         rig.part(ankle + Vec3::new(0.0, 0.02, 0.0), [0.155, 0.055, 0.17], 0.0, 0.0, 0.92, tex::AVATAR_JOINT);
         rig.part(ankle + Vec3::new(0.0, -0.07, -0.05), [0.22, 0.19, 0.34], 0.0, 0.0, 0.82, tex::AVATAR_JOINT);
         rig.part(ankle + Vec3::new(0.0, -0.025, -0.19), [0.18, 0.06, 0.035], 0.0, 0.0, 0.9, tex::AVATAR_HELMET);
+        worn::ankle(&mut rig, &outfit.worn, ankle, side);
 
         // Articulated arms + shared forearm gauntlet + modelled hand.
         let shoulder = waist + Vec3::new(side * 0.32, 0.43, -0.02 * m.crouch);
@@ -177,7 +158,7 @@ pub(super) fn push_avatar_muzzle(
             };
             upper = upper * (1.0 - m.mining) + work_upper * m.mining;
             elbow += work_elbow * m.mining;
-            // Lateral shoulder sweep for diagonal axe chops and sickle sweeps.
+            // Lateral shoulder sweep for diagonal axe chops and bladerang throws.
             if matches!(stroke, Stroke::Axe | Stroke::Sweep) {
                 abduct = work_pose.sweep * 0.55;
                 item_pose = Pose { roll: work_pose.roll, sweep: work_pose.sweep * 0.5, ..Pose::default() };
@@ -220,6 +201,7 @@ pub(super) fn push_avatar_muzzle(
         // Shared Kestrel forearm gauntlet (matches POV arm 1:1).
         let dorsal = apply(swing_m, Vec3::new(side, 0.0, 0.0));
         rig.hand_parts(&hand::forearm_parts(joint, wrist, dorsal, 1.0));
+        worn::wrist(&mut rig, &outfit.worn, joint, wrist);
 
         // Shared modelled articulated hand.
         let held = hands[usize::from(side < 0.0)];
@@ -237,103 +219,7 @@ pub(super) fn push_avatar_muzzle(
     true
 }
 
-/// First-person POV right arm & modelled hand: shares the exact Kestrel forearm gauntlet and articulated hand from
-/// `hand.rs`, scaled to [`VIEW_SCALE`] so it looks life-size while staying strictly inside the player's body cylinder.
-/// Active, tool-appropriate animations drive both the hand and elbow; no walking bob (motion-sickness safe).
-pub(super) fn push_view_hand(out: &mut Vec<f32>, yaw: f64, pitch: f64, m: &Motion, held: ItemId) -> Option<Muzzle> {
-    let mut rig = Rig { out, at: Vec3::ZERO, yaw, head_yaw: yaw, muzzle: None };
-    let tool = tool_hold::hold(held).map(|h| h.stroke);
-    let stroke = tool.unwrap_or(Stroke::Punch);
-    let sweeping = stroke == Stroke::Sweep && m.using > m.mining;
-    let pose = if sweeping {
-        tool_hold::pose(Stroke::Sweep, m.use_phase, m.using)
-    } else {
-        tool_hold::pose(stroke, m.work_phase, m.mining)
-    };
-    let aiming = stroke == Stroke::Aim;
-    let push = if sweeping || aiming { 0.0 } else { m.using * m.use_phase.sin().abs() };
-    let brace = if aiming { m.using } else { 0.0 };
-    // Subtle living idle breathing (quieted during active strokes; never tied to walking).
-    let idle = (1.0 - m.mining).max(0.0) * (1.0 - m.using).max(0.0);
-    let breath_y = m.breath.sin() * 0.008 * idle;
-    let breath_x = (m.breath * 0.5).cos() * 0.004 * idle;
-
-    // Camera-local coordinates before pitch: x right, y up, -z ahead.
-    // Tools sit slightly nearer so their working heads stay inside the body across their full strike arc;
-    // bulky non-tool items strike slightly lower and closer so they never poke above the eye while looking up.
-    let item_hold = held != ItemId::NONE && tool.is_none();
-    let near = if tool.is_some() { 0.09 } else { 0.0 };
-    let thrust_scale = if item_hold { 0.45 } else { 1.0 };
-    let strike_drop = if item_hold { -0.05 * pose.thrust.max(0.0) / 0.15 } else { 0.0 };
-    let sweep_x = match stroke {
-        Stroke::Axe => 0.24 * pose.sweep,
-        Stroke::Sweep => 0.34 * pose.sweep,
-        _ => 0.26 * pose.sweep,
-    };
-    let eff_thrust = pose.thrust * thrust_scale;
-    let eff_lift = if item_hold { pose.lift * 0.3 + strike_drop } else { pose.lift };
-    let aim_dx = if aiming { -0.03 } else { 0.0 };
-    let aim_dy = if aiming { 0.03 } else { 0.0 };
-    let hand = Vec3::new(
-        0.31 + aim_dx + sweep_x + breath_x - 0.03 * push,
-        -0.31 + aim_dy + 0.045 * push + eff_lift + 0.04 * eff_thrust + breath_y + 0.012 * brace,
-        -0.46 + near - 0.36 * eff_thrust - 0.03 * push + 0.025 * brace,
-    ) * VIEW_SCALE;
-    // Elbow enters diagonally from the lower-right corner (natural shoulder line) while staying strictly ahead (z < 0).
-    let elbow = Vec3::new(
-        0.52 + sweep_x * 0.35 + breath_x * 0.5,
-        -0.60 + eff_lift * 0.40 - 0.03 * eff_thrust,
-        -0.21 - 0.12 * eff_thrust,
-    ) * VIEW_SCALE;
-
-    let at = |p: Vec3| rotate(p, pitch);
-    let hand_grip = grip_for(held, m.mining);
-    // Orient the hand: for handled tools, align the grip cylinder (-X_h) co-linearly with the tool handle (+Y) via
-    // `rz_m(-FRAC_PI_2)` so the curled fingers and thumb stay wrapped right around the shaft through every stroke.
-    let hand_own = match tool {
-        Some(s) => {
-            let (_, rest_lean, rest_roll) = grip::rest(s, true);
-            // A shovel's rest_lean is near PI (blade forward-down); keep the wrist upright around the T-handle.
-            let wrist_lean = if s == Stroke::Dig { 0.35 } else { rest_lean };
-            let wrist_swing = if matches!(s, Stroke::Pick | Stroke::Axe) { -pose.swing * 0.75 } else { 0.0 };
-            mul(
-                yaw_m(pose.sweep),
-                mul(
-                    rx_m(wrist_lean + pose.lean + wrist_swing + 0.2 * push),
-                    mul(rz_m(rest_roll + pose.roll), rz_m(-FRAC_PI_2)),
-                ),
-            )
-        }
-        None => {
-            // Bare hand or block: follow the forearm's gentle inward diagonal so wrist and palm flow as one piece.
-            let (rest_yaw, rest_pitch, rest_roll) = match hand_grip {
-                HandGrip::Fist => (0.28, 0.24, -0.78),
-                HandGrip::Item => (0.22, 0.28, -0.48),
-                _ => (0.28, 0.28, -0.45),
-            };
-            mul(
-                yaw_m(rest_yaw + pose.sweep * 0.90),
-                mul(rx_m(rest_pitch + pose.lean * 0.85 + 0.25 * push), rz_m(rest_roll + pose.roll * 0.85)),
-            )
-        }
-    };
-    let tilt = rx_m(pitch);
-    let hand_basis = mul(tilt, hand_own);
-
-    // Forearm dorsal hint aligns the ivory ceramic gauntlet & wrist LED with the back of the hand.
-    let dorsal = apply(hand_basis, Vec3::new(0.0, 1.0, 0.0));
-    rig.hand_parts(&hand::forearm_parts(at(elbow), at(hand), dorsal, VIEW_SCALE));
-    rig.hand_parts(&hand::hand_parts(at(hand), hand_basis, VIEW_SCALE, 1.0, hand_grip));
-
-    // Tools attach directly inside the curled palm/finger pocket; blocks/items sit nicely above the cupped hand.
-    let tip = VIEW_TIP_BACK + 0.18 * push;
-    let item_anchor =
-        if tool.is_some() { at(hand) + apply(hand_basis, hand::GRIP_POCKET * VIEW_SCALE) } else { at(hand) };
-    rig.held_item(item_anchor, pitch, tip, held, VIEW_SCALE, true, &pose);
-    rig.muzzle
-}
-
-fn grip_for(held: ItemId, mining: f64) -> HandGrip {
+pub(super) fn grip_for(held: ItemId, mining: f64) -> HandGrip {
     if tool_hold::hold(held).is_some() {
         HandGrip::Tool
     } else if held != ItemId::NONE {
@@ -345,28 +231,22 @@ fn grip_for(held: ItemId, mining: f64) -> HandGrip {
     }
 }
 
-/// How far a held item that isn't a tool tips its top towards the eye in first person, radians.
-const VIEW_TIP_BACK: f64 = 0.45;
-
-/// How much smaller and nearer the first-person hand is than an avatar's.
-const VIEW_SCALE: f64 = 0.33;
-
-struct Rig<'a> {
-    out: &'a mut Vec<f32>,
-    at: Vec3,
-    yaw: f64,
-    head_yaw: f64,
-    muzzle: Option<Muzzle>,
+pub(super) struct Rig<'a> {
+    pub out: &'a mut Vec<f32>,
+    pub at: Vec3,
+    pub yaw: f64,
+    pub head_yaw: f64,
+    pub muzzle: Option<Muzzle>,
 }
 
 impl Rig<'_> {
-    fn world(&self, center: Vec3) -> Vec3 {
+    pub(super) fn world(&self, center: Vec3) -> Vec3 {
         let (s, c) = self.yaw.sin_cos();
         self.at + Vec3::new(c * center.x - s * center.z, center.y, s * center.x + c * center.z)
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn part(&mut self, center: Vec3, size: [f32; 3], pitch: f64, roll: f64, taper: f32, layer: u16) {
+    pub(super) fn part(&mut self, center: Vec3, size: [f32; 3], pitch: f64, roll: f64, taper: f32, layer: u16) {
         let center = self.world(center);
         push_box(self.out, center, self.yaw as f32, size, 0.0, [layer; 3], false);
         let i = self.out.len() - INSTANCE_FLOATS;
@@ -376,7 +256,7 @@ impl Rig<'_> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn round_part(&mut self, center: Vec3, size: [f32; 3], pitch: f64, roll: f64, taper: f32, layer: u16) {
+    pub(super) fn round_part(&mut self, center: Vec3, size: [f32; 3], pitch: f64, roll: f64, taper: f32, layer: u16) {
         self.part(center, size, pitch, roll, taper, layer);
         make_round(self.out, Axis::Up, taper);
     }
@@ -395,13 +275,13 @@ impl Rig<'_> {
         );
     }
 
-    fn link(&mut self, from: Vec3, to: Vec3, mut size: [f32; 3], layer: u16) {
+    pub(super) fn link(&mut self, from: Vec3, to: Vec3, mut size: [f32; 3], layer: u16) {
         let delta = to - from;
         size[1] = delta.length() as f32;
         self.part((from + to) * 0.5, size, (-delta.z).atan2(-delta.y), 0.0, 0.85, layer);
     }
 
-    fn hand_parts(&mut self, parts: &[HandPart]) {
+    pub(super) fn hand_parts(&mut self, parts: &[HandPart]) {
         for p in parts {
             self.part(p.center, p.size, p.pitch, p.roll, p.taper, p.layer);
             let i = self.out.len() - INSTANCE_FLOATS;
@@ -411,7 +291,16 @@ impl Rig<'_> {
 
     /// `held` in the hand at `hand` turned by `pitch`, at `scale` times its size on an avatar.
     #[allow(clippy::too_many_arguments)]
-    fn held_item(&mut self, hand: Vec3, pitch: f64, tip: f64, held: ItemId, scale: f64, view: bool, pose: &Pose) {
+    pub(super) fn held_item(
+        &mut self,
+        hand: Vec3,
+        pitch: f64,
+        tip: f64,
+        held: ItemId,
+        scale: f64,
+        view: bool,
+        pose: &Pose,
+    ) {
         let parts = grip::held_parts(held, hand, pitch, tip, scale, view, pose);
         if matches!(held, crate::item::FLAMETHROWER | crate::item::PAINT_SPRAYER) && parts.len() >= 2 {
             let rim = self.world(parts[parts.len() - 1].center);
@@ -424,6 +313,11 @@ impl Rig<'_> {
             let tip = rim + dir * (f64::from(last.size[1]) * 0.55);
             self.muzzle = Some(Muzzle { tip, dir, bell: last.size[0] });
         }
+        self.model_parts(&parts);
+    }
+
+    /// Item-model parts (`grip::held_parts`, `grip::placed_parts`) in the rig's frame.
+    pub(super) fn model_parts(&mut self, parts: &[HeldPart]) {
         for p in parts {
             self.part(p.center, p.size, p.pitch, p.roll, 1.0, p.tex[1]);
             let i = self.out.len() - INSTANCE_FLOATS;
@@ -436,7 +330,7 @@ impl Rig<'_> {
     }
 }
 
-fn rotate(p: Vec3, pitch: f64) -> Vec3 {
+pub(super) fn rotate(p: Vec3, pitch: f64) -> Vec3 {
     let (s, c) = pitch.sin_cos();
     Vec3::new(p.x, p.y * c - p.z * s, p.y * s + p.z * c)
 }

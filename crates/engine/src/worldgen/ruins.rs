@@ -128,6 +128,12 @@ impl WorldGen {
         self.ruins_around(x0, z0).filter(|r| r.near_column(x0, z0)).collect()
     }
 
+    /// The centre of a ruin within `within` blocks of (x, z), if one lies there (the telescope logs it: `telescope.rs`).
+    pub(crate) fn ruin_near(&self, x: i32, z: i32, within: i32) -> Option<(i32, i32)> {
+        let near = |r: &Rc<Ruin>| (r.x - x) * (r.x - x) + (r.z - z) * (r.z - z) <= within * within;
+        self.ruins_around(x, z).find(near).map(|r| (r.x, r.z))
+    }
+
     /// Whether a ruin's slab or its surroundings cover (x, z): no tree grows there.
     pub(super) fn ruin_covers(&self, x: i32, z: i32) -> bool {
         self.ruins_around(x, z).any(|r| r.covers(x, z))

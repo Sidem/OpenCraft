@@ -34,6 +34,8 @@ export interface ConsoleHost {
   teleport(x: number, y: number, z: number): void;
   find(query: string): { id: number; name: string }[];
   give(id: number, count: number): void;
+  /** Builds a live playable concept demo near the player (`grader`). */
+  setupDemo?(name: string): string;
   /** Whether this world is shared with other players. */
   shared(): boolean;
 }
@@ -225,12 +227,21 @@ function give(args: string[], host: ConsoleHost): string[] {
   return [`Gave ${count} ${found[0].name}.`];
 }
 
+function demo(args: string[], host: ConsoleHost): string[] {
+  const which = args[0] ?? 'grader';
+  if (which !== 'grader') return ['Available demos: demo grader'];
+  if (host.shared()) return ['Demos can only be spawned in a solo world of your own.'];
+  if (!host.setupDemo) return ['Demos are not available in this build.'];
+  return [host.setupDemo(which)];
+}
+
 function help(_args: string[], _host: ConsoleHost): string[] {
   return Object.values(COMMANDS).map((c) => `${c.usage}: ${c.about}`);
 }
 
 const COMMANDS: Record<string, Command> = {
   help: { usage: 'help', about: 'this list', run: help },
+  demo: { usage: 'demo [grader]', about: 'spawn a live concept demo (Telescoping Bucket-Wheel Site Grader)', run: demo },
   weather: {
     usage: 'weather [clear|cloudy|gloomy|rain|snow|auto] [strength]',
     about: 'show the weather, or hold how the sky looks (auto: back to the world\'s)',

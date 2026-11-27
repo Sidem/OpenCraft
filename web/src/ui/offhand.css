@@ -3,3 +3,10 @@
   margin-left: 8px;
   border-style: dashed;
 }
+
+/* G works the item in the left hand (offhand.ts, `left_use`). */
+.slot.offhand .offhand-use {
+  left: auto;
+  right: 5px;
+  color: var(--accent);
+}

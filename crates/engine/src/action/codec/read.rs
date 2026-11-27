@@ -115,6 +115,15 @@ impl Action {
             85 => Action::UpgradeGear { slot: r.u8()? },
             86 => Action::MineWide { pos: r.ivec3()?, face: r.u8()? },
             87 => Action::GrowGrass { pos: r.ivec3()? },
+            88 => Action::HangRope { pos: r.ivec3()?, slot: r.u8()? },
+            89 => Action::SetGrader {
+                pos: r.ivec3()?,
+                spare_ores: r.bool()?,
+                floor: r.block()?,
+                width: r.u8()?,
+                depth: r.u8()?,
+                offset: r.u8()? as i8,
+            },
             35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })

@@ -7,7 +7,7 @@ use super::players::STATE_TICKS;
 use super::*;
 use crate::authority::MAX_PLAYERS;
 use crate::block::{self, MINER, STONE};
-use crate::item::{SCANNER, SICKLE};
+use crate::item::{BLADERANG, SCANNER};
 use crate::math::{IVec3, Vec3};
 use crate::sim::tests::{build_pond_above_a_pit, outcrop, script, DAM, SEED};
 use crate::tests::run_until_ready;
@@ -118,7 +118,7 @@ fn clearing_ground_cover_keeps_host_and_client_equal() {
         client.update(1.0 / 60.0);
         assert_eq!(client.sim.state_hash(), hashes[client.sim.tick as usize], "tick {}", client.sim.tick);
     };
-    host.act(Action::Give { item: SICKLE, count: 1 });
+    host.act(Action::Give { item: BLADERANG, count: 1 });
     host.act(Action::ClearCover { pos });
     for _ in 0..30 {
         step(&mut host, &mut client, &mut hashes);
@@ -129,7 +129,7 @@ fn clearing_ground_cover_keeps_host_and_client_equal() {
     }
     // A patch of the client's own, over a chunk border, goes through the host and back.
     let after_host_cut = host.sim.state_hash();
-    client.act(Action::Give { item: SICKLE, count: 1 });
+    client.act(Action::Give { item: BLADERANG, count: 1 });
     client.act(Action::ClearCover { pos: IVec3::new(0, 60, 0) });
     for _ in 0..30 {
         step(&mut host, &mut client, &mut hashes);
@@ -184,9 +184,11 @@ fn prospecting_in_co_op_sends_nothing_and_stays_in_step() {
             let slot = client.inventory().slots.iter().position(|s| s.item == SCANNER).expect("given");
             client.act(Action::SelectSlot { slot: slot as u8 });
         }
+        if t == 25 {
+            client.act(Action::Offhand { swap: true });
+        }
         if t == 30 {
-            assert_eq!(client.inventory().selected_stack().item, SCANNER);
-            client.using = true;
+            assert_eq!(client.left_item(), SCANNER, "in the left hand it pings by itself");
         }
         assert!(host.host_stamp(1, &client.take_outbox()));
         let frames = frames_of(&mut host, 1);
@@ -198,7 +200,7 @@ fn prospecting_in_co_op_sends_nothing_and_stays_in_step() {
             assert!(client.take_outbox().is_empty(), "scanning sends no actions");
         }
     }
-    assert!(client.prospect.seq >= 3 && host.prospect.seq == 0);
+    assert!(client.prospect.seq >= 1 && host.prospect.seq == 0);
 }
 
 #[test]

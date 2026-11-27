@@ -19,6 +19,7 @@ function fakeHost(over = {}) {
     teleport: (x, y, z) => log.push(['tp', x, y, z]),
     find: (q) => ({ iron: [{ id: 1, name: 'Iron Ingot' }, { id: 2, name: 'Iron Plate' }], 'iron ingot': [{ id: 1, name: 'Iron Ingot' }] }[q] ?? []),
     give: (id, n) => log.push(['give', id, n]),
+    setupDemo: (name) => { log.push(['demo', name]); return `Site Grader demo ready (${name})`; },
     shared: () => false,
     seasonNow: 0,
     dayNow: 3,
@@ -180,4 +181,6 @@ test('a line starting with / or ! is a command, any other is chat, and both pref
   const h = fakeHost();
   assert.deepEqual(runCommand('!pos', h), runCommand('/pos', h));
   assert.match(runCommand('/fly', h)[0], /Type \/help/);
+  assert.match(runCommand('/demo grader', h)[0], /Site Grader demo ready/);
+  assert.deepEqual(h.log.pop(), ['demo', 'grader']);
 });

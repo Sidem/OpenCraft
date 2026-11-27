@@ -600,6 +600,8 @@ fn samples() -> Vec<Action> {
         Action::UpgradeGear { slot: 3 },
         Action::MineWide { pos: IVec3::new(-4, 70, 9), face: 5 },
         Action::GrowGrass { pos: IVec3::new(-4, 70, 9) },
+        Action::HangRope { pos, slot: 6 },
+        Action::SetGrader { pos, spare_ores: true, floor: crate::block::CONCRETE, width: 25, depth: 20, offset: -3 },
     ]
 }
 

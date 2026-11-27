@@ -1,7 +1,8 @@
-//! Hand recipes of the worn gear (`equipment.rs`), one per item; each is a tech's unlock (`research/personal.rs`).
+//! Hand recipes of the worn gear (`equipment.rs`), one per item; each is a tech's unlock (`research/personal.rs`) but
+//! the headlamp's and the rope's.
 //! To add one: a `pub const` here, and its name in `RECIPES`.
 
-use crate::block::STONE;
+use crate::block::{LAMP, LEAVES, STONE};
 use crate::item::*;
 
 use super::{b, Group, Recipe};
@@ -62,7 +63,7 @@ pub const SERVO_BOOTS_RECIPE: Recipe = Recipe {
     group: Group::Tools,
     count: 1,
     inputs: &[(STEEL_PLATE, 2), (SERVO, 2), (CIRCUIT, 2)],
-    blurb: "Boots with servo joints: you walk and sprint 15% faster. One pair of boots at a time.",
+    blurb: "Boots with servo joints: you step up a whole block as you walk, and walk 15% faster. One pair at a time.",
 };
 
 pub const EXO_FRAME_RECIPE: Recipe = Recipe {
@@ -70,7 +71,7 @@ pub const EXO_FRAME_RECIPE: Recipe = Recipe {
     group: Group::Tools,
     count: 1,
     inputs: &[(STEEL_BEAM, 4), (ACTUATOR, 2), (CIRCUIT, 3)],
-    blurb: "A steel frame worn over the chest: you sprint 10% faster.",
+    blurb: "A steel frame worn over the chest: your hands reach 8 blocks instead of 5.",
 };
 
 pub const WORK_GLOVES_RECIPE: Recipe = Recipe {
@@ -118,7 +119,34 @@ pub const XRAY_GOGGLES_RECIPE: Recipe = Recipe {
     group: Group::Tools,
     count: 1,
     inputs: &[(STEEL_PLATE, 2), (CIRCUIT, 4), (COPPER_WIRE, 6), (SILICON, 2)],
-    blurb: "Goggles that see the machines you built through solid ground, worn in the Head slot.",
+    blurb: "Goggles that see the machines you built through solid ground, worn in the Head slot. They light the way.",
+};
+
+// Needs no tech, like the lamp it is made from (red era: glass, plate and wire).
+pub const HEADLAMP_RECIPE: Recipe = Recipe {
+    output: HEADLAMP,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(b(LAMP), 1), (IRON_PLATE, 1), (COPPER_WIRE, 2)],
+    blurb: "A lamp on a strap, worn in the Head slot: it lights the way like a lamp in hand, both hands free.",
+};
+
+// Needs no tech: leaves twisted round sticks. One coil hangs `action::PER_COIL` blocks.
+pub const ROPE_RECIPE: Recipe = Recipe {
+    output: ROPE_ITEM,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(b(LEAVES), 4), (STICK, 2)],
+    blurb: "A coil of rope: hang it from the side of a ledge and it unrolls 8 blocks down. Climb it like a ladder.",
+};
+
+pub const LINE_HOOK_RECIPE: Recipe = Recipe {
+    output: LINE_HOOK,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(STEEL_PLATE, 2), (GEAR, 2), (IRON_ROD, 2), (COPPER_WIRE, 4)],
+    blurb: "A grappling hook for the left hand (J): G pulls you to a block, or clips onto a power wire and rides it \
+            from pole to pole. Jump lets go.",
 };
 
 // The Tool Belt replaced the nine hand tools (`tool_belt/`). Mk2 and Mk3 are the belt below plus plates (as the iron

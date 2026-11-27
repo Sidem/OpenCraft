@@ -44,7 +44,7 @@ impl Game {
         } else if self.planner_held() {
             crate::site_hands::PLANNER_REACH
         } else {
-            crate::interaction::REACH
+            self.inventory().reach()
         }
     }
 

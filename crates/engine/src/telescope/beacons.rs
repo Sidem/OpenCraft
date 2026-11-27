@@ -40,8 +40,8 @@ impl Game {
     }
 }
 
-/// One column standing at `rel` (its foot, relative to the eye) in colour `rgb`; `reach` is the farthest it is drawn at.
-pub(super) fn push_beacon(out: &mut Vec<f32>, rel: Vec3, reach: f64, rgb: u32) {
+/// One column standing at `rel` (also a flare's: `flares.rs`) (its foot, relative to the eye) in colour `rgb`; `reach` is the farthest it is drawn at.
+pub(crate) fn push_beacon(out: &mut Vec<f32>, rel: Vec3, reach: f64, rgb: u32) {
     let d = rel.length();
     let width = (d * WIDTH_PER_BLOCK).max(WIDTH_MIN);
     let height = (HEIGHT_MIN + d * HEIGHT_PER_BLOCK).min(HEIGHT_MAX);

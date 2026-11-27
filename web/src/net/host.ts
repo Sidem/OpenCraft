@@ -90,6 +90,10 @@ export class CoopHost implements Coop {
     this.relay(this.local, text);
   }
 
+  flare(x: number, y: number, z: number): void {
+    this.relayFlare(this.local, x, y, z);
+  }
+
   close(): void {
     this.stopListening();
     for (const peer of [...this.peers]) {
@@ -113,6 +117,8 @@ export class CoopHost implements Coop {
       peer.t.send(encode({ type: 'snapshot', bytes: this.game.snapshot() }));
     } else if (m?.type === 'chat' && peer.id !== null) {
       this.relay(peer.id, m.text);
+    } else if (m?.type === 'flare' && peer.id !== null) {
+      this.relayFlare(peer.id, m.x, m.y, m.z);
     } else if (m?.type === 'bye') {
       peer.t.close();
       this.drop(peer);
@@ -158,6 +164,14 @@ export class CoopHost implements Coop {
     if (line === '') return;
     this.onChat(this.names.get(from) ?? defaultName(from), line);
     const m = encode({ type: 'chat', from, text: line });
+    for (const peer of this.peers) if (peer.id !== null) peer.t.send(m);
+  }
+
+  /** A flare from player `from`: lit here and passed to every client, the sender too. */
+  private relayFlare(from: number, x: number, y: number, z: number): void {
+    if (![x, y, z].every(Number.isFinite)) return;
+    this.game.light_flare(x, y, z, from);
+    const m = encode({ type: 'flare', from, x, y, z });
     for (const peer of this.peers) if (peer.id !== null) peer.t.send(m);
   }
 

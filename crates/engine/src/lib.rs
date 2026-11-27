@@ -27,6 +27,7 @@ mod authority;
 mod avatars;
 mod belt_bend;
 mod belt_line;
+mod bladerang;
 mod block;
 mod blueprint;
 mod blueprint_lesson;
@@ -54,6 +55,7 @@ mod factory;
 mod fire_view;
 mod first_steps;
 mod flame_hands;
+mod flares;
 mod footprint_preview;
 mod forester_preview;
 mod frame;
@@ -77,8 +79,10 @@ mod item_models;
 mod item_select;
 mod join;
 pub mod led;
+mod left_hand;
 mod lessons;
 mod light;
+mod line_hook;
 mod map_lesson;
 mod math;
 mod mesher;
@@ -108,13 +112,13 @@ mod raycast;
 mod recipe_lesson;
 mod recipes;
 mod research;
+mod rope_hands;
 mod satellites;
 mod save;
 mod seismic;
 mod settlements;
 pub mod shape;
 mod shape_hands;
-mod sickle;
 pub mod signs;
 mod sim;
 mod site_hands;
@@ -249,6 +253,12 @@ pub struct Game {
     planner: site_hands::Planner,
     /// The telescope's zoom, aim and the pins it draws (`telescope.rs`).
     scope: telescope::Telescope,
+    /// `G` and the core drill's forecast (`left_hand.rs`).
+    left: left_hand::LeftHand,
+    /// The thrown bladerang (`bladerang.rs`).
+    blade: bladerang::Blade,
+    /// Co-op flares burning (`flares.rs`).
+    flares: flares::Flares,
     dig_timer: f32,
     step_distance: f64,
     sounds: Sounds,
@@ -378,6 +388,9 @@ impl Game {
             library: blueprint::Library::default(),
             planner: site_hands::Planner::default(),
             scope: telescope::Telescope::default(),
+            left: left_hand::LeftHand::default(),
+            blade: bladerang::Blade::default(),
+            flares: flares::Flares::default(),
             dig_timer: 0.0,
             step_distance: 0.0,
             sounds: Sounds::default(),
@@ -442,6 +455,8 @@ impl Game {
         self.update_target();
         self.update_mining(TICK as f32);
         self.update_placing(TICK as f32);
+        self.update_left_hand(TICK as f32);
+        self.step_blade();
         self.body_mut().gesture = u8::from(self.mining) | (u8::from(self.using) << 1);
 
         self.step_items();

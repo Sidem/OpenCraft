@@ -9,11 +9,13 @@ use super::elevator::ELEVATOR_DEFS;
 use super::forester::FORESTER_DEFS;
 use super::gas::GAS_DEFS;
 use super::glass::STAINED_GLASS_DEFS;
+use super::grader::GRADER_DEFS;
 use super::house::HOUSE_DEFS;
 use super::kiln::KILN_DEFS;
 use super::led::LED_DEFS;
 use super::make::{self, all, cube, frame, liquid, machine, ore, pillar};
 use super::merger::MERGER_DEFS;
+use super::rope::ROPE_DEFS;
 use super::sign::SIGN_DEFS;
 use super::street::STREET_DEFS;
 use super::thumper::THUMPER_DEFS;
@@ -46,6 +48,8 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = crate::join::join(&[
     &CLAY_DEFS,
     &ELEVATOR_DEFS,
     &WEATHER_STATION_DEFS,
+    &GRADER_DEFS,
+    &ROPE_DEFS,
 ]);
 
 const BASE_DEFS: [BlockDef; BASE_COUNT] = [

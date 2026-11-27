@@ -164,6 +164,11 @@ impl Game {
         self.using = on;
     }
 
+    /// `G`, told each frame: works the item in the left hand (`left_hand.rs`).
+    pub fn set_left_using(&mut self, on: bool) {
+        self.left.using = on;
+    }
+
     pub fn select_slot(&mut self, slot: u32) {
         self.act(Action::SelectSlot { slot: slot.min(u8::MAX as u32) as u8 });
     }

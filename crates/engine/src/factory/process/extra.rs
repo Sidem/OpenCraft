@@ -17,6 +17,7 @@ use crate::pods::CHANNELS;
 use super::center::Study;
 use super::depot::Want;
 use super::forester::Forest;
+use super::grader::Grader;
 use super::hangar::Hangar;
 use super::pods::CHANNEL_SAVED;
 use super::pump::Pump;
@@ -50,6 +51,8 @@ pub enum Extra {
     Ejector(Vec<Stack>),
     /// A forester's job on its patch (forester.rs; saved).
     Forest(Forest),
+    /// A site grader's cut/fill/pave job and earthworks hopper (grader/; saved).
+    Grader(Grader),
 }
 
 impl Extra {
@@ -63,6 +66,7 @@ impl Extra {
             Pick::Pods | Pick::Land => Extra::Channel(0),
             Pick::Eject => Extra::Ejector(Vec::new()),
             Pick::Forest => Extra::Forest(Forest::default()),
+            Pick::Grade => Extra::Grader(Grader::default()),
             _ if spec.block == LAUNCH_SITE => Extra::Launch { launches: 0, lifted: None },
             _ => Extra::None,
         }
@@ -76,6 +80,7 @@ impl Extra {
             Extra::Launch { launches, .. } => w.u32(*launches),
             Extra::Channel(channel) => w.u8(*channel),
             Extra::Forest(forest) => forest.write_state(w),
+            Extra::Grader(grader) => grader.write_state(w),
             Extra::None | Extra::Depot { .. } | Extra::Hangar(_) | Extra::Ejector(_) => {}
         }
     }
@@ -89,6 +94,7 @@ impl Extra {
             // Older saves have none: `Processor::load` set it from the facing.
             Extra::Channel(channel) if r.version >= CHANNEL_SAVED => *channel = r.u8()? % CHANNELS,
             Extra::Forest(forest) => *forest = Forest::read_state(r)?,
+            Extra::Grader(grader) => *grader = Grader::read_state(r)?,
             Extra::Channel(_) | Extra::None | Extra::Depot { .. } | Extra::Hangar(_) | Extra::Ejector(_) => {}
         }
         Some(())

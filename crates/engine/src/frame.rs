@@ -121,6 +121,9 @@ impl Game {
         self.write_elevator(eye);
         self.write_line_preview(eye, time);
         self.write_power_preview(eye);
+        self.write_hook_line(eye);
+        self.write_blade(eye);
+        self.write_flares(dt, eye);
         self.write_rail_preview(eye);
         self.write_dock_preview(eye);
         self.write_port_view(eye, time);

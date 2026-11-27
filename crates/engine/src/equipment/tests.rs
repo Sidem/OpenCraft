@@ -311,7 +311,59 @@ fn boots_and_frames_scale_the_body() {
     assert_eq!(inv.boost(), Default::default());
     inv.worn = [ItemId::NONE, SERVO_BOOTS, EXO_FRAME, TOOL_BELT, ItemId::NONE, ItemId::NONE, ItemId::NONE];
     let b = inv.boost();
-    assert!((b.walk - 1.15).abs() < 1e-9 && (b.sprint - 1.15 * 1.1).abs() < 1e-9 && b.jump == 1.0);
+    assert!((b.walk - 1.15).abs() < 1e-9 && (b.sprint - 1.15).abs() < 1e-9 && b.jump == 1.0 && b.step > 1.0);
+    assert_eq!((inv.reach(), Inventory::default().reach()), (EXO_REACH, crate::interaction::REACH));
+}
+
+/// GEAR-SLOTS: servo boots walk up a whole block that bare feet stop at.
+#[test]
+fn servo_boots_step_up_a_whole_block() {
+    // Ground at y < 10, and a one-block wall at z = -2 (the body walks towards -z).
+    let world = |_x: i32, y: i32, z: i32| y < 10 || (y == 10 && z <= -2);
+    let walk = |boost| {
+        let mut p = Player::new(Vec3::new(0.5, 10.0, 0.5));
+        p.boost = boost;
+        p.input.forward = 1.0;
+        (0..240).for_each(|_| p.step(1.0 / 120.0, &mut |x, y, z| world(x, y, z), &mut |_, _, _| AIR));
+        p.pos
+    };
+    let mut inv = Inventory::default();
+    let bare = walk(inv.boost());
+    inv.worn[1] = SERVO_BOOTS;
+    let servo = walk(inv.boost());
+    assert!(bare.y < 10.5 && bare.z > -1.5, "bare feet stop at the wall: {bare:?}");
+    assert!(servo.y > 10.9 && servo.z < -2.5, "servo boots walk up onto it: {servo:?}");
+}
+
+/// GEAR-SLOTS: a flight pack with nothing to burn glides while jump is held; let go and it falls.
+#[test]
+fn an_empty_flight_pack_glides_while_jump_is_held() {
+    let fall = |boost, jump| {
+        let mut p = Player::new(Vec3::new(0.5, 100.0, 0.5));
+        p.boost = boost;
+        p.input.jump = jump;
+        (0..240).for_each(|_| p.step(1.0 / 120.0, &mut |_, y, _| y < 10, &mut |_, _, _| AIR));
+        (100.0 - p.pos.y, -p.vel.y)
+    };
+    let mut inv = Inventory::default();
+    inv.worn[JET] = JETPACK;
+    let (glided, speed) = fall(inv.boost(), true);
+    let (dropped, _) = fall(inv.boost(), false);
+    let (bare, _) = fall(Default::default(), true);
+    assert!(speed <= crate::player::GLIDE_FALL + 1e-9 && glided < 6.0, "glides: {glided} at {speed}");
+    assert!(dropped > 15.0 && bare > 15.0, "falls without jump ({dropped}) or a pack ({bare})");
+}
+
+/// GEAR-SLOTS: the headlamp and the X-ray goggles light like a lamp in hand; nothing else on the head does.
+#[test]
+fn a_headlamp_or_goggles_light_the_way() {
+    let mut inv = Inventory::default();
+    assert_eq!(crate::held_light::reach_of(&inv), 0.0);
+    for item in [HEADLAMP, XRAY_GOGGLES] {
+        inv.worn[HEAD] = item;
+        assert_eq!(crate::held_light::reach_of(&inv), crate::held_light::reach(crate::block::LAMP.into()));
+    }
+    assert_eq!(gear(HEADLAMP).map(|g| g.slot), Some(HEAD));
 }
 
 #[test]
@@ -362,4 +414,27 @@ fn worn_gear_reaches_the_body_in_a_running_game() {
     assert_eq!(g.inventory().worn[1], SERVO_BOOTS);
     assert!((g.body().boost.walk - 1.15).abs() < 1e-9, "the body walks faster");
     assert_eq!(g.inventory().belt(), TOOL_BELT);
+}
+
+#[test]
+fn gear_ladders_give_each_tier_a_chip_and_a_colour_and_the_left_hand_devices_a_mark() {
+    let g = crate::Game::new(7, 2);
+    assert_eq!(g.item_tier(TOOL_BELT_MK3.0), 2);
+    assert_eq!(g.item_tier(WORK_GLOVES.0), 0);
+    assert_eq!(g.item_tier(SCANNER_MK2.0), 1);
+    assert_eq!(g.item_tier(JETPACK.0), -1, "one of a kind: no chip");
+    assert_eq!(g.item_tier_colour(HAULER_PACK_MK4.0), upgrades::TIER_COLOURS[3]);
+    let ladders = g.tier_ladders();
+    let (mut i, mut count) = (0, 0);
+    while i < ladders.len() {
+        let n = usize::from(ladders[i]);
+        assert!(n >= 2, "a ladder has at least two tiers");
+        for (t, &item) in ladders[i + 1..=i + n].iter().enumerate() {
+            assert_eq!(g.item_tier(item), t as i32, "{}", crate::item::name(ItemId(item)));
+        }
+        (i, count) = (i + n + 1, count + 1);
+    }
+    assert_eq!(count, crate::factory::tiers::FAMILIES.len() + LADDERS.len());
+    assert!(g.item_left_hand(SCANNER.0) && g.item_left_hand(crate::item::TELESCOPE.0));
+    assert!(!g.item_left_hand(TOOL_BELT.0));
 }

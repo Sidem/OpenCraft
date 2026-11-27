@@ -4,6 +4,7 @@
 use wasm_bindgen::prelude::*;
 
 use crate::block::{self, BlockId, BLOCK_COUNT};
+use crate::equipment;
 use crate::factory::tiers;
 use crate::factory::{Axis, Form};
 use crate::item::{self, ItemId};
@@ -118,16 +119,35 @@ impl Game {
         tools::tool(ItemId(id)).filter(|t| tools::device(t.item).is_none()).map_or(0, |t| t.tier.uses)
     }
 
-    /// The tier (0 is Mk1) of a tiered machine's item, or -1 for other items.
+    /// The tier (0 is Mk1) of a tiered machine's or gear's item (`equipment::LADDERS`), or -1 for other items.
     pub fn item_tier(&self, item: u16) -> i32 {
-        tiers::placed_by(ItemId(item)).map_or(-1, |(_, t)| i32::from(t))
+        let item = ItemId(item);
+        tiers::placed_by(item).map(|(_, t)| t).or_else(|| equipment::ladder_tier(item)).map_or(-1, i32::from)
     }
 
-    /// The colour of a tiered machine's item as 0xRRGGBB (0 for other items): the colour of the kit that makes its tier,
-    /// red, green, blue, violet or gold (a pumpjack's Mk2 is gold: `Family::colour`).
+    /// The colour of a tiered item as 0xRRGGBB (0 for other items): the colour of the kit that makes its tier, red,
+    /// green, blue, violet or gold (a pumpjack's Mk2 is gold: `Family::colour`), in the chosen palette.
     pub fn item_tier_colour(&self, item: u16) -> u32 {
-        tiers::placed_by(ItemId(item))
-            .map_or(0, |(block, tier)| self.tier_colour(tiers::family(block).map_or(tier, |f| f.colour(tier))))
+        let item = ItemId(item);
+        let machine = tiers::placed_by(item).map(|(block, tier)| tiers::family(block).map_or(tier, |f| f.colour(tier)));
+        machine.or_else(|| equipment::ladder_tier(item)).map_or(0, |c| self.tier_colour(c))
+    }
+
+    /// Every tier ladder (machine families, then gear), each as its length and then its items Mk1 first: the pairs the
+    /// icon check (`web/src/ui/icon-check.ts`) compares.
+    pub fn tier_ladders(&self) -> Vec<u16> {
+        let machines = tiers::FAMILIES.iter().map(|f| f.items);
+        let mut out = Vec::new();
+        for ladder in machines.chain(equipment::LADDERS) {
+            out.push(ladder.len() as u16);
+            out.extend(ladder.iter().map(|i| i.0));
+        }
+        out
+    }
+
+    /// Whether `item` works from the left hand (`G`: `left_hand.rs`), for the dashed corner on its icon.
+    pub fn item_left_hand(&self, item: u16) -> bool {
+        crate::left_hand::left_use_of(ItemId(item)) != crate::left_hand::LEFT_NONE
     }
 
     /// Chooses the tier-colour palette (`tier_palette.rs`: 0 standard, 1 colour-blind). Presentation only, not saved.

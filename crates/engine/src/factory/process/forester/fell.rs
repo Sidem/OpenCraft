@@ -24,7 +24,7 @@ const LAYERS: i32 = CROWN_LAYERS + LEAF_SUPPORT_STEPS;
 
 /// What came down: the trunk's logs and their kind, and the leaves stripped with it and theirs.
 #[derive(Clone, Copy, Debug, Default)]
-pub(super) struct Felled {
+pub(in crate::factory::process) struct Felled {
     pub logs: u8,
     pub log: BlockId,
     pub leaves: u32,
@@ -33,7 +33,7 @@ pub(super) struct Felled {
 
 /// Fells the tree standing on `foot` (its trunk from the foot up and the limbs joined to it) and strips the leaves
 /// round it that nothing holds now. Nothing when no log stands on `foot`.
-pub(super) fn fell(
+pub(in crate::factory::process) fn fell(
     world: &mut World,
     foot: IVec3,
     changed: &mut Vec<(IVec3, BlockId)>,

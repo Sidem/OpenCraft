@@ -101,7 +101,8 @@ impl Processor {
             | Pick::Land
             | Pick::Depot
             | Pick::Eject
-            | Pick::Forest => Err(Status::NoInput),
+            | Pick::Forest
+            | Pick::Grade => Err(Status::NoInput),
         }
     }
 

@@ -7,7 +7,7 @@
 //! version 1 has no biomes and so no cover. To add a plant: a texture (`block::tex`,
 //! `textures/hires.rs`) and a rule in [`pick`]. Over stained ground (`block::RUSTY_SOIL..`) grow the indicator
 //! plants (R2c): each stain has its own, so a patch of one tells the ore below before anyone points at it.
-//! A column the player cleared with the sickle (U3, `world/cover_clear.rs`, which is core state) grows nothing: one
+//! A column the player cleared with the Bladerang (U3, `world/cover_clear.rs`, which is core state) grows nothing: one
 //! bit test per candidate column, and an empty `cleared` (a chunk column never touched) costs no more than that.
 
 use super::foliage::{sheds_litter, species_of};
@@ -67,7 +67,7 @@ fn indicator_of(b: BlockId) -> Option<u16> {
     }
 }
 
-/// Whether plants can grow over block `b`: what the sickle's hands aim at (`sickle.rs`) and what a clear looks for.
+/// Whether plants can grow over block `b`: what the Bladerang cuts under its loop (`bladerang.rs`) and what a clear looks for.
 pub fn bears_cover(b: BlockId) -> bool {
     ground_of(b).is_some()
 }

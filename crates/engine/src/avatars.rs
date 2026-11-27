@@ -4,6 +4,7 @@
 
 use std::f64::consts::{PI, TAU};
 
+use crate::equipment::SLOTS;
 use crate::held_light;
 use crate::item::ItemId;
 use crate::math::Vec3;
@@ -16,6 +17,8 @@ mod hand;
 mod model;
 mod motion;
 mod tool_hold;
+mod view_hand;
+mod worn;
 
 pub const LABEL_FLOATS: usize = 4;
 const LABEL_RANGE: f64 = 64.0;
@@ -64,6 +67,7 @@ impl Game {
         let inv = self.inventory();
         let right = hand_item(&self.sim.world, self.body(), inv, inv.selected_stack().item);
         let (hands, reach) = ([right, inv.offhand.item], held_light::reach_of(inv));
+        let outfit = worn::Outfit { hands, worn: inv.worn };
         let focus = self.avatar_focus() - eye;
         // The first-person hand: not from behind or above, nor while looking through the telescope.
         let view_hand =
@@ -92,12 +96,14 @@ impl Game {
                         body.yaw,
                         body.pitch,
                         &a.local_motion,
-                        hands,
+                        &outfit,
                         &mut muzzle,
                     );
                 } else if view_hand {
-                    muzzle =
-                        model::push_view_hand(&mut self.instances, body.yaw, body.pitch, &a.local_motion, hands[0]);
+                    let (yaw, pitch, m) = (body.yaw, body.pitch, &a.local_motion);
+                    muzzle = view_hand::push_view_hand(&mut self.instances, yaw, pitch, m, hands[0]);
+                    let raise = f64::from(u8::from(self.left.using));
+                    view_hand::push_view_left_hand(&mut self.instances, yaw, pitch, m, hands[1], raise);
                 }
                 if let Some(m) = muzzle {
                     a.muzzles.push((slot as u8, eye + m.tip, m.dir, m.bell));
@@ -122,12 +128,15 @@ impl Game {
             let at = s.pos - eye;
             let inv = self.sim.players.get(slot).and_then(Option::as_ref).map(|p| &p.inventory);
             let world = &self.sim.world;
-            let hands =
-                inv.map_or([ItemId::NONE; 2], |i| [hand_item(world, body, i, i.selected_stack().item), i.offhand.item]);
+            let outfit =
+                inv.map_or(worn::Outfit { hands: [ItemId::NONE; 2], worn: [ItemId::NONE; SLOTS] }, |i| worn::Outfit {
+                    hands: [hand_item(world, body, i, i.selected_stack().item), i.offhand.item],
+                    worn: i.worn,
+                });
             add_light(&mut a.lights, at + CHEST, inv.map_or(0.0, held_light::reach_of));
             let mut muzzle = None;
             let shown =
-                model::push_avatar_muzzle(&mut self.instances, at, s.yaw, s.pitch, &s.motion, hands, &mut muzzle);
+                model::push_avatar_muzzle(&mut self.instances, at, s.yaw, s.pitch, &s.motion, &outfit, &mut muzzle);
             if let Some(m) = muzzle {
                 a.muzzles.push((slot as u8, eye + m.tip, m.dir, m.bell));
             }

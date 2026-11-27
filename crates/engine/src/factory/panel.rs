@@ -209,6 +209,19 @@ impl Factory {
         }
     }
 
+    /// Settings and live earthworks counts of the Site Grader at `pos`, if there is one.
+    pub fn grader_info(&self, pos: IVec3) -> Option<super::GraderInfo> {
+        let Some(&Slot::Process(i)) = self.at.get(&pos) else { return None };
+        self.processors[i as usize].grader_info()
+    }
+
+    /// Configures the Site Grader at `pos` (ore sparing, floor block, and customizable site area width/depth/offset).
+    pub fn set_grader(&mut self, pos: IVec3, spare_ores: bool, floor: BlockId, width: u8, depth: u8, offset: i8) {
+        if let Some(&Slot::Process(i)) = self.at.get(&pos) {
+            self.processors[i as usize].set_grader(spare_ores, floor, width, depth, offset);
+        }
+    }
+
     /// Sets the recipe of the machine at `pos` if `recipe` is one it makes (or `None`), returning the
     /// inputs it held. `None` when nothing changed.
     pub fn set_recipe(&mut self, pos: IVec3, recipe: Option<u16>) -> Option<Vec<Stack>> {

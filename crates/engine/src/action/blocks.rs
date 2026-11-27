@@ -73,6 +73,10 @@ impl Sim {
         if id == AIR || def.break_time < 0.0 || block::is_tree_wood(id) {
             return None;
         }
+        // A rope comes up as a whole strand (`action/rope.rs`).
+        if id == block::ROPE {
+            return self.take_rope(player, pos);
+        }
         // Its leaves too: they come down with it (`sim/timers.rs`, `leaf_held_by_tree`).
         if block::is_leaves(id) && leaf_held_by_tree(|p| self.world.block_anywhere_or_generate(p), pos) {
             return None;

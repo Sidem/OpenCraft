@@ -245,6 +245,12 @@ pub use elevator::{ELEVATOR_ANCHOR, ELEVATOR_COUNT};
 /// The weather station, id 271 (`weather_station.rs`).
 mod weather_station;
 pub use weather_station::{WEATHER_STATION, WEATHER_STATION_COUNT};
+/// The telescoping bucket-wheel site grader, id 272 (`grader.rs`).
+mod grader;
+pub use grader::{GRADER_COUNT, SITE_GRADER};
+/// A hanging rope, id 273 (`rope.rs`).
+mod rope;
+pub use rope::{ROPE, ROPE_COUNT};
 const BASE_COUNT: usize = 129;
 pub const BLOCK_COUNT: usize = BASE_COUNT
     + DECOR_COUNT
@@ -265,7 +271,9 @@ pub const BLOCK_COUNT: usize = BASE_COUNT
     + KILN_COUNT
     + CLAY_COUNT
     + ELEVATOR_COUNT
-    + WEATHER_STATION_COUNT;
+    + WEATHER_STATION_COUNT
+    + GRADER_COUNT
+    + ROPE_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;

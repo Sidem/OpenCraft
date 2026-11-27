@@ -42,6 +42,7 @@ mod scene;
 mod view;
 mod work;
 
+pub(in crate::factory::process) use fell::fell as fell_tree;
 pub use patch::{survey, Patch, Survey, SIZES};
 pub(super) use view::draw_crane;
 

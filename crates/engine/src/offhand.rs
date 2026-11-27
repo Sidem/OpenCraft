@@ -2,9 +2,9 @@
 //! as backpack room). The selected hotbar slot is the right hand; the key swaps the two stacks (`Action::Offhand`),
 //! and the inventory screen clicks the left hand like any slot.
 //!
-//! What the left hand does: a light in it shines (`held_light.rs`) and the avatar holds it. Everything else works
-//! from the right hand only (mining is the worn Tool Belt's: `tool_belt/`). To give the left hand another job: read
-//! `Inventory::offhand` where it matters (GEAR-LEFT: it informs, never queues a core `Action`).
+//! What the left hand does: a light in it shines (`held_light.rs`), the avatar holds it, and the scanner, core drill
+//! and telescope work from it on `G` (`left_hand.rs`: it informs, never queues a core `Action`). Everything else works
+//! from the right hand only (mining is the worn Tool Belt's: `tool_belt/`).
 
 use crate::inventory::{click_stack, Inventory};
 

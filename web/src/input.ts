@@ -26,6 +26,7 @@ export type Action =
   | { kind: 'blueprint-mark' }
   | { kind: 'blueprints' }
   | { kind: 'hint' }
+  | { kind: 'flare' }
   | { kind: 'map' }
   | { kind: 'calendar' }
   | { kind: 'world-map' }
@@ -123,6 +124,11 @@ export class Input {
     };
   }
 
+  /** Whether G, the left hand's use key, is held (engine `left_hand.rs`). */
+  get leftUsing(): boolean {
+    return this.keys.has('KeyG');
+  }
+
   /** Whether key `code` is held (only while playing), e.g. Tab for the player list. */
   held(code: string): boolean {
     return this.keys.has(code);
@@ -158,7 +164,7 @@ export class Input {
     if (down && !e.repeat) {
       const digit = /^Digit([1-9])$/.exec(e.code);
       if (digit) this.actions.push({ kind: 'slot', slot: Number(digit[1]) - 1 });
-      else if (e.code === 'KeyF') this.actions.push({ kind: 'fly' });
+      else if (e.code === 'KeyF') this.actions.push({ kind: e.shiftKey ? 'flare' : 'fly' });
       else if (e.code === 'KeyQ') this.actions.push({ kind: 'drop' });
       else if (e.code === 'KeyJ') this.actions.push({ kind: 'swap-hands' });
       else if (e.code === 'KeyV') this.actions.push({ kind: 'pipette' });

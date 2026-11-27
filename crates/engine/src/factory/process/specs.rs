@@ -106,6 +106,8 @@ pub enum Pick {
     Eject,
     /// A forester: takes only saplings, fells the trees on its patch and replants them (forester.rs).
     Forest,
+    /// A telescoping bucket-wheel site grader: levels, fills and optionally paves its site (grader/).
+    Grade,
 }
 
 impl Pick {
@@ -205,6 +207,7 @@ pub const SPECS: &[ProcessSpec] = &[
     super::anchor::ANCHOR_SPEC,
     super::kiln::GLASS_KILN_SPEC,
     super::weather_station::WEATHER_STATION_SPEC,
+    super::grader::GRADER_SPEC,
     super::basic::SMELTER_SPEC,
     super::basic::CONSTRUCTOR_SPEC,
     super::basic::ASSEMBLER_SPEC,

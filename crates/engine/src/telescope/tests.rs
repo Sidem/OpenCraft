@@ -24,15 +24,17 @@ fn hold_telescope() -> Game {
     let slot = (0..9).find(|&i| g.slot_item(i) == TELESCOPE.0).expect("in the hotbar");
     g.select_slot(slot);
     g.update(DT);
-    assert!(g.telescope_held());
+    g.swap_offhand();
+    g.update(DT);
+    assert!(g.telescope_held(), "in the left hand");
     g
 }
 
-/// Right-click once: the button goes down for a tick and up again.
+/// G once: the key goes down for a tick and up again.
 fn click_use(g: &mut Game) {
-    g.set_using(true);
+    g.set_left_using(true);
     g.run_ticks(2);
-    g.set_using(false);
+    g.set_left_using(false);
     g.run_ticks(1);
 }
 
@@ -79,10 +81,10 @@ impl Generated {
 }
 
 #[test]
-fn right_click_raises_the_telescope_and_left_click_pins_what_the_crosshair_meets_once() {
+fn g_raises_the_telescope_and_left_click_pins_what_the_crosshair_meets_once() {
     let mut g = hold_telescope();
     g.set_look(0.0, -0.05);
-    assert!(!g.scope_on() && g.telescope_label().unwrap().contains("RMB=Look through"));
+    assert!(!g.scope_on() && g.telescope_label().is_none() && g.left_hand_label().is_none());
     click_use(&mut g);
     assert!(g.scope_on(), "one click raises it, holding the button does not flip it back");
     g.update(DT);
@@ -389,4 +391,26 @@ fn bench_scope_frame() {
          200 near-level lines of sight ({far_hits} ending beyond 1,000 blocks): mean {:.0}, worst {worst:.0}",
         total / 200.0
     );
+}
+
+#[test]
+fn a_ruin_the_crosshair_meets_goes_on_the_map_once() {
+    let mut g = hold_telescope();
+    let (x, z) = g.sim.world.generator().ruin_near(0, 0, 400).expect("the first ruin lies near the spawn");
+    let top = g.sim.world.generator().height_at(x, z);
+    // High above the ruin, a little south of it, looking down at its slab.
+    g.body_mut().pos = Vec3::new(f64::from(x) + 0.5, f64::from(top) + 30.0, f64::from(z) + 8.5);
+    g.set_look(0.0, -1.3);
+    let ruins = |g: &Game| g.minimap.known.export().chunks_exact(5).filter(|r| r[0] == 255).count();
+    g.update(DT);
+    assert_eq!(ruins(&g), 0, "lowered, the telescope logs nothing");
+    click_use(&mut g);
+    for _ in 0..3 {
+        g.update(DT);
+    }
+    assert!(g.scope_on());
+    assert_eq!(ruins(&g), 1);
+    let marks = g.minimap.marks_in(&g.sim.factory, &[], (x - 2, z - 2), (x + 2, z + 2), (x, z), false);
+    assert!(marks.chunks_exact(4).any(|m| m == [0, 0, 0xb8865b, 31 /* MARK_RUIN */]));
+    assert_eq!(g.sim.pending_len(), 0, "the telescope queues no action");
 }

@@ -44,7 +44,7 @@ pub(super) struct HeldPart {
 }
 
 /// How a tool sits before its stroke: `(turn about handle, lean forward about x, roll about -z)`.
-/// From the model's axes: a pick's or axe's edge along +x, a shovel's blade face towards +z, a sickle's hook towards +x.
+/// From the model's axes: a pick's or axe's edge along +x, a shovel's blade face towards +z, a bladerang's arms towards +x.
 pub(super) fn rest(stroke: Stroke, view: bool) -> (M3, f64, f64) {
     match (stroke, view) {
         // Pickaxe: edge straight ahead in the arm's vertical swing plane on an avatar; angled toward crosshair in POV.
@@ -56,7 +56,7 @@ pub(super) fn rest(stroke: Stroke, view: bool) -> (M3, f64, f64) {
         // Shovel: blade up and ahead in POV so the face is visible and ready to stab down & scoop.
         (Stroke::Dig, false) => (IDENTITY, 0.0, 0.0),
         (Stroke::Dig, true) => (yaw_m(-0.4), PI - 0.55, 0.0),
-        // Sickle: hook inward toward the crosshair for a horizontal reap.
+        // Bladerang: held flat, arms inward toward the crosshair for a horizontal throw.
         (Stroke::Sweep, false) => (yaw_m(-FRAC_PI_2), 0.0, 0.0),
         (Stroke::Sweep, true) => (yaw_m(PI), -0.3, 0.0),
         // Flamethrower: model points along +x; turn -π/2 so the chrome torch bell aims straight ahead (-z) toward the crosshair.
@@ -131,6 +131,19 @@ pub(super) fn held_parts(
                 tex: p.tex,
                 taper: p.taper,
             }
+        })
+        .collect()
+}
+
+/// `item`'s model placed on a body (worn gear, `worn.rs`): its origin at `at`, turned by `turn`, `k` blocks a model unit.
+pub(super) fn placed_parts(item: ItemId, at: Vec3, turn: M3, k: f64) -> Vec<HeldPart> {
+    model(item)
+        .into_iter()
+        .map(|p| {
+            let (yaw, roll, pitch) = euler(mul(turn, p.basis));
+            let local = Vec3::new(p.center[0], p.center[1], p.center[2]) * k;
+            let size = p.size.map(|s| (f64::from(s) * k) as f32);
+            HeldPart { center: at + apply(turn, local), size, yaw, pitch, roll, tex: p.tex, taper: p.taper }
         })
         .collect()
 }

@@ -15,7 +15,7 @@ mod read;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 88;
+pub const TAG_COUNT: u8 = 90;
 /// Tags only read, never written: 4, the filter's old one item straight on, now a `FilterPick` (tag 73); 38, the
 /// personal drone's old fetch, now an `Action::Drone` (tag 72); 53 and 84, the old pack and gloves upgrades, now an
 /// `UpgradeGear` (tag 85).
@@ -418,6 +418,20 @@ impl Action {
             Action::GrowGrass { pos } => {
                 w.u8(87);
                 w.ivec3(pos);
+            }
+            Action::HangRope { pos, slot } => {
+                w.u8(88);
+                w.ivec3(pos);
+                w.u8(slot);
+            }
+            Action::SetGrader { pos, spare_ores, floor, width, depth, offset } => {
+                w.u8(89);
+                w.ivec3(pos);
+                w.bool(spare_ores);
+                w.block(floor);
+                w.u8(width);
+                w.u8(depth);
+                w.u8(offset as u8);
             }
         }
     }

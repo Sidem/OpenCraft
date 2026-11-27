@@ -3,7 +3,7 @@
 //! action, which hands the longer ones to `blocks.rs` and `clicks.rs` or to the module that owns the rule.
 //! To add an action: its variant in `action.rs`, its arm here and its bytes in `codec.rs`.
 
-use crate::item::SICKLE;
+use crate::item::BLADERANG;
 use crate::research::Unlock;
 use crate::sim::{Away, PlayerCore, PlayerId, Sim, SimEvent};
 use crate::tools;
@@ -101,10 +101,12 @@ impl Sim {
             Action::LabelBox { pos, label } => self.factory.set_box_label(pos, label),
             Action::LessonTaught { bit } => self.taught |= crate::lessons::mask(bit),
             Action::ClearCover { pos } => {
-                if inv.selected_stack().item == SICKLE {
+                // The bladerang may be anywhere on the player: a thrown one cuts on after a slot change.
+                if inv.count(BLADERANG) > 0 || inv.offhand.item == BLADERANG {
                     self.world.clear_cover(pos);
                 }
             }
+            Action::HangRope { pos, slot } => self.hang_rope(player, pos, slot),
             Action::PlaceGhost { pos, slot, facing } => self.place_ghost(player, pos, slot, facing),
             Action::PlantGhost { pos, block, facing, tier } => self.plant_ghost(pos, block, facing, tier),
             Action::BuildGhost { pos } => self.build_ghost(player, pos),
@@ -115,6 +117,9 @@ impl Sim {
                 self.ghosts.remove_at(pos);
             }
             Action::SetQuarry { pos, width, depth, paused } => self.factory.set_quarry(pos, width, depth, paused),
+            Action::SetGrader { pos, spare_ores, floor, width, depth, offset } => {
+                self.factory.set_grader(pos, spare_ores, floor, width, depth, offset)
+            }
             Action::Rotate { pos } => {
                 let s = self.world.shape_anywhere(pos);
                 if crate::shape::is_rotatable(s) {

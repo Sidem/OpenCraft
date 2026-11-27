@@ -4,7 +4,6 @@
 
 use super::{face_of, head, reach, wide_cells, Reach};
 use crate::block::{self, AIR};
-use crate::interaction::REACH;
 use crate::inventory::Inventory;
 use crate::item::ItemId;
 use crate::player::Player;
@@ -19,7 +18,7 @@ pub(crate) fn hand_item(world: &World, body: &Player, inv: &Inventory, held: Ite
         return held;
     }
     let solid = |p| world.get_block(p).filter(|&b| b != AIR && block::def(b).break_time >= 0.0);
-    let hit = raycast(body.eye(), body.look_dir(), REACH, solid);
+    let hit = raycast(body.eye(), body.look_dir(), inv.reach(), solid);
     match hit.map(|h| head(inv.belt(), h.id)) {
         Some(item) if item != ItemId::NONE => item,
         _ => held,

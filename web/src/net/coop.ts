@@ -30,6 +30,9 @@ export interface Coop {
   say(text: string): void;
   /** Called with each chat line, the sender's name and the text, this player's own lines too. */
   onChat: (from: string, text: string) => void;
+  /** Raises a flare at (x, y, z) for everyone (GEAR-FLARE): the host lights it at once and passes it on, a client
+   *  lights it when the host sends it back. */
+  flare(x: number, y: number, z: number): void;
   /** Called once when the session ends from the other side (a client only), with a readable reason. */
   onEnd: (reason: string) => void;
 }

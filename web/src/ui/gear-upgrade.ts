@@ -39,6 +39,7 @@ export class GearUpgrades {
         unlocked
           ? `Raises what you wear to a ${name} for ${n} ${g.item_name(cost)} (you have ${held}).`
           : `Research the ${name} first (the research screen).`,
+        next,
       );
     });
   }

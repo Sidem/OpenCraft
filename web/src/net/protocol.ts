@@ -19,6 +19,7 @@
 //   snapshot host → client   the answer (`game.snapshot()`, taken between frames like a welcome's)
 //   chat     either way      a line typed to everyone (`CHAT_MAX` characters at most): a client sends it with any
 //                            player id, the host puts the sender's on it and passes it to every client
+//   flare    either way      a flare's foot (x, y, z as f64), relayed like a chat line (`flares.rs` draws it)
 // To add a message: a type number (append), a `Message` case, and its arm in `encode` and `decode`.
 
 import { buildIdOf } from './build-id';
@@ -42,7 +43,8 @@ export type Message =
   | { type: 'pong'; time: number }
   | { type: 'resync' }
   | { type: 'snapshot'; bytes: Uint8Array }
-  | { type: 'chat'; from: number; text: string };
+  | { type: 'chat'; from: number; text: string }
+  | { type: 'flare'; from: number; x: number; y: number; z: number };
 
 /** Which build this page runs. Peers must match: the lockstep needs the same engine everywhere. The id is
  * this module's file name (see `buildIdOf`): in production it carries the bundle's content hash, and in
@@ -51,7 +53,7 @@ export const BUILD_ID = buildIdOf(import.meta.url);
 
 const TYPES = [
   'hello', 'welcome', 'refuse', 'actions', 'frames', 'checksum', 'bye', 'state', 'states', 'items', 'names',
-  'ping', 'pong', 'resync', 'snapshot', 'chat',
+  'ping', 'pong', 'resync', 'snapshot', 'chat', 'flare',
 ] as const;
 const utf8 = new TextEncoder();
 const text = new TextDecoder('utf-8', { fatal: true });
@@ -107,6 +109,12 @@ export function encode(m: Message): Uint8Array {
       w.u8(m.from);
       w.str(m.text.slice(0, CHAT_MAX));
       break;
+    case 'flare':
+      w.u8(m.from);
+      w.f64(m.x);
+      w.f64(m.y);
+      w.f64(m.z);
+      break;
     case 'bye':
     case 'resync':
       break;
@@ -158,6 +166,9 @@ export function decode(b: Uint8Array): Message | null {
         break;
       case 'chat':
         m = { type, from: r.u8(), text: r.str().slice(0, CHAT_MAX) };
+        break;
+      case 'flare':
+        m = { type, from: r.u8(), x: r.f64(), y: r.f64(), z: r.f64() };
         break;
       case 'bye':
       case 'resync':

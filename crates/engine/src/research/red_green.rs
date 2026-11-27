@@ -187,9 +187,8 @@ pub(super) const RED_GREEN: [Tech; 17] = [
     },
     Tech {
         name: "Ore Scanning",
-        blurb:
-            "The hand-held Scanner: right-click to list every ore deposit within 48 blocks — what lies underground, \
-                how deep, which direction and how large.",
+        blurb: "The hand-held Scanner: in your left hand it lists every ore deposit within 48 blocks — what lies \
+                underground, how deep, which direction and how large.",
         ring: Ring::Red,
         wedge: Wedge::Survey,
         deed: None,

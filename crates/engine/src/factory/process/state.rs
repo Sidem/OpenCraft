@@ -55,7 +55,15 @@ impl Processor {
         p.input = Buffer::read_state(r, if old_depot { 0 } else { launch::saved_input_slots(spec, r.version) })?;
         p.input.slots.resize(input, Stack::default());
         p.fuel = Buffer::read_state(r, fuel)?;
-        p.out = Buffer::read_state(r, out)?;
+        let saved_out = if r.grader_v2_layout && spec.block == crate::block::SITE_GRADER { 12 } else { out };
+        let mut out_buf = Buffer::read_state(r, saved_out)?;
+        if out_buf.slots.len() > out {
+            let overflow: Vec<_> = out_buf.slots.drain(out..).filter(|s| !s.is_empty()).collect();
+            for s in overflow {
+                out_buf.add(s.item, s.count);
+            }
+        }
+        p.out = out_buf;
         p.progress = r.u32()?;
         p.burn = r.u32()?;
         p.next_out = r.u32()? as usize;

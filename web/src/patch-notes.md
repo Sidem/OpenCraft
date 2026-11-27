@@ -4,6 +4,23 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-27 · v0.18.7 · Gear
+- **Your left hand informs, your right hand acts.** Put a scanner, core drill or telescope in your left hand (J) and press **G** to use it. A **G** on the left-hand slot shows when that works.
+- **The scanner pings by itself** from the left hand. Hold an ore in your right hand and it looks for that ore only.
+- **The core drill forecasts a miner:** hold a miner in your right hand, aim at a deposit, and see its rate, how many years the deposit lasts and how many miners already work it.
+- **The telescope maps ruins:** G raises it, and a ruin your crosshair crosses goes on the map.
+- You now see your left hand and what it holds, low on the left of the screen.
+- **Tiers at a glance:** every machine and piece of gear that comes in tiers shows a chip with its Mk number in its kit's colour (the colour-blind palette applies). Items that work from the left hand have a dashed corner. Work gloves now show one upright glove, and the hover pack shows its two fans.
+- **Your robot wears its gear.** Packs, jetpack or hover pack, exo frame, tool belt, boots, gloves and goggles show on your robot, in their tier's colours, so co-op friends can see what you carry. A robot that wears nothing carries no pack. The equipment screen now shows each slot beside where it is worn.
+- **Each slot does one new thing.** The exo frame lets your hands reach 8 blocks instead of 5. Servo boots walk up a whole block. A jetpack or hover pack with nothing left to burn glides while you hold jump.
+- **New: the Headlamp.** Make it from a lamp, a plate and wire with no research, wear it on your head, and it lights the way like a lamp in hand. X-ray goggles light the way too.
+- Fabricator Gloves are now called Work Gloves Mk5.
+- **New: Rope.** Make it from leaves and sticks with no research. Right-click under a ledge or overhang and it hangs straight down, up to 8 blocks per coil. Climb it like a ladder, and mine it to take the whole strand back.
+- **New: the Line Hook** (Field Gear research). In your left hand, press **G**: it hooks the block you aim at within 24 blocks and pulls you there, holding you while G stays down. Aim at a power line and you ride along it, across poles. Jump to let go.
+- **The sickle is now the Bladerang.** Right-click to throw it. It loops out 12 blocks and back, cuts the grass and small plants under it, and brings back the loose items it passes.
+- **Flares:** **Shift+F** raises a column of light where you look. Everyone in your world sees it for a minute, in your colour.
+- **A tidier inventory.** The equipment slots now sit in two rows beside your robot, with a faint sketch of the gear each slot takes, so the backpack and hotbar always fit on screen. Upgrade buttons show the gear they raise.
+
 ## 2026-11-27 · v0.18.6 · Weather
 - **A real atmosphere.** Weather is simulated like the real thing: air pressure, temperature, humidity, clouds and wind across the whole world. Highs bring clear skies, lows bring cloud and rain, and they drift in from the west. Warm fronts, cold air over warm ground, and wind blowing up mountains all make rain, so windward slopes and coasts are wetter. Rain and storms come and go on their own, and it snows wherever it is below freezing.
 - **Every place has its own temperature** from its climate, the season, the hour and its height, so mountains and cold forests see snow first and deserts never freeze. Snow stays on open ground while it is cold and melts as it warms up.

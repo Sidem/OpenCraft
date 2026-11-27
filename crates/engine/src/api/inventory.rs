@@ -38,6 +38,13 @@ impl Game {
         SLOT_NAMES.get(slot as usize).copied().unwrap_or_default().to_string()
     }
 
+    /// What the equipment screen sketches in an empty slot: the first gear made for equipment `slot`, and a torch for
+    /// `slot` = `gear_slots()` (the left hand).
+    pub fn gear_slot_example(&self, slot: u32) -> u16 {
+        let first = equipment::GEAR.iter().find(|g| g.slot == slot as usize).map(|g| g.item);
+        first.unwrap_or(ItemId::from(crate::block::TORCH)).0
+    }
+
     pub fn worn_item(&self, slot: u32) -> u16 {
         self.inventory().worn.get(slot as usize).map_or(0, |i| i.0)
     }
@@ -74,6 +81,11 @@ impl Game {
 
     pub fn offhand_count(&self) -> u32 {
         self.inventory().offhand.count
+    }
+
+    /// What `G` does with the left hand's item (`left_hand::LEFT_*`): 0 nothing, 1 scan, 2 drill, 3 telescope.
+    pub fn left_use(&self) -> u8 {
+        crate::left_hand::left_use_of(self.left_item())
     }
 
     /// Swaps the selected hotbar stack with the left hand's (next tick).

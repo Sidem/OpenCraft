@@ -1,11 +1,12 @@
 // Prospecting panel: the scanner's list of nearby deposits and the core drill's exact figures, from the
 // engine's latest reading (`prospect_*`; the record layout is in crates/engine/src/prospect.rs). Shown
-// while a scanner or core drill is in hand. A scan's distances, arrows and depths follow the player live
-// from where it was taken. An advanced scanner (`scanner_advanced`) also lists each deposit's reserve and
-// time to work out, shows its ore filter (the engine filters the records; R steps it), and leaves a pointer
-// to the nearest match on screen after it is put away (U steps it to the next deposit, nearest first; the pointer
-// says "Nearest" or "Chosen" and the list marks its row). To show another figure: append it to the engine's
-// record and read it below.
+// while a scanner or core drill is in the left hand (engine `left_hand.rs`). A scan's distances, arrows and depths
+// follow the player live from where it was taken. An ore in the right hand limits the list to that ore (`scan_filter`;
+// the engine filters the records) and leaves a pointer to the nearest match on screen, even after the scanner is put
+// away (U steps it to the next deposit, nearest first; the pointer says "Nearest" or "Chosen" and the list marks its
+// row). An advanced scanner (`scanner_advanced`) also lists each deposit's reserve and time to work out, steps its own
+// filter on R, and points at far ground that can hold an ore none of which is in range. To show another figure: append
+// it to the engine's record and read it below.
 
 import './prospect.css';
 import type { Game } from '../wasm/engine.js';
@@ -122,9 +123,9 @@ export class ProspectPanel {
     this.title.textContent = device === SCAN ? (advanced ? 'Scanner Mk2' : 'Scanner') : 'Core drill';
     const how =
       device === SCAN
-        ? `Right-click to list the ore deposits within ${this.game.scan_range()} blocks.` +
-          (advanced ? ' Press R to show one ore only.' : '')
-        : 'Hold right-click on the ground for 3 seconds to see exactly what lies beneath it.';
+        ? `Lists the ore deposits within ${this.game.scan_range()} blocks by itself. Hold an ore in your right hand to ` +
+          'find more of it.' + (advanced ? ' R: one ore only.' : '')
+        : 'Hold G on the ground for 3 seconds to see exactly what lies beneath it.';
     this.list.replaceChildren(h('p', 'prospect-note', how));
   }
 
@@ -135,9 +136,10 @@ export class ProspectPanel {
     const n = g.prospect_fields();
     const advanced = g.scanner_advanced();
     const filter = g.scan_filter();
+    const pointing = advanced || filter !== 0;
     const [maxDeep, maxOutcrops] = advanced ? [MAX_DEEP_ADVANCED, MAX_OUTCROPS_ADVANCED] : [MAX_DEEP, MAX_OUTCROPS];
     this.title.textContent =
-      `Scan · ${g.scan_range()} blocks around` + (advanced ? ` · ${filter ? `${g.ore_name(filter)} only` : 'all ores'}` : '');
+      `Scan · ${g.scan_range()} blocks around` + (filter ? ` · ${g.ore_name(filter)} only` : advanced ? ' · all ores' : '');
     this.marks = [];
     const rows: HTMLElement[] = [];
     let deep = 0, outcrops = 0;
@@ -148,7 +150,7 @@ export class ProspectPanel {
       const deposit = { name: g.deposit_label(ore, tier), x: ox + dx + 0.5, y: oy - depth, z: oz + dz + 0.5 };
       // The pointer goes to the nearest vein or lode (an outcrop only when there is none), unless one is chosen.
       const dist = Math.hypot(dx, dz) + (tier === OUTCROP_TIER ? 1e4 : 0);
-      if (advanced) found.push({ dist, deposit });
+      if (pointing) found.push({ dist, deposit });
       if (tier === OUTCROP_TIER ? ++outcrops > maxOutcrops : ++deep > maxDeep) continue;
       const arrow = h('span', 'prospect-arrow', '↑');
       const where = h('span', 'prospect-where');
@@ -159,7 +161,7 @@ export class ProspectPanel {
       rowOf.set(deposit, row);
       this.marks.push({ x: deposit.x, y: deposit.y, z: deposit.z, arrow, where });
     }
-    if (advanced) {
+    if (pointing) {
       this.candidates = found.sort((a, b) => a.dist - b.dist).map((f) => f.deposit);
       this.aim();
       if (this.tracked) rowOf.get(this.tracked)?.classList.add('pointed');

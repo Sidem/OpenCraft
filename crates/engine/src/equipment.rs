@@ -4,14 +4,17 @@
 //! - **Back** (hauler packs) opens more backpack rows: [`Inventory::capacity`] is the base 36 slots plus the
 //!   pack's. A pack comes off only while the rows it opens are empty, so no stack is ever stranded. The packs are
 //!   five tiers ([`PACKS`]: 27 slots, then 18 more each).
-//! - **Boots** and **Torso** scale the body's walking, sprinting and jumping ([`Inventory::boost`], read by
-//!   `authority.rs` into the body each tick). Bodies are not core state, so this never reaches the hash.
+//! - **Boots** change the body's walking and jumping, and servo boots step up a whole block ([`Inventory::boost`], read
+//!   by `authority.rs` into the body each tick). Bodies are not core state, so this never reaches the hash.
+//! - **Torso** (the exo frame) lengthens the hands' reach ([`Inventory::reach`]), read where the hands aim.
 //! - **Tool belt** (the Tool Belt Mk1–Mk5, `tool_belt/`) breaks stone, wood and soil by hand and keeps ore.
 //! - **Jetpack** (the coal jetpack) and **hover pack** share one slot, so only one can be worn: each works only while worn
 //!   ([`Inventory::has_jetpack`], [`Inventory::has_hover_pack`]), and putting one on sends the other to the backpack.
 //! - **Gloves** (the work gloves) speed hand crafting: [`Effect::crafting`] joins `perks::player_bonus`.
 //! - **Head** (the X-ray goggles) shows buried builds ([`Inventory::has_xray_goggles`]); only the host draws it, and
-//!   whether it is switched on is a local setting (`xray.rs`), never core state.
+//!   whether it is switched on is a local setting (`xray.rs`), never core state. The headlamp and the goggles both light
+//!   the ground ahead like a held lamp ([`Inventory::head_light`], `held_light.rs`).
+//! - A flight pack with nothing left to burn glides while jump is held (`Boost::glide`).
 //!
 //! Packs, gloves and belts are ladders of five: `Action::UpgradeGear` raises the worn one a tier in place
 //! ([`next_tier`], [`Inventory::upgrade_worn`]) for the same step its hand recipe takes, so a full pack never has to
@@ -27,20 +30,21 @@ use crate::factory::upgrades;
 use crate::inventory::{Inventory, Stack, INVENTORY_SLOTS};
 use crate::item::{
     ItemId, CRAFT_GLOVES, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5,
-    HOVER_PACK, JETPACK, SERVO_BOOTS, SPRING_BOOTS, TOOL_BELT, TOOL_BELT_MK2, TOOL_BELT_MK3, TOOL_BELT_MK4,
-    TOOL_BELT_MK5, WORK_GLOVES, WORK_GLOVES_MK2, WORK_GLOVES_MK3, WORK_GLOVES_MK4, XRAY_GOGGLES,
+    HEADLAMP, HOVER_PACK, JETPACK, SCANNER, SCANNER_MK2, SERVO_BOOTS, SPRING_BOOTS, TOOL_BELT, TOOL_BELT_MK2,
+    TOOL_BELT_MK3, TOOL_BELT_MK4, TOOL_BELT_MK5, WORK_GLOVES, WORK_GLOVES_MK2, WORK_GLOVES_MK3, WORK_GLOVES_MK4,
+    XRAY_GOGGLES,
 };
 use crate::player::Boost;
 
 pub const SLOTS: usize = 7;
 pub const SLOT_NAMES: [&str; SLOTS] = ["Back", "Boots", "Torso", "Tool belt", "Flight pack", "Gloves", "Head"];
-const BACK: usize = 0;
-const BOOTS: usize = 1;
-const TORSO: usize = 2;
+pub(crate) const BACK: usize = 0;
+pub(crate) const BOOTS: usize = 1;
+pub(crate) const TORSO: usize = 2;
 pub(crate) const BELT: usize = 3;
-const JET: usize = 4;
-const GLOVES: usize = 5;
-const HEAD: usize = 6;
+pub(crate) const JET: usize = 4;
+pub(crate) const GLOVES: usize = 5;
+pub(crate) const HEAD: usize = 6;
 /// Slots saves before version 43 had (no jetpack slot).
 pub const LEGACY_SLOTS: usize = 4;
 /// Slots saves of version 43 had (no gloves slot).
@@ -49,7 +53,7 @@ pub const JETPACK_SLOTS: usize = 5;
 pub const GLOVES_SLOTS: usize = 6;
 
 /// What a piece of gear changes: extra backpack slots, hand-crafting speed (thousandths added, as the techs add), and
-/// multipliers (1.0 is no change).
+/// multipliers (1.0 is no change), whether walking steps up a whole block, and the hands' reach (0 is the usual).
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Effect {
     pub pack: usize,
@@ -58,9 +62,18 @@ pub struct Effect {
     pub walk: f64,
     pub sprint: f64,
     pub jump: f64,
+    pub step: bool,
+    pub reach: f64,
 }
 
-const NONE: Effect = Effect { pack: 0, crafting: 0, walk: 1.0, sprint: 1.0, jump: 1.0 };
+const NONE: Effect = Effect { pack: 0, crafting: 0, walk: 1.0, sprint: 1.0, jump: 1.0, step: false, reach: 0.0 };
+
+/// How far bare hands reach, in blocks (`interaction::REACH` is this).
+pub const HAND_REACH: f64 = 5.0;
+/// How far the hands reach in an exo frame.
+pub const EXO_REACH: f64 = 8.0;
+/// The riser servo boots walk up: a whole block (bare feet take `player::STEP_HEIGHT`).
+const SERVO_STEP: f64 = 1.05;
 
 pub struct Gear {
     pub item: ItemId,
@@ -81,15 +94,25 @@ pub const GLOVES_TIERS: [ItemId; 5] = [WORK_GLOVES, WORK_GLOVES_MK2, WORK_GLOVES
 /// Kits one pack or glove upgrade takes (of the kind of the tier it reaches, `upgrades::kit`).
 pub const PACK_KITS: u32 = 4;
 
-pub const GEAR: [Gear; 21] = [
+pub const GEAR: [Gear; 22] = [
     Gear { item: HAULER_PACK, slot: BACK, effect: Effect { pack: 27, ..NONE }, blurb: "+27 backpack slots" },
     Gear { item: HAULER_PACK_MK2, slot: BACK, effect: Effect { pack: 45, ..NONE }, blurb: "+45 backpack slots" },
     Gear { item: HAULER_PACK_MK3, slot: BACK, effect: Effect { pack: 63, ..NONE }, blurb: "+63 backpack slots" },
     Gear { item: HAULER_PACK_MK4, slot: BACK, effect: Effect { pack: 81, ..NONE }, blurb: "+81 backpack slots" },
     Gear { item: HAULER_PACK_MK5, slot: BACK, effect: Effect { pack: 99, ..NONE }, blurb: "+99 backpack slots" },
     Gear { item: SPRING_BOOTS, slot: BOOTS, effect: Effect { jump: SPRING_JUMP, ..NONE }, blurb: "Jump 2 blocks high" },
-    Gear { item: SERVO_BOOTS, slot: BOOTS, effect: Effect { walk: 1.15, ..NONE }, blurb: "Walk and sprint 15% faster" },
-    Gear { item: EXO_FRAME, slot: TORSO, effect: Effect { sprint: 1.1, ..NONE }, blurb: "Sprint 10% faster" },
+    Gear {
+        item: SERVO_BOOTS,
+        slot: BOOTS,
+        effect: Effect { walk: 1.15, step: true, ..NONE },
+        blurb: "Step up a whole block as you walk · 15% faster",
+    },
+    Gear {
+        item: EXO_FRAME,
+        slot: TORSO,
+        effect: Effect { reach: EXO_REACH, ..NONE },
+        blurb: "Reach 8 blocks instead of 5",
+    },
     // What a belt does lives in `tool_belt/` (speed, ore kept, crouch-mining), which reads the worn one.
     Gear { item: TOOL_BELT, slot: BELT, effect: NONE, blurb: "Mine stone, wood and soil 2× as fast · 3 ore a block" },
     Gear { item: TOOL_BELT_MK2, slot: BELT, effect: NONE, blurb: "Mine 4× as fast · 4 ore a block" },
@@ -143,8 +166,28 @@ pub const GEAR: [Gear; 21] = [
         blurb: "Craft by hand 125% faster",
     },
     // What it shows is presentation (`web/src/render/xray.ts`, which asks `Game::xray_on`); the core only holds it.
-    Gear { item: XRAY_GOGGLES, slot: HEAD, effect: NONE, blurb: "See belts, pipes and machines through the ground" },
+    Gear {
+        item: XRAY_GOGGLES,
+        slot: HEAD,
+        effect: NONE,
+        blurb: "See belts, pipes and machines through the ground · a light",
+    },
+    Gear { item: HEADLAMP, slot: HEAD, effect: NONE, blurb: "Lights the way ahead like a lamp in hand" },
 ];
+
+/// The gear that comes in tiers, Mk1 first, for the tier chip on its icon (GEAR-ICONS): packs, gloves, belts and the
+/// scanner. Machines' tiers are `factory::tiers::FAMILIES`.
+pub const LADDERS: [&[ItemId]; 4] = [
+    &PACKS,
+    &GLOVES_TIERS,
+    &[TOOL_BELT, TOOL_BELT_MK2, TOOL_BELT_MK3, TOOL_BELT_MK4, TOOL_BELT_MK5],
+    &[SCANNER, SCANNER_MK2],
+];
+
+/// The tier (0 is Mk1) of a piece of gear in [`LADDERS`].
+pub fn ladder_tier(item: ItemId) -> Option<u8> {
+    LADDERS.iter().find_map(|l| l.iter().position(|&i| i == item)).map(|t| t as u8)
+}
 
 pub fn gear(item: ItemId) -> Option<&'static Gear> {
     GEAR.iter().find(|g| g.item == item)
@@ -192,6 +235,8 @@ pub fn effect(worn: &[ItemId; SLOTS]) -> Effect {
         e.walk *= g.effect.walk;
         e.sprint *= g.effect.sprint;
         e.jump *= g.effect.jump;
+        e.step |= g.effect.step;
+        e.reach = e.reach.max(g.effect.reach);
     }
     e
 }
@@ -217,6 +262,21 @@ impl Inventory {
         self.worn[HEAD] == XRAY_GOGGLES
     }
 
+    /// Whether the head wears a light: the headlamp, or the goggles' lamps.
+    pub fn head_light(&self) -> bool {
+        matches!(self.worn[HEAD], HEADLAMP | XRAY_GOGGLES)
+    }
+
+    /// How far the hands reach (out of ghost mode and away from the planner): further in an exo frame.
+    pub fn reach(&self) -> f64 {
+        let r = effect(&self.worn).reach;
+        if r > 0.0 {
+            r
+        } else {
+            HAND_REACH
+        }
+    }
+
     /// Reading a save from before the jetpack slot: a jetpack that sat in the pack (where it used to work) goes on.
     pub(crate) fn wear_old_jetpack(&mut self) {
         if let Some(i) = self.slots.iter().position(|s| s.item == JETPACK && s.count > 0) {
@@ -230,7 +290,8 @@ impl Inventory {
     /// What the worn gear does to the body's movement.
     pub fn boost(&self) -> Boost {
         let e = effect(&self.worn);
-        Boost { walk: e.walk, sprint: e.walk * e.sprint, jump: e.jump }
+        let step = if e.step { SERVO_STEP } else { crate::player::STEP_HEIGHT };
+        Boost { walk: e.walk, sprint: e.walk * e.sprint, jump: e.jump, step, glide: self.worn[JET] != ItemId::NONE }
     }
 
     /// Whether any slot past [`Inventory::capacity`] holds something (an invalid state: a pack came off full).

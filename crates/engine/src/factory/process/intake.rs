@@ -52,6 +52,7 @@ impl Processor {
             Pick::ByInput => self.spec.recipe_using(item, unlocked).is_some(),
             Pick::Pump => item == EMPTY_BARREL,
             Pick::Forest => item.places().is_some_and(is_sapling),
+            Pick::Grade => self.grader_takes(item),
             Pick::Store
             | Pick::Hangar
             | Pick::Load

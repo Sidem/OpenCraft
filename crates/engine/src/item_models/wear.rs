@@ -1,5 +1,5 @@
 //! Item models of worn and handheld gear: the jetpack and hover pack, hauler packs, boots, the exo frame, the mining
-//! rig, fabricator gloves, the planner, the telescope and the sickle. Packs face the viewer with their outer side (+z), harness straps behind.
+//! rig, the work gloves, the headlamp, the planner, the telescope and the bladerang. Packs face the viewer with their outer side (+z), harness straps behind.
 //! Add a const and a `parts` row.
 
 use std::f32::consts::FRAC_PI_4;
@@ -8,10 +8,10 @@ use super::shapes::{bar_x, cylinder, frustum, Build};
 use super::{part, turned, Part};
 use crate::block::tex;
 use crate::item::{
-    ItemId, CRAFT_GLOVES, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5,
-    HOVER_PACK, JETPACK, MINING_RIG, PLANNER, SERVO_BOOTS, SICKLE, SPRING_BOOTS, TELESCOPE, TOOL_BELT, TOOL_BELT_MK2,
-    TOOL_BELT_MK3, TOOL_BELT_MK4, TOOL_BELT_MK5, WORK_GLOVES, WORK_GLOVES_MK2, WORK_GLOVES_MK3, WORK_GLOVES_MK4,
-    XRAY_GOGGLES,
+    ItemId, BLADERANG, CRAFT_GLOVES, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4,
+    HAULER_PACK_MK5, HEADLAMP, HOVER_PACK, JETPACK, LINE_HOOK, MINING_RIG, PLANNER, SERVO_BOOTS, SPRING_BOOTS,
+    TELESCOPE, TOOL_BELT, TOOL_BELT_MK2, TOOL_BELT_MK3, TOOL_BELT_MK4, TOOL_BELT_MK5, WORK_GLOVES, WORK_GLOVES_MK2,
+    WORK_GLOVES_MK3, WORK_GLOVES_MK4, XRAY_GOGGLES,
 };
 
 const METAL: u16 = tex::MAT_METAL;
@@ -46,9 +46,11 @@ pub(super) fn parts(item: ItemId) -> &'static [Part] {
         WORK_GLOVES_MK4 => &GLOVES_4,
         CRAFT_GLOVES => &GLOVES_5,
         XRAY_GOGGLES => &GOGGLES,
+        HEADLAMP => &HEADLAMP_MODEL,
+        LINE_HOOK => &LINE_HOOK_MODEL,
         PLANNER => &TABLET,
         TELESCOPE => &TELESCOPE_MODEL,
-        SICKLE => &SICKLE_MODEL,
+        BLADERANG => &BLADERANG_MODEL,
         _ => &[],
     }
 }
@@ -77,24 +79,26 @@ const JETPACK_MODEL: [Part; 13] = Build::new()
     .all(tank(0.12))
     .done();
 
-/// A hover pack's lift fan at `x`, bottom up: gunmetal with a glowing band round its middle.
-const fn fan(x: f32) -> [Part; 3] {
+/// A hover pack's ducted lift fan at `x`, bottom up (GEAR-ICONS: the ring is its outline, so it reads as a hover
+/// pack and not a white box): a glowing rim, the gunmetal duct, its dark inside and the steel hub.
+const fn fan(x: f32) -> [Part; 4] {
     Build::new()
-        .with(cylinder([x, -0.165, -0.02], 0.2, 0.03, GUNMETAL))
-        .with(cylinder([x, -0.14, -0.02], 0.21, 0.02, tex::LAMP_BLUE))
-        .with(cylinder([x, -0.115, -0.02], 0.2, 0.03, GUNMETAL))
+        .with(cylinder([x, -0.11, -0.02], 0.4, 0.02, tex::LAMP_BLUE))
+        .with(cylinder([x, -0.06, -0.02], 0.38, 0.08, GUNMETAL))
+        .with(cylinder([x, -0.055, -0.02], 0.28, 0.08, RUBBER))
+        .with(cylinder([x, -0.05, -0.02], 0.1, 0.08, METAL))
         .done()
 }
 
-/// The hover pack: a white shell on its harness, a strut through it to a lift fan at each side, and a light strip
-/// down its back.
-const HOVER_PACK_MODEL: [Part; 11] = Build::new()
+/// The hover pack: a slim white shell on its harness, a strut through it to a big ducted fan at each side, and a light
+/// strip down its back.
+const HOVER_PACK_MODEL: [Part; 13] = Build::new()
     .all(STRAPS)
-    .with(part([0.0, -0.14, -0.02], [0.56, 0.04, 0.06], METAL))
-    .all(fan(-0.28))
-    .with(part([0.0, 0.04, -0.06], [0.4, 0.5, 0.22], tex::PLASTIC))
-    .all(fan(0.28))
-    .with(part([0.0, 0.1, 0.053], [0.06, 0.3, 0.008], tex::LAMP_BLUE))
+    .with(part([0.0, -0.06, -0.02], [0.6, 0.04, 0.06], METAL))
+    .all(fan(-0.3))
+    .with(part([0.0, 0.06, -0.06], [0.28, 0.46, 0.2], tex::PLASTIC))
+    .all(fan(0.3))
+    .with(part([0.0, 0.12, 0.043], [0.05, 0.28, 0.008], tex::LAMP_BLUE))
     .done();
 
 /// A hauler pack: a webbing rucksack on a frame of wood (Mk1) or steel, banded in its tier's colour, with a flap, a
@@ -225,33 +229,31 @@ const BELT_3: [Part; 10] = tool_belt(2);
 const BELT_4: [Part; 10] = tool_belt(3);
 const BELT_5: [Part; 10] = tool_belt(4);
 
-/// A work glove at `x` lying palm down, its thumb toward `inner` (-1 or 1): a cuff in its tier colour, the back of the
-/// hand (with a glowing node on Mk5), four fingers and the thumb.
-const fn glove(x: f32, inner: f32, tier: u8) -> [Part; 8] {
+/// One work glove standing upright, its back to the viewer (GEAR-ICONS: one outline, where a flat pair read as a
+/// smudge): a cuff in its tier colour, the back of the hand, four fingers rising from it (the middle ones longest), the
+/// thumb out to the right, and a node on the back (glowing on Mk5).
+const fn glove(tier: u8) -> [Part; 9] {
     let cuff = if tier == 0 { WEBBING } else { tex::stripe(tier) };
     let pad = if tier == 4 { tex::LAMP_BLUE } else { cuff };
     [
-        part([x, -0.03, -0.16], [0.22, 0.08, 0.12], cuff),
-        part([x, -0.04, 0.0], [0.2, 0.06, 0.22], RUBBER),
-        part([x, -0.005, 0.0], [0.08, 0.012, 0.08], pad),
-        turned([x + inner * 0.12, -0.05, 0.03], [0.05, 0.04, 0.12], inner * 0.6, RUBBER),
-        part([x - 0.075, -0.05, 0.16], [0.04, 0.04, 0.1], RUBBER),
-        part([x - 0.025, -0.05, 0.175], [0.04, 0.04, 0.13], RUBBER),
-        part([x + 0.025, -0.05, 0.175], [0.04, 0.04, 0.13], RUBBER),
-        part([x + 0.075, -0.05, 0.165], [0.04, 0.04, 0.11], RUBBER),
+        part([0.0, -0.32, 0.0], [0.3, 0.16, 0.16], cuff),
+        part([0.0, -0.09, 0.0], [0.28, 0.3, 0.12], RUBBER),
+        part([-0.105, 0.14, 0.0], [0.06, 0.18, 0.1], RUBBER),
+        part([-0.035, 0.165, 0.0], [0.06, 0.23, 0.1], RUBBER),
+        part([0.035, 0.16, 0.0], [0.06, 0.22, 0.1], RUBBER),
+        part([0.105, 0.13, 0.0], [0.06, 0.16, 0.1], RUBBER),
+        part([0.17, -0.1, 0.0], [0.1, 0.07, 0.09], RUBBER),
+        part([0.2, -0.03, 0.0], [0.06, 0.12, 0.09], RUBBER),
+        part([0.0, -0.08, 0.065], [0.11, 0.11, 0.012], pad),
     ]
 }
 
-const fn gloves_pair(tier: u8) -> [Part; 16] {
-    Build::new().all(glove(-0.2, 1.0, tier)).all(glove(0.2, -1.0, tier)).done()
-}
-
-/// Work Gloves Mk1–Mk4 and Fabricator Gloves (Mk5): a pair, thumbs inward.
-const GLOVES_1: [Part; 16] = gloves_pair(0);
-const GLOVES_2: [Part; 16] = gloves_pair(1);
-const GLOVES_3: [Part; 16] = gloves_pair(2);
-const GLOVES_4: [Part; 16] = gloves_pair(3);
-const GLOVES_5: [Part; 16] = gloves_pair(4);
+/// Work Gloves Mk1–Mk4 and Mk5.
+const GLOVES_1: [Part; 9] = glove(0);
+const GLOVES_2: [Part; 9] = glove(1);
+const GLOVES_3: [Part; 9] = glove(2);
+const GLOVES_4: [Part; 9] = glove(3);
+const GLOVES_5: [Part; 9] = glove(4);
 
 /// X-ray goggles facing the viewer: a webbing strap, two brass-rimmed square lenses of glowing cyan glass and a bridge.
 const GOGGLES: [Part; 7] = [
@@ -264,6 +266,31 @@ const GOGGLES: [Part; 7] = [
     part([0.0, -0.04, -0.02], [0.4, 0.04, 0.06], RUBBER),
 ];
 
+/// The headlamp facing the viewer: a webbing band over the head and across, a gunmetal housing with one warm lens.
+const HEADLAMP_MODEL: [Part; 6] = [
+    part([0.0, 0.0, -0.06], [0.62, 0.1, 0.04], WEBBING),
+    part([0.0, 0.22, -0.12], [0.1, 0.36, 0.04], WEBBING),
+    part([0.0, 0.0, 0.0], [0.3, 0.28, 0.14], GUNMETAL),
+    part([0.0, 0.0, 0.075], [0.22, 0.2, 0.02], BRASS),
+    part([0.0, 0.0, 0.09], [0.16, 0.14, 0.02], tex::LAMP),
+    part([0.0, 0.16, 0.0], [0.08, 0.04, 0.08], METAL),
+];
+
+/// The line hook standing upright: a rubber grip, a gunmetal launcher with a brass spool of line, and the grapple on
+/// top, three steel prongs on a crossbar.
+const LINE_HOOK_MODEL: [Part; 10] = [
+    part([0.0, -0.3, 0.0], [0.1, 0.2, 0.12], RUBBER),
+    part([0.0, -0.18, 0.06], [0.06, 0.05, 0.04], METAL),
+    cylinder([0.0, 0.0, 0.0], 0.16, 0.34, GUNMETAL),
+    cylinder([0.0, -0.06, 0.0], 0.22, 0.08, BRASS),
+    part([0.09, 0.06, 0.0], [0.02, 0.24, 0.02], WEBBING),
+    part([0.0, 0.23, 0.0], [0.04, 0.14, 0.04], METAL),
+    part([0.0, 0.3, 0.0], [0.26, 0.04, 0.04], METAL),
+    part([-0.11, 0.34, 0.0], [0.04, 0.1, 0.04], METAL),
+    part([0.0, 0.36, 0.0], [0.04, 0.08, 0.04], METAL),
+    part([0.11, 0.34, 0.0], [0.04, 0.1, 0.04], METAL),
+];
+
 /// The telescope lying along x: a gunmetal eyepiece, a steel middle draw and a brass objective tube, glass at the far end.
 const TELESCOPE_MODEL: [Part; 4] = Build::new()
     .with(bar_x([-0.41, 0.0, 0.0], 0.12, 0.14, GUNMETAL))
@@ -272,16 +299,17 @@ const TELESCOPE_MODEL: [Part; 4] = Build::new()
     .with(part([0.435, 0.0, 0.0], [0.02, 0.24, 0.24], tex::FLASK_GLASS))
     .done();
 
-/// The sickle standing upright: a wooden grip with a steel ferrule, the blade rising from it and hooking round to the
-/// right (a placeholder crescent made of small boxes).
-const SICKLE_MODEL: [Part; 7] = [
-    part([0.0, -0.15, 0.0], [0.07, 0.55, 0.07], tex::HANDLE),
-    part([0.0, 0.14, 0.0], [0.1, 0.05, 0.1], METAL),
-    part([0.0, 0.2, 0.0], [0.05, 0.1, 0.035], METAL),
-    part([0.06, 0.29, 0.0], [0.11, 0.1, 0.03], METAL),
-    part([0.17, 0.35, 0.0], [0.14, 0.08, 0.03], METAL),
-    part([0.28, 0.31, 0.0], [0.09, 0.1, 0.03], METAL),
-    part([0.32, 0.22, 0.0], [0.04, 0.1, 0.025], METAL),
+/// The bladerang lying flat: two steel arms in a V, rubber wraps at the elbow round a brass hub, teal tips. The V opens
+/// along +x and -z, across the icon's line of sight (its elbow at -x +z), so the icon shows it as a "<"; it spins round
+/// the middle in flight (`bladerang.rs`). Parts run back to front for the icon.
+const BLADERANG_MODEL: [Part; 7] = [
+    turned([-0.224, 0.0, -0.03], [0.52, 0.04, 0.13], 1.597, METAL),
+    cylinder([-0.217, 0.0, -0.249], 0.07, 0.05, TEAL),
+    turned([-0.228, 0.005, 0.129], [0.12, 0.05, 0.14], 1.597, RUBBER),
+    turned([0.03, 0.0, 0.224], [0.52, 0.04, 0.13], -0.027, METAL),
+    turned([-0.129, 0.005, 0.228], [0.12, 0.05, 0.14], -0.027, RUBBER),
+    cylinder([0.249, 0.0, 0.217], 0.07, 0.05, TEAL),
+    cylinder([-0.21, 0.0, 0.21], 0.14, 0.06, BRASS),
 ];
 
 /// The planner: a gunmetal tablet with a rubber grip, its blueprint screen in front and a stylus at its side.

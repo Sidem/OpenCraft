@@ -3,7 +3,7 @@
 //! - Pickaxe (`Stroke::Pick`): high overhead wind-up, fast downward-forward strike with rock impact recoil.
 //! - Axe (`Stroke::Axe`): wide draw-back to the right with blade rolled diagonally, cleaving right-to-left chop and bite recoil.
 //! - Shovel (`Stroke::Dig`): low cock-back, forceful forward-down stab, upward scoop/lever with a slight toss.
-//! - Sickle (`Stroke::Sweep`): wide right-to-left horizontal reaping slash.
+//! - Bladerang (`Stroke::Sweep`): wide right-to-left horizontal throwing slash.
 //! - Bare hand / other item (`Stroke::Punch`): cock back, snap strike forward-inward with recoil.
 //!
 //! Presentation only; reads the motion's phase. To add a tool with a handle: a `ToolKind` arm in [`hold`].
@@ -21,7 +21,7 @@ pub(super) enum Stroke {
     Axe,
     /// Shovel: stab forward-down along the handle, scoop and lever up, toss aside.
     Dig,
-    /// Sickle: wide horizontal sweep right to left.
+    /// Bladerang: wide horizontal sweep right to left (the throw).
     Sweep,
     /// Flamethrower: held by its rear grip, barrel aimed straight ahead.
     Aim,
@@ -57,7 +57,8 @@ pub(super) fn hold(held: ItemId) -> Option<Hold> {
         ToolKind::Axe => ([0.0, -0.38, 0.0], Stroke::Axe),
         // Just below the T-handle.
         ToolKind::Shovel => ([0.0, 0.3, 0.0], Stroke::Dig),
-        ToolKind::Sickle => ([0.0, -0.3, 0.0], Stroke::Sweep),
+        // On the rubber wrap of one arm, by the elbow (`item_models/wear.rs` BLADERANG_MODEL).
+        ToolKind::Bladerang => ([-0.228, -0.01, 0.129], Stroke::Sweep),
         ToolKind::Flamethrower => ([-0.24, 0.04, 0.0], Stroke::Aim),
         ToolKind::PaintSprayer => ([-0.24, -0.06, 0.0], Stroke::Aim),
         _ => return None,
@@ -107,7 +108,7 @@ pub(super) fn pose(stroke: Stroke, phase: f64, mining: f64) -> Pose {
             roll: keyframes(t, &[(0.0, 0.0), (0.36, -0.05), (0.66, 0.28), (1.0, 0.0)]),
             swing: 0.0,
         },
-        // Sickle: draw wide right, fast slicing horizontal sweep right-to-left across plants, snappy recovery.
+        // Bladerang: draw wide right, fast horizontal sweep right-to-left as it leaves the hand, snappy recovery.
         Stroke::Sweep => Pose {
             sweep: keyframes(t, &[(0.0, 0.0), (0.46, SWEEP_OUT), (0.68, -SWEEP_ACROSS), (0.82, -0.35), (1.0, 0.0)]),
             lean: keyframes(t, &[(0.0, 0.0), (0.46, -0.14), (0.68, 0.30), (1.0, 0.0)]),
@@ -176,7 +177,7 @@ const AXE_ROLL: f64 = 0.56;
 const DIG_STAB: f64 = 0.14;
 const DIG_PRISE: f64 = 0.44;
 
-/// Sickle lateral draw and slicing cut (radians).
+/// Bladerang lateral draw and throwing sweep (radians).
 const SWEEP_OUT: f64 = 0.48;
 const SWEEP_ACROSS: f64 = 0.64;
 

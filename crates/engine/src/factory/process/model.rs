@@ -54,6 +54,8 @@ pub enum Look {
     Thumper,
     /// A water wheel's rotating wooden wheel, water-filled buckets and splash spray (`hydro/view.rs`).
     WaterWheel,
+    /// A site grader's slewing turret, 3-stage telescoping boom, spinning bucket wheel and site guides (`grader/view.rs`).
+    Grader,
 }
 
 #[derive(Clone, Copy)]
@@ -231,6 +233,10 @@ fn draw_dynamic_body(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) ->
             }
             Look::WaterWheel => {
                 super::hydro::draw_wheel(p, out, centre, yaw, time);
+                continue;
+            }
+            Look::Grader => {
+                super::grader::draw_grader(p, out, rel, at, time);
                 continue;
             }
             Look::Fire(idle) => [if working { tex::LAMP_YELLOW } else { idle }; 3],

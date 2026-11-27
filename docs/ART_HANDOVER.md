@@ -58,7 +58,10 @@ roadmap agent's.
   - Loose items: `entities::push_item_box` (one box from the item's `ItemDef.tex` and `size`, bobbing).
   - Avatars (co-op players): `avatars.rs` (body, head, visor; `tex::AVATAR_*` layers).
 - **Item icons** (hotbar, inventory, panels): `web/src/ui/hud.ts` `itemIcon` draws an isometric box from
-  `game.item_icon(id)` (`api/content.rs`: the item's 3 layers and proportions).
+  `game.item_icon(id)` (`api/content.rs`: the item's 3 layers and proportions). `ui/icon-marks.ts` adds the tier chip
+  (bottom left) and the left hand's dashed corner (top right). The outline says what an item is, the chip its tier: tiers
+  of one item share their model. `await opencraft.iconCheck()` in the game page (`ui/icon-check.ts`) renders every tier
+  pair at 32 px and fails one whose outlines match with no 8×8 patch differing by 40; run it after changing an icon.
 - **Lighting:** fixed face shading, ambient occlusion and smoothed sky and block light (0–15) per vertex
   from the mesher (`light.rs`), scaled in `shaders.ts` by the daylight of `render/sky.ts`; fog.
 - **No held item** in first person yet, and avatars hold nothing.
@@ -227,6 +230,11 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   generated satchel with a flap in the tier's kit colour and a pip per tier (`textures/gear.rs`); icons only.
   Fabricator gloves (2026-10-11): `tex::CRAFT_GLOVES` (285, `textures/gear.rs`) is an icon only: a dark glove with a gold cuff and a
   cyan servo pad, worn in the new Gloves slot. It should read as "hands, faster" next to the tool belt and exo frame.
+  Gear icons (GEAR-ICONS, 2026-11-27): the gloves are one upright glove (`glove` in `item_models/wear.rs`), the hover pack
+  has two big ducted fan rings so it no longer reads as a white box. Both are first passes made of boxes and cylinders:
+  better art may change their parts, not their outline. GEAR-BLADE..FLARE: the Bladerang is a flat "<" turned across the
+  icon's line of sight (`BLADERANG_MODEL`), the Line Hook a claw on a reel, the Headlamp a lamp on a strap; the Rope is a
+  plant-style block (`textures/plants.rs` `rope`), its item the same sprite. All first passes.
   X-ray goggles (XRAY1, 2026-11-17): `tex::XRAY_GOGGLES` (`textures/gear.rs`): cyan lenses in brass rims, worn in Head; model `GOGGLES` (`wear.rs`).
   Mixed-hue concretes (2026-11-18): `tex::tint_layer(0..11)` (`textures/decor.rs` `tint`, colours in `recipes/dye.rs` `HUES`), the same poured-concrete look as the five decor concretes in blue, orange, purple, cyan, lime, pink, sky, grey, brown, maroon, navy; their pigment heaps reuse these layers (no layer of their own).
   Ground pigments (2026-11-18): `tex::PIGMENT_RED` to `PIGMENT_YELLOW` (`textures/decor.rs` `pigment`), a heap of powder in the matching concrete's colour; the item model is a `pile`.

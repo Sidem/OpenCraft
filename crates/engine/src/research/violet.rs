@@ -173,8 +173,8 @@ pub(super) const VIOLET: [Tech; 27] = [
     },
     Tech {
         name: "Exosuit",
-        blurb: "Powered gear built from servos and actuators: servo boots (15% faster) and an exo frame (sprint 10% \
-                faster).",
+        blurb: "Powered gear built from servos and actuators: servo boots (step up a whole block) and an exo \
+                frame (reach 8 blocks).",
         ring: Ring::Violet,
         wedge: Wedge::YourGear,
         deed: None,

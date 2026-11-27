@@ -24,9 +24,8 @@ fn scanned(seed: u32) -> Game {
     let slot = g.inventory().slots.iter().position(|s| s.item == SCANNER).unwrap();
     g.act(Action::SelectSlot { slot: slot as u8 });
     g.run_ticks(1);
-    g.using = true;
-    g.run_ticks(1);
-    g.using = false;
+    g.act(Action::Offhand { swap: true });
+    g.run_ticks(2); // in the left hand it pings by itself
     assert_eq!(g.prospect.seq, 1, "one scan");
     g.minimap_redraw();
     g
@@ -46,13 +45,27 @@ fn a_scan_marks_its_veins_and_lodes_where_they_lie() {
         let want = (d.center.x - at.x, d.center.z - at.z, ore_color(d.ore()));
         assert!(marks.contains(&want), "{d:?} marked");
     }
-    // A second scan in the same place remembers nothing new.
+    // Later pings in the same place find the same deposits: no new reading, nothing new remembered.
     let mut g = g;
     g.run_ticks(150);
-    g.using = true;
-    g.run_ticks(1);
-    assert_eq!(g.prospect.seq, 2);
+    assert_eq!(g.prospect.seq, 1);
     assert_eq!(g.minimap.known.deposits.len(), found.len());
+}
+
+#[test]
+fn ruins_seen_through_the_telescope_survive_an_export_and_import_and_older_lists_still_load() {
+    let g = Game::new(2024, 2);
+    let mut known = Known::default();
+    assert!(known.remember_ruin(300, -40) && !known.remember_ruin(300, -40), "remembered once");
+    let data = known.export();
+    assert_eq!(data, [RUIN_RECORD, 300, -40, 0, 0]);
+    let mut back = Known::default();
+    back.import(&data, g.sim.world.generator());
+    assert_eq!(back.ruins, [(300, -40)]);
+    // A list from before ruins (deposits only) loads as it did; a deposit tier never reads as a ruin.
+    assert!(Tier::from_u8(RUIN_RECORD as u8).is_none());
+    back.import(&[], g.sim.world.generator());
+    assert!(back.ruins.is_empty());
 }
 
 #[test]

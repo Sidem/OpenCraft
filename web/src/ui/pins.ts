@@ -45,6 +45,8 @@ export const MARK_DRY = 28;
 export const MARK_DRY_MINER = 29;
 /** The patch the first-steps tips send the player to: a flag on a ring, in the ore's colour. */
 export const MARK_GOAL = 30;
+/** A ruin seen through the telescope (engine `telescope.rs`): broken walls on a slab. */
+export const MARK_RUIN = 31;
 const TOWN_STALLED = 1;
 const TOWN_DORMANT = 2;
 const EXTRA_KINDS: PinKind[] = [
@@ -126,6 +128,10 @@ export function drawMark(
     drawGoal(c, x, y, color, px);
     return;
   }
+  if (shape === MARK_RUIN) {
+    drawRuin(c, x, y, color, px);
+    return;
+  }
   if (shape >= MARK_TOWN) {
     drawTown(c, x, y, shape - MARK_TOWN, px);
     return;
@@ -197,6 +203,18 @@ export function drawMark(
     c.strokeStyle = '#fff';
   }
   c.fill();
+  c.stroke();
+}
+
+/** A ruin: three broken wall stubs of uneven height on a slab, dark-edged so they read on any ground. */
+function drawRuin(c: CanvasRenderingContext2D, x: number, y: number, color: number, px: number): void {
+  const base = y + 3 * px;
+  for (const [dx, tall] of [[-4, 6], [-1, 3.5], [2, 5]]) c.rect(x + dx * px, base - tall * px, 2 * px, tall * px);
+  c.rect(x - 5 * px, base, 10 * px, 1.5 * px);
+  c.fillStyle = hex(color);
+  c.fill();
+  c.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+  c.lineWidth = Math.max(1, 0.8 * px);
   c.stroke();
 }
 

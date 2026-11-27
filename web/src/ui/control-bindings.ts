@@ -56,7 +56,8 @@ export const BINDINGS: readonly Binding[] = [
   key('build', [...SHIFTS, 'KeyR'], '{ShiftLeft} + {KeyR}', 'Bend the belt you point at (or next belt laid); with a building block or roof tile, cycle shape; with a Paint Sprayer, cycle pigment colour ({ShiftLeft} + wheel works too)'),
   key('build', ['KeyI'], '{KeyI}', 'Pick up the item on a belt you point at (or the one you clicked to select)'),
   mouse('build', ['wheel'], '{Digit1}–{Digit9} / wheel', 'Pick a hotbar slot', DIGITS),
-  key('build', ['KeyJ'], '{KeyJ}', 'Swap the selected slot with your left hand (a torch there still lights the way; a tool there mines too)'),
+  key('build', ['KeyJ'], '{KeyJ}', 'Swap the selected slot with your left hand (a torch there still lights the way)'),
+  key('build', ['KeyG'], '{KeyG}', 'Use your left hand: hold on the ground to core-drill, raise or lower a telescope (a scanner there pings by itself and looks for the ore in your right hand)'),
   key('build', ['KeyQ'], '{KeyQ}', 'Drop one item'),
 
   key('screens', ['KeyE'], '{KeyE}', 'Inventory and build menu'),
@@ -77,6 +78,7 @@ export const BINDINGS: readonly Binding[] = [
   key('plan', ['KeyY'], '{KeyY}', 'Personal drone: fetch, put away, store, or fetch the parts and craft'),
   key('plan', [...SHIFTS, 'KeyY'], '{ShiftLeft} + {KeyY}', 'Your personal drone fetches a stack more of what you hold'),
   key('plan', ['KeyU'], '{KeyU}', 'Point the scanner at the next deposit'),
+  key('plan', [...SHIFTS, 'KeyF'], '{ShiftLeft} + {KeyF}', 'Raise a flare where you look: a column of light in your colour that every player sees for a minute'),
   key('plan', [...SHIFTS, 'KeyX'], '{ShiftLeft} + {KeyX}', 'X-ray goggles on or off (worn in the Head slot): your belts, pipes and machines show through the ground'),
 
   key('other', ['KeyH'], '{KeyH}', 'Skip the tip on screen'),

@@ -104,11 +104,13 @@ pub struct ByteReader<'a> {
     pub version: u32,
     /// Reading a save 89 file from an unreleased build that ended each pipework entry with a byte (save.rs).
     pub pipe_level_byte: bool,
+    /// Reading a save 92 file from an unreleased Site Grader prototype with 12 output slots and v2 state (save.rs).
+    pub grader_v2_layout: bool,
 }
 
 impl<'a> ByteReader<'a> {
     pub fn new(bytes: &'a [u8]) -> Self {
-        ByteReader { bytes, pos: 0, version: SAVE_VERSION, pipe_level_byte: false }
+        ByteReader { bytes, pos: 0, version: SAVE_VERSION, pipe_level_byte: false, grader_v2_layout: false }
     }
 
     /// The next `n` raw bytes.

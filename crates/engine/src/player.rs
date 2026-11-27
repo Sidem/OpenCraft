@@ -46,6 +46,8 @@ const HOVER_SPEED: f64 = 8.0;
 const HOVER_SPRINT_SPEED: f64 = 13.0;
 const HOVER_VERTICAL: f64 = 4.0;
 const HOVER_EASE: f64 = 8.0;
+/// Fastest fall while gliding: a flight pack with nothing left to burn and jump held (GEAR-SLOTS).
+pub const GLIDE_FALL: f64 = 2.5;
 const FLY_SPRINT_SPEED: f64 = 24.0;
 /// Horizontal speed in water, as a share of the speed on land.
 const SWIM_SPEED_FACTOR: f64 = 0.5;
@@ -60,22 +62,25 @@ const CLIMB_SPEED: f64 = 3.0;
 /// Heights above the feet that hold on to a ladder or lift.
 const GRIP_HEIGHTS: [f64; 2] = [0.1, 0.9];
 /// Maximum vertical riser a walking body steps up smoothly without jumping (clears ¼ and ½ steps, not ¾ or full blocks).
-const STEP_HEIGHT: f64 = 0.55;
+pub const STEP_HEIGHT: f64 = 0.55;
 /// Maximum drop snapped smoothly when walking down stairs, slabs or slopes without bouncing.
 const STEP_DOWN: f64 = 0.55;
 
 /// What worn gear does to a body (`equipment.rs`): multipliers on walking, sprinting (already including walking) and
-/// the jump. Set from the core each tick like `thrust`; never saved.
+/// the jump, the tallest riser walked up without jumping, and whether a held jump glides. Set from the core each tick like
+/// `thrust`; never saved.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Boost {
     pub walk: f64,
     pub sprint: f64,
     pub jump: f64,
+    pub step: f64,
+    pub glide: bool,
 }
 
 impl Default for Boost {
     fn default() -> Boost {
-        Boost { walk: 1.0, sprint: 1.0, jump: 1.0 }
+        Boost { walk: 1.0, sprint: 1.0, jump: 1.0, step: STEP_HEIGHT, glide: false }
     }
 }
 
@@ -121,6 +126,9 @@ pub struct Player {
     /// How fast a powered hoist shaft at the body carries it, in blocks per second (0 elsewhere); set each tick like
     /// `conveyor`, never saved.
     pub hoist: f64,
+    /// The velocity a line hook drags the body at, in place of walking and falling (line_hook.rs); set each tick like
+    /// `conveyor`, never saved.
+    pub pull: Option<Vec3>,
     /// How far belts carried the body since the game last took it (for footsteps).
     pub carried: Vec3,
     /// Vertical step-up/step-down shift accumulated since the game last took it (for camera `StepGlide`).
@@ -147,6 +155,7 @@ impl Player {
             against_wall: false,
             conveyor: Vec3::ZERO,
             hoist: 0.0,
+            pull: None,
             carried: Vec3::ZERO,
             step_delta: 0.0,
         }
@@ -292,12 +301,17 @@ impl Player {
             self.vel.y = (self.vel.y + gravity_at(self.pos, GRAVITY).y * dt).max(-TERMINAL_VELOCITY);
             if self.thrust {
                 self.vel.y = (self.vel.y + JET_ACCEL * dt).min(self.vel.y.max(JET_CLIMB));
+            } else if self.boost.glide && inp.jump {
+                self.vel.y = self.vel.y.max(-GLIDE_FALL);
             }
             if jumped {
                 self.vel.y = JUMP_VELOCITY * self.boost.jump;
             }
         }
 
+        if let Some(v) = self.pull {
+            self.vel = v;
+        }
         let mut bb = self.aabb();
         let want_y = self.vel.y * dt;
         let dy = move_axis_boxes(&mut bb, 1, want_y, boxes);
@@ -320,7 +334,7 @@ impl Player {
             &mut bb,
             self.vel.x * dt,
             self.vel.z * dt,
-            if can_step { STEP_HEIGHT } else { 0.0 },
+            if can_step { self.boost.step } else { 0.0 },
             edge_guard,
             boxes,
         );
@@ -383,7 +397,7 @@ impl Player {
 
 /// Blocks a body climbs by standing in them: ladders, hoist shafts, and belt lifts so a lift stack is easy to build.
 pub(crate) fn climbable(b: BlockId) -> bool {
-    b == LADDER || b == LIFT || b == HOIST
+    b == LADDER || b == LIFT || b == HOIST || b == crate::block::ROPE
 }
 
 #[cfg(test)]

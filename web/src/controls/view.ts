@@ -1,5 +1,5 @@
-// First-person camera and hand adapter: routes movement, mouse look and Shift+Wheel shape/paint cycling to the
-// engine, and syncs field-of-view and first-person hand visibility from ComfortStore.
+// First-person camera and hand adapter: routes movement, mouse look, both hands (G works the left: engine
+// left_hand.rs) and Shift+Wheel shape/paint cycling to the engine, and syncs field-of-view and first-person hand visibility from ComfortStore.
 
 import type { ComfortStore } from '../comfort/settings';
 import type { Action, Input } from '../input';
@@ -29,6 +29,7 @@ export class ViewControls {
     if (dx !== 0 || dy !== 0) this.game.look(dx * turn, dy * turn);
     this.game.set_mining(this.input.mining);
     this.game.set_using(this.input.using);
+    this.game.set_left_using(this.input.leftUsing);
   }
 
   action(a: Action): boolean {

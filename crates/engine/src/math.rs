@@ -91,6 +91,11 @@ impl Vec3 {
     pub fn floor(self) -> IVec3 {
         IVec3::new(self.x.floor() as i32, self.y.floor() as i32, self.z.floor() as i32)
     }
+
+    #[inline]
+    pub fn dot(self, o: Vec3) -> f64 {
+        self.x * o.x + self.y * o.y + self.z * o.z
+    }
 }
 
 impl Add for Vec3 {

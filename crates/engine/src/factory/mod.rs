@@ -106,6 +106,10 @@ use pipes::Pipework;
 use pole::Pole;
 use power::Power;
 use process::Processor;
+pub use process::{
+    GraderInfo, GRADER_DEFAULT_DEPTH, GRADER_DEFAULT_WIDTH, GRADER_FLOORS, GRADER_HOPPER_CAP, GRADER_MAX_DEPTH,
+    GRADER_MAX_OFFSET, GRADER_MAX_WIDTH, GRADER_MIN_DEPTH, GRADER_MIN_WIDTH,
+};
 use quarry::Quarry;
 use rail::Rail;
 use router::{Router, RouterKind};

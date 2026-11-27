@@ -1,6 +1,7 @@
-//! The telescope (the local player's hands and view, presentation only): with one in the selected slot, right-click
+//! The telescope (the local player's hands and view, presentation only): with one in the left hand (`left_hand.rs`), `G`
 //! toggles looking through it, the wheel steps its zoom (`ZOOMS`) and left-click pins the ground under the crosshair.
-//! While looking, every pin of the world is a coloured column of light (`beacons.rs`). Looking is first person only.
+//! While looking, every pin of the world is a coloured column of light (`beacons.rs`), and a ruin whose ground the
+//! crosshair meets goes on the map (`Known::remember_ruin`). Looking is first person only.
 //!
 //! Invariants: nothing here touches the core. The aim is a query over the loaded blocks and the generator
 //! (`ground.rs`); a pin is a request for the host (`take_pin_request`: `[x, y, z]`, the ground's top block), which keeps
@@ -10,6 +11,7 @@
 //! a number in `ZOOMS`.
 
 mod beacons;
+pub(crate) use beacons::push_beacon;
 pub(crate) mod ground;
 
 use crate::item::TELESCOPE;
@@ -29,6 +31,8 @@ const ZOOM_MAX_RATE: f32 = 1.6;
 pub(crate) const MAX_PINS: usize = 200;
 /// A pin sent without a height (`i32::MIN`): its ground is looked up each frame.
 pub(crate) const NO_HEIGHT: i32 = i32::MIN;
+/// The crosshair's ground within this many blocks of a ruin's centre logs the ruin.
+const RUIN_SPOT: i32 = 24;
 
 /// One pin as the engine draws it: its column, the height of its ground when the player set it, and its colour.
 struct PinMark {
@@ -46,7 +50,7 @@ pub struct Telescope {
     shown: f32,
     aim: Option<Aim>,
     request: Option<[i32; 3]>,
-    using_down: bool,
+    left_down: bool,
     mining_down: bool,
     pins: Vec<PinMark>,
 }
@@ -59,7 +63,7 @@ impl Default for Telescope {
             shown: 0.0,
             aim: None,
             request: None,
-            using_down: false,
+            left_down: false,
             mining_down: false,
             pins: Vec::new(),
         }
@@ -67,9 +71,9 @@ impl Default for Telescope {
 }
 
 impl Game {
-    /// Whether a telescope is in the selected slot.
+    /// Whether a telescope is in the left hand.
     pub(crate) fn telescope_held(&self) -> bool {
-        self.inventory().selected_stack().item == TELESCOPE
+        self.left_item() == TELESCOPE
     }
 
     /// Whether the player is looking through a held telescope now.
@@ -77,16 +81,16 @@ impl Game {
         self.scope.on && self.telescope_held() && !self.ghost_mode && self.first_person()
     }
 
-    /// Runs the telescope's buttons for one tick. Returns whether one is held (the use button is then its own).
-    pub(crate) fn update_telescope(&mut self) -> bool {
-        let (using, mining) = (self.using, self.mining);
-        let (use_edge, mine_edge) = (using && !self.scope.using_down, mining && !self.scope.mining_down);
-        (self.scope.using_down, self.scope.mining_down) = (using, mining);
+    /// Runs the telescope's keys for one tick: `G` raises and lowers it, the left button pins while it is up.
+    pub(crate) fn update_telescope(&mut self) {
+        let (left, mining) = (self.left.using, self.mining);
+        let (left_edge, mine_edge) = (left && !self.scope.left_down, mining && !self.scope.mining_down);
+        (self.scope.left_down, self.scope.mining_down) = (left, mining);
         if !self.telescope_held() {
             self.scope.on = false;
-            return false;
+            return;
         }
-        if use_edge && self.first_person() {
+        if left_edge && self.first_person() {
             self.scope.on = !self.scope.on;
         }
         if mine_edge && self.scope_active() {
@@ -95,7 +99,6 @@ impl Game {
                 self.play(crate::sound::PLACE, crate::block::sound::METAL, self.body().eye(), 0.4);
             }
         }
-        true
     }
 
     /// The wheel, one notch: steps the zoom while looking through the telescope. False when it is not up (the wheel
@@ -120,28 +123,28 @@ impl Game {
         self.scope.shown = if (to - self.scope.shown).abs() < 1e-3 { to } else { self.scope.shown + step };
         self.scope.aim =
             if active { ground::cast(&self.sim.world, eye, self.body().look_dir(), ground::RANGE) } else { None };
+        let ruin = self.scope.aim.and_then(|a| self.sim.world.generator().ruin_near(a.x, a.z, RUIN_SPOT));
+        if ruin.is_some_and(|(x, z)| self.minimap.known.remember_ruin(x, z)) {
+            self.play(crate::sound::PLACE, crate::block::sound::STONE, self.body().eye(), 0.5);
+        }
     }
 
-    /// The HUD label with a telescope in hand; `None` otherwise.
+    /// The HUD label while looking through the telescope; `None` otherwise.
     pub(crate) fn telescope_label(&self) -> Option<String> {
-        if !self.telescope_held() {
+        if !self.scope_active() {
             return None;
         }
         let keys = crate::factory::hud_keys;
-        if !self.scope_active() {
-            return Some(format!("Telescope\nFirst person\n{}", keys(&[("RMB", "Look through")])));
-        }
         let zoom = ZOOMS[self.scope.step] as u32;
         Some(match self.scope.aim {
             Some(a) => format!(
                 "Telescope · {zoom}×\n{} blocks away\n{}",
                 a.dist as i32,
-                keys(&[("LMB", "Pin spot"), ("Wheel", "Zoom"), ("RMB", "Lower")])
+                keys(&[("LMB", "Pin spot"), ("Wheel", "Zoom"), ("G", "Lower")])
             ),
-            None => format!(
-                "Telescope · {zoom}×\nLook lower to pin ground\n{}",
-                keys(&[("Wheel", "Zoom"), ("RMB", "Lower")])
-            ),
+            None => {
+                format!("Telescope · {zoom}×\nLook lower to pin ground\n{}", keys(&[("Wheel", "Zoom"), ("G", "Lower")]))
+            }
         })
     }
 

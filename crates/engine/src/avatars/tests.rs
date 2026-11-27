@@ -124,10 +124,10 @@ fn work_gestures_articulate_the_arm_and_the_equipped_tool_follows_it() {
 fn the_first_person_hand_holds_the_item_low_right_ahead_and_inside_the_body() {
     for (yaw, pitch) in [(0.0, 0.0), (1.1, 0.9), (-2.4, -1.2)] {
         let mut empty = Vec::new();
-        model::push_view_hand(&mut empty, yaw, pitch, &Motion::default(), ItemId::NONE);
+        view_hand::push_view_hand(&mut empty, yaw, pitch, &Motion::default(), ItemId::NONE);
         let mut boxes = Vec::new();
         let swing = Motion { mining: 1.0, work_phase: PI, ..Default::default() };
-        model::push_view_hand(&mut boxes, yaw, pitch, &swing, IRON_PICKAXE);
+        view_hand::push_view_hand(&mut boxes, yaw, pitch, &swing, IRON_PICKAXE);
         assert!(boxes.len() > empty.len(), "the pick is drawn as well as the hand");
         let (s, c) = yaw.sin_cos();
         let (sp, cp) = pitch.sin_cos();
@@ -147,7 +147,7 @@ fn the_first_person_hand_holds_the_item_low_right_ahead_and_inside_the_body() {
         for item in (1..crate::item::ITEM_COUNT as u16).map(ItemId) {
             for motion in &strokes {
                 boxes.clear();
-                model::push_view_hand(&mut boxes, yaw, pitch, motion, item);
+                view_hand::push_view_hand(&mut boxes, yaw, pitch, motion, item);
                 for b in boxes.chunks_exact(INSTANCE_FLOATS) {
                     let at = Vec3::new(b[0] as f64, b[1] as f64, b[2] as f64);
                     let name = crate::item::name(item);
@@ -175,7 +175,7 @@ fn the_first_person_hand_holds_the_item_low_right_ahead_and_inside_the_body() {
 #[test]
 fn pov_arm_and_hand_match_the_characters_body_materials_and_have_articulated_fingers() {
     let mut view = Vec::new();
-    model::push_view_hand(&mut view, 0.0, 0.0, &Motion::default(), ItemId::NONE);
+    view_hand::push_view_hand(&mut view, 0.0, 0.0, &Motion::default(), ItemId::NONE);
     let parts: Vec<&[f32]> = view.chunks_exact(INSTANCE_FLOATS).collect();
     // Forearm (5) + palm/dorsal/knuckle (3) + thumb (2) + 4 articulated fingers (8) = 18 parts.
     assert!(parts.len() >= 18, "modelled forearm and articulated hand have 18+ parts, got {}", parts.len());
@@ -188,9 +188,9 @@ fn pov_arm_and_hand_match_the_characters_body_materials_and_have_articulated_fin
 fn bare_hand_mining_clenches_into_a_fist_and_drives_forward() {
     let mut idle = Vec::new();
     let mut strike = Vec::new();
-    model::push_view_hand(&mut idle, 0.0, 0.0, &Motion::default(), ItemId::NONE);
+    view_hand::push_view_hand(&mut idle, 0.0, 0.0, &Motion::default(), ItemId::NONE);
     let punch = Motion { mining: 1.0, work_phase: 0.58 * std::f64::consts::TAU, ..Default::default() };
-    model::push_view_hand(&mut strike, 0.0, 0.0, &punch, ItemId::NONE);
+    view_hand::push_view_hand(&mut strike, 0.0, 0.0, &punch, ItemId::NONE);
     let palm_z = |v: &[f32]| v[6 * INSTANCE_FLOATS + 2] as f64;
     assert!(palm_z(&strike) < palm_z(&idle) - 0.015, "punch drives the fist forward toward the target");
     // Fingers curl tighter into a fist: their bounding span along local reach shrinks compared to open fingers.
@@ -212,7 +212,7 @@ fn axe_and_pickaxe_have_distinct_mining_animations_in_pov_and_third_person() {
     let at_phase = |item: ItemId, t: f64| {
         let mut out = Vec::new();
         let m = Motion { mining: 1.0, work_phase: t * std::f64::consts::TAU, ..Default::default() };
-        model::push_view_hand(&mut out, 0.0, 0.0, &m, item);
+        view_hand::push_view_hand(&mut out, 0.0, 0.0, &m, item);
         // The tool head is the last emitted part.
         let p = &out[out.len() - INSTANCE_FLOATS..];
         Vec3::new(p[0] as f64, p[1] as f64, p[2] as f64)
@@ -231,4 +231,37 @@ fn axe_and_pickaxe_have_distinct_mining_animations_in_pov_and_third_person() {
     let ax_a = avatar_axe_a[avatar_axe_a.len() - INSTANCE_FLOATS] as f64;
     let ax_b = avatar_axe_b[avatar_axe_b.len() - INSTANCE_FLOATS] as f64;
     assert!(ax_a - ax_b > 0.15, "3rd-person axe head sweeps right-to-left: {ax_a:.3} -> {ax_b:.3}");
+}
+
+#[test]
+fn the_first_person_left_hand_holds_its_item_low_left_ahead_and_inside_the_body_and_hides_when_empty() {
+    let mut none = Vec::new();
+    view_hand::push_view_left_hand(&mut none, 0.0, 0.0, &Motion::default(), ItemId::NONE, 0.0);
+    assert!(none.is_empty(), "an empty left hand is not drawn");
+    let mut boxes = Vec::new();
+    for (yaw, pitch) in [(0.0f64, 0.0f64), (1.1, 0.9), (-2.4, -1.2)] {
+        let (s, c) = yaw.sin_cos();
+        let (sp, cp) = pitch.sin_cos();
+        let ahead = Vec3::new(s * cp, sp, -c * cp);
+        let right = Vec3::new(c, 0.0, s);
+        for item in (1..crate::item::ITEM_COUNT as u16).map(ItemId) {
+            for raise in [0.0, 1.0] {
+                boxes.clear();
+                view_hand::push_view_left_hand(&mut boxes, yaw, pitch, &Motion::default(), item, raise);
+                let name = crate::item::name(item);
+                for b in boxes.chunks_exact(INSTANCE_FLOATS) {
+                    let at = Vec3::new(b[0] as f64, b[1] as f64, b[2] as f64);
+                    let inside = (at.x * at.x + at.z * at.z).sqrt() < crate::player::HALF_WIDTH;
+                    assert!(inside && at.y < 0.18, "{name} stays inside the body: {at:?}");
+                    assert!(
+                        at.x * ahead.x + at.y * ahead.y + at.z * ahead.z > 0.0,
+                        "{name} in front of the eye: {at:?}"
+                    );
+                }
+                let arm = &boxes[INSTANCE_FLOATS..];
+                let arm = Vec3::new(arm[0] as f64, arm[1] as f64, arm[2] as f64);
+                assert!(arm.x * right.x + arm.z * right.z < -0.05, "on the left of the view");
+            }
+        }
+    }
 }

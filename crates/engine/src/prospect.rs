@@ -7,9 +7,10 @@
 //! (`api/prospect.rs`, then `web/src/ui/prospect.ts`), and `seq` changes whenever a new one arrives.
 //! Every deposit read goes to the minimap's marks (`minimap/marks.rs`, presentation too).
 //!
-//! Driven by the hands (`interaction.rs`): with a device selected (`tools::device`), the use button
-//! prospects instead of placing. To add a figure: append it to its record, bump `*_FIELDS`, and read
-//! it in `ui/prospect.ts`.
+//! Driven by the left hand (`left_hand.rs`): a scanner there pings by itself every `SCAN_COOLDOWN` and the reading
+//! (and the host's sweep sound) is new only when the deposits found change; a core drill samples the ground while `G` is
+//! held. An ore in the right hand limits the list to that ore for either scanner (`api/prospect.rs`). To add a figure:
+//! append it to its record, bump `*_FIELDS`, and read it in `ui/prospect.ts`.
 //!
 //! An advanced scanner (the Mk2: `SCANNERS`' flag) adds to the readout: the rotate key (R, `api/input.rs`)
 //! cycles an ore filter over `FILTER_ORES` (the list shows only that ore; `api/prospect.rs` filters the
@@ -21,7 +22,7 @@ use crate::block::{
     self, BlockId, BAUXITE_ORE, CLAY, COAL_ORE, COPPER_ORE, GAS_SHALE, IRON_ORE, KAOLIN, LIMESTONE, OIL_SAND,
     QUARTZ_ORE, URANIUM_ORE,
 };
-use crate::deposits::{Deposit, DepositState};
+use crate::deposits::{Deposit, DepositKey, DepositState};
 use crate::item::{ItemId, SCANNER, SCANNER_MK2};
 use crate::math::{sort_small_by_key, IVec3, Vec3};
 use crate::sound;
@@ -47,7 +48,7 @@ pub const FILTER_ORES: [BlockId; 11] = [
     CLAY,
     KAOLIN,
 ];
-/// Seconds between scans while the use button is held.
+/// Seconds between a left-hand scanner's pings.
 const SCAN_COOLDOWN: f32 = 2.0;
 /// Seconds of holding use on a block for a core sample.
 const DRILL_SECONDS: f32 = 3.0;
@@ -84,6 +85,8 @@ pub struct Prospect {
     pub seq: u32,
     /// The ore an advanced scanner's list is limited to (`None`: every ore).
     pub filter: Option<BlockId>,
+    /// The deposits the latest scan found: a ping that finds the same ones keeps the reading.
+    found: Vec<DepositKey>,
     cooldown: f32,
     /// The block being drilled and the seconds spent on it.
     drill: Option<(IVec3, f32)>,
@@ -127,39 +130,45 @@ pub struct Sample {
 }
 
 impl Game {
-    /// Runs the selected prospecting device for one tick of `dt` seconds. Returns whether one is
-    /// selected (the use button is then the device's, not placing's).
-    pub(crate) fn update_prospecting(&mut self, dt: f32) -> bool {
+    /// Runs the prospecting device in the left hand for one tick of `dt` seconds.
+    pub(crate) fn update_prospecting(&mut self, dt: f32) {
         self.prospect.cooldown = (self.prospect.cooldown - dt).max(0.0);
-        let held = self.inventory().selected_stack().item;
+        let held = self.left_item();
         let device = tools::device(held);
         if device != Some(ToolKind::CoreDrill) {
             self.prospect.drill = None;
         }
         match device {
-            Some(ToolKind::Scanner) if self.using && self.prospect.cooldown == 0.0 => {
-                self.prospect.cooldown = SCAN_COOLDOWN;
-                let at = self.body().pos.floor();
-                let range = scan_range_of(held).unwrap_or(SCANNERS[0].1);
-                self.prospect.range = range;
-                let found = self.scan(at, range);
-                let r = &mut self.prospect.records;
-                r.clear();
-                for Found { deposit: d, band, units } in found {
-                    self.minimap.known.remember(&d);
-                    let (dx, dz, depth) = (d.center.x - at.x, d.center.z - at.z, at.y - d.center.y);
-                    let minutes = (units as f64 / (d.tier().draw_cap() * 60.0)).round() as i32;
-                    r.extend_from_slice(&[d.ore() as i32, d.tier() as i32, dx, dz, depth, band as i32]);
-                    r.extend_from_slice(&[units as i32, minutes]);
-                }
-                self.new_reading(READING_SCAN, at);
-            }
+            Some(ToolKind::Scanner) if self.prospect.cooldown == 0.0 => self.ping(held),
             Some(ToolKind::CoreDrill) => self.update_drill(dt),
             _ => {}
         }
-        device.is_some()
     }
 
+    /// One scan from the player's feet with the scanner `held`; a new reading only when it finds other deposits.
+    fn ping(&mut self, held: ItemId) {
+        self.prospect.cooldown = SCAN_COOLDOWN;
+        let at = self.body().pos.floor();
+        let range = scan_range_of(held).unwrap_or(SCANNERS[0].1);
+        let found = self.scan(at, range);
+        let keys: Vec<DepositKey> = found.iter().map(|f| f.deposit.key).collect();
+        let p = &self.prospect;
+        if p.kind == READING_SCAN && p.range == range && p.found == keys {
+            return;
+        }
+        self.prospect.range = range;
+        self.prospect.found = keys;
+        let r = &mut self.prospect.records;
+        r.clear();
+        for Found { deposit: d, band, units } in found {
+            self.minimap.known.remember(&d);
+            let (dx, dz, depth) = (d.center.x - at.x, d.center.z - at.z, at.y - d.center.y);
+            let minutes = (units as f64 / (d.tier().draw_cap() * 60.0)).round() as i32;
+            r.extend_from_slice(&[d.ore() as i32, d.tier() as i32, dx, dz, depth, band as i32]);
+            r.extend_from_slice(&[units as i32, minutes]);
+        }
+        self.new_reading(READING_SCAN, at);
+    }
     /// Every deposit, not worked out, whose centre lies within `range` blocks horizontally of `at`:
     /// lodes first, then veins, then outcrops, each nearest first.
     pub(crate) fn scan(&mut self, at: IVec3, range: i32) -> Vec<Found> {
@@ -216,10 +225,10 @@ impl Game {
         out
     }
 
-    /// Holding use on a block with the core drill: after [`DRILL_SECONDS`] on the same block, takes a
-    /// core sample and releases the button.
+    /// Holding `G` on a block with the core drill in the left hand: after [`DRILL_SECONDS`] on the same block, takes a
+    /// core sample and releases the key.
     fn update_drill(&mut self, dt: f32) {
-        let Some(hit) = self.target.filter(|_| self.using) else {
+        let Some(hit) = self.target.filter(|_| self.left.using) else {
             self.prospect.drill = None;
             return;
         };
@@ -238,7 +247,7 @@ impl Game {
             return;
         }
         self.prospect.drill = None;
-        self.using = false;
+        self.left.using = false;
         let samples = self.core_sample(hit.block);
         let r = &mut self.prospect.records;
         r.clear();
@@ -276,9 +285,10 @@ fn estimated_units(d: &Deposit) -> u32 {
 }
 
 impl Game {
-    /// Steps an advanced scanner's ore filter on to the next ore, or back to all. Returns whether one is in hand.
+    /// Steps an advanced scanner's ore filter on to the next ore, or back to all. Returns whether one is in the left
+    /// hand.
     pub(crate) fn cycle_scan_filter(&mut self) -> bool {
-        if !is_advanced(self.inventory().selected_stack().item) {
+        if !is_advanced(self.left_item()) {
             return false;
         }
         let next = match self.prospect.filter {

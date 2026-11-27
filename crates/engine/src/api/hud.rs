@@ -44,7 +44,6 @@ impl Game {
         boxes.extend(self.opening_boxes());
         boxes.extend(self.blueprint_boxes());
         boxes.extend(self.site_boxes());
-        boxes.extend(self.sickle_box());
         boxes.extend(self.crowded_box());
         boxes
     }
@@ -109,9 +108,10 @@ impl Game {
                 return self.ghost_label();
             }
             let tools = [
+                self.left_hand_label(),
                 self.planner_label(),
-                self.telescope_label(),
-                self.sickle_label(),
+                self.blade_label(),
+                self.rope_label(),
                 self.flamethrower_label(),
                 self.paint_sprayer_label(),
             ]

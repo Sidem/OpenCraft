@@ -234,7 +234,7 @@ pub fn stack_size(id: ItemId) -> u32 {
 
 /// Blocks with ids of 256 and up and the item each is. Item ids stay dense (the tables are `0..ITEM_COUNT`), so
 /// such an item is an ordinary `EXTRA` row whose `places` is the block; list the pair here, in block order.
-pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 16] = [
+pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 18] = [
     (block::GAS_WELL, GAS_WELL_ITEM),
     (block::WELLHEAD_SEPARATOR, WELLHEAD_SEPARATOR_ITEM),
     (block::GAS_PLANT, GAS_PLANT_ITEM),
@@ -251,12 +251,14 @@ pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 16] = [
     (block::AMBER_TILES, AMBER_TILES_ITEM),
     (block::ELEVATOR_ANCHOR, ELEVATOR_ANCHOR_ITEM),
     (block::WEATHER_STATION, WEATHER_STATION_ITEM),
+    (block::SITE_GRADER, SITE_GRADER_ITEM),
+    (block::ROPE, ROPE_ITEM),
 ];
 
 /// How many item ids there are: the table is `0..ITEM_COUNT`, blocks then `EXTRA`.
 pub const ITEM_COUNT: usize = 256 + EXTRA.len();
 
-const EXTRA: [ItemDef; 209] = [
+const EXTRA: [ItemDef; 213] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -386,7 +388,7 @@ const EXTRA: [ItemDef; 209] = [
     device("Hauler Pack Mk3", tex::HAULER_PACK_MK3, PACK),
     device("Hauler Pack Mk4", tex::HAULER_PACK_MK4, PACK),
     device("Hauler Pack Mk5", tex::HAULER_PACK_MK5, PACK),
-    device("Fabricator Gloves", tex::CRAFT_GLOVES, [0.8, 0.14, 0.6]),
+    device("Work Gloves Mk5", tex::CRAFT_GLOVES, [0.5, 0.8, 0.2]),
     part("Light Frame", tex::LIGHT_FRAME, [0.85, 0.3, 0.85]),
     part("Rocket Engine", tex::ROCKET_ENGINE, [0.7, 0.8, 0.7]),
     part("Fuel Tank", tex::FUEL_TANK, [0.6, 0.85, 0.6]),
@@ -399,7 +401,7 @@ const EXTRA: [ItemDef; 209] = [
     part("Drop Pod", tex::DROP_POD, [0.8, 0.9, 0.8]),
     part("Scrap Metal", tex::SCRAP, [0.6, 0.3, 0.6]),
     device("Telescope", tex::MAT_BRASS, [0.9, 0.3, 0.3]),
-    device("Sickle", tex::STEEL, [0.6, 0.8, 0.1]),
+    device("Bladerang", tex::STEEL, [0.75, 0.08, 0.75]),
     machine("Forester Mk2", [tex::FRAME, tex::LOG_SIDE, tex::FRAME]),
     machine("Forester Mk3", [tex::FRAME, tex::LOG_SIDE, tex::FRAME]),
     log("Birch Log", tex::BIRCH_SIDE),
@@ -452,10 +454,10 @@ const EXTRA: [ItemDef; 209] = [
     machine("Seismic Thumper Mk3", [tex::THUMPER_TOP, tex::THUMPER_SIDE, tex::FRAME]),
     wide_machine("Glass Kiln", [tex::KILN_TOP, tex::KILN_SIDE, tex::FRAME], block::GLASS_KILN),
     device("Paint Sprayer", tex::PAINT_SPRAYER, [0.68, 0.44, 0.28]),
-    device("Work Gloves", tex::WORK_GLOVES, [0.55, 0.14, 0.55]),
-    device("Work Gloves Mk2", tex::WORK_GLOVES_MK2, [0.55, 0.14, 0.55]),
-    device("Work Gloves Mk3", tex::WORK_GLOVES_MK3, [0.55, 0.14, 0.55]),
-    device("Work Gloves Mk4", tex::WORK_GLOVES_MK4, [0.55, 0.14, 0.55]),
+    device("Work Gloves", tex::WORK_GLOVES, [0.5, 0.8, 0.2]),
+    device("Work Gloves Mk2", tex::WORK_GLOVES_MK2, [0.5, 0.8, 0.2]),
+    device("Work Gloves Mk3", tex::WORK_GLOVES_MK3, [0.5, 0.8, 0.2]),
+    device("Work Gloves Mk4", tex::WORK_GLOVES_MK4, [0.5, 0.8, 0.2]),
     wide_block("Clay", tex::CLAY, AIR),
     wide_block("Kaolin", tex::KAOLIN, AIR),
     wide_block("Clay Bricks", tex::CLAY_BRICKS, block::CLAY_BRICKS),
@@ -470,6 +472,10 @@ const EXTRA: [ItemDef; 209] = [
     device("Tool Belt Mk5", tex::TOOL_BELT_MK5, [0.9, 0.6, 0.2]),
     wide_machine("Elevator Anchor", [tex::STEEL, tex::CONCRETE, tex::FRAME], block::ELEVATOR_ANCHOR),
     wide_machine("Weather Station", [tex::PIGMENT_WHITE, tex::STEEL, tex::FRAME], block::WEATHER_STATION),
+    wide_machine("Site Grader", [tex::GRADER_YELLOW, tex::GRADER_LOUVRE, tex::GRADER_TREAD], block::SITE_GRADER),
+    device("Headlamp", tex::LAMP, [0.7, 0.3, 0.5]),
+    wide_block("Rope", tex::ROPE, block::ROPE),
+    device("Line Hook", tex::MAT_GUNMETAL, [0.5, 0.8, 0.3]),
 ];
 
 /// A wood's log: bark round, the oak's rings at the ends; it places nothing.

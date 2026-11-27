@@ -107,6 +107,12 @@ impl Game {
                 r.pipe_level_byte = version == 89;
                 r.pipe_level_byte.then(|| read_game(&mut r, seed, layers, view_radius)).flatten()
             })
+            .or_else(|| {
+                // A save 92 written by an unreleased local Site Grader prototype had 12 output slots and v2 grader bytes.
+                let mut r = at.clone();
+                r.grader_v2_layout = version == 92;
+                r.grader_v2_layout.then(|| read_game(&mut r, seed, layers, view_radius)).flatten()
+            })
             .ok_or_else(|| DAMAGED.into())
     }
 }

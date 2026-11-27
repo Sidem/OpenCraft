@@ -68,6 +68,12 @@ pub struct Minimap {
 }
 
 impl Minimap {
+    /// Average top-face RGB colour for `block` (ore blocks in their bright map mark colour).
+    pub fn block_color(&self, block: BlockId) -> [u8; 3] {
+        self.colors.get(block as usize).copied().unwrap_or([90, 90, 90])
+    }
+
+    /// Average colour of every block's top face (presentation only).
     pub fn new(textures: &[u8]) -> Self {
         let mut colors = [[0u8; 3]; BLOCK_COUNT];
         for (b, color) in colors.iter_mut().enumerate() {
