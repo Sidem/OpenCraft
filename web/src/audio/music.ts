@@ -6,6 +6,7 @@
 // mode (kept in localStorage under its own key); a piece is fetched only when it is to play, so nothing loads while
 // music is muted. A change of place or mode crossfades. To add a mode: a row in `MODES`, a `GAP` row in the director.
 
+import { beatDuckFor } from './beat-score';
 import { duckFor, MusicDirector, type Mode } from './music-director';
 import { PIECES, type Piece } from './music-pieces';
 import { contextFor, S } from './surroundings';
@@ -105,6 +106,8 @@ export class Music {
   private hushed = false;
   /** How much working machinery lowers the music (1 for none). */
   private duck = 1;
+  /** Extra gentle ducking while the factory instrument plays (1 when silent or muted). */
+  private beatDuck = 1;
   private since = POLL;
 
   /** `changed` is called after the volume, mute or mode changes. */
@@ -162,6 +165,14 @@ export class Music {
     this.apply();
   }
 
+  /** Gently lowers music while the factory instrument is actively playing (`activity` in 0..1). */
+  setBeatActivity(activity: number): void {
+    const next = beatDuckFor(activity);
+    if (Math.abs(next - this.beatDuck) < 0.01) return;
+    this.beatDuck = next;
+    this.apply();
+  }
+
   setMode(mode: Mode): void {
     if (!MODES.some((m) => m.id === mode)) return;
     this.settings.mode = mode;
@@ -188,7 +199,9 @@ export class Music {
 
   private level(): number {
     const hushed = this.hushed || (this.away && this.settings.muteInBackground);
-    return this.audible && !hushed ? (this.settings.volume / 100) ** 2 * this.duck : 0;
+    // Floor combined machine + factory-beat ducking at 0.38 so music stays a warm cushion rather than disappearing.
+    const ducked = Math.max(0.38, this.duck * this.beatDuck);
+    return this.audible && !hushed ? (this.settings.volume / 100) ** 2 * ducked : 0;
   }
 
   private apply(): void {

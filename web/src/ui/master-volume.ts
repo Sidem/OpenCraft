@@ -8,7 +8,7 @@ import { DEFAULT_LEVELS } from '../audio/settings';
 import { button, h } from './dom';
 import { Knob } from './knob';
 
-export const MASTER_HELP = 'Turns everything up or down at once. Sound effects, ambience and music keep their own balance.';
+export const MASTER_HELP = 'Turns everything up or down at once. Sound effects, ambience, factory beat and music keep their own balance.';
 /** Milliseconds the dial rests before its sample plays. */
 const SAMPLE_AFTER = 200;
 

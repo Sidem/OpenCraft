@@ -1,3 +1,4 @@
+mod beat;
 mod bench;
 mod bench_marks;
 mod bench_megabase;

@@ -6,6 +6,7 @@
 //! `npm run build:wasm` so `web/src/wasm/engine.d.ts` picks it up.
 
 mod analytics;
+mod beat;
 mod blueprint;
 mod calendar;
 mod codex;

@@ -6,6 +6,7 @@
 //! `update` (`tick.rs`) runs one fixed tick and reports via `SimEvent`s; links/order rebuild in `relink` when `dirty`.
 //! Processors are spec rows (`process/specs.rs`); new kinds add a `Kind`/`Slot`/`MACHINES` row and `Vec`.
 
+mod beat;
 mod belt;
 mod belt_chain;
 mod belt_curve;
@@ -113,6 +114,7 @@ use storage::Storage;
 use trains::Train;
 use wiring::Hook;
 
+pub use beat::BEAT_RADIUS;
 #[cfg(test)]
 pub use belt::{FLOW_SECS, FLOW_WINDOWS};
 pub use belt_curve::{belt_facing, bend_of, clean_facing, BENDS, BEND_LEFT, BEND_RIGHT, BEND_STRAIGHT};

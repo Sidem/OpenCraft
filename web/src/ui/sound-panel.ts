@@ -25,6 +25,7 @@ export class SoundPanel {
     channels.append(
       channel('Sound effects', 'Mining, building, steps', new VolumeControl(sound, 'effects')),
       channel('Ambience', 'Wind, water, birds', new VolumeControl(sound, 'ambience')),
+      channel('Factory beat', 'Machines play a groove', new VolumeControl(sound, 'beat')),
       channel('Music', 'Pieces that follow you', new VolumeControl(sound, 'music')),
     );
     mixer.append(new MasterVolume(sound).el, channels);
