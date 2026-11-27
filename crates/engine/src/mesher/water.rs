@@ -11,7 +11,8 @@
 //! Every liquid vertex carries, instead of AO and a texture layer (all water uses one tile, `u_waterLayer`):
 //! bits 21..22 the low two bits of its `drop` (sixteenths below the top of its block, 0..15),
 //! bits 23..24 the `kind` of water, bits 25..27 its flow direction (`dir`, eighths of a turn from +X towards
-//! +Z), bits 28..29 the high two bits of the drop. The shader (`render/shaders.ts`, `WATER`) reads them.
+//! +Z), bits 28..29 the high two bits of the drop. Its attribute byte (`a_light.y`) holds its ice (`ice`): a top face's
+//! cold index, plus 64 for flowing water. The shader (`render/shaders.ts`, `WATER`) reads them.
 //!
 //! Invariants: only reads the padded cells around `p` (one cell of border), so a chunk meshes alone.
 //! To add a kind of water look: a `KIND_*` below, its rule in `look`, its case in the shader.
@@ -19,6 +20,7 @@
 use super::{pidx, N, P, P2};
 use crate::block::{block_of_wet, flow_level, BlockId, LIQUID, OPAQUE};
 use crate::chunk::Chunk;
+use crate::weather::ice;
 
 /// Still water: no slope, nothing falls in.
 pub const KIND_STILL: u32 = 0;
@@ -106,6 +108,15 @@ pub(super) fn corner_drop(pad: &[BlockId], p: usize, hx: isize, hz: isize) -> u3
         }
     }
     (FULL - ((sum + weight / 2) / weight).max(1)) as u32
+}
+
+/// The ice data of face `face` of the liquid block `b` at padded cell `c`, in a chunk whose lowest block is at height
+/// `y0` and whose climate is `warmth` (`weather::ice::vertex_code`; only a top face says how cold its place is).
+pub(super) fn ice(b: BlockId, face: usize, c: [usize; 3], y0: i32, warmth: Option<[i32; 4]>) -> u32 {
+    let y = y0 + c[1] as i32 - 1;
+    let cold =
+        warmth.filter(|_| face == 2).map(|w| ice::cold_of(ice::warmth_between(w, c[0] as i32 - 1, c[2] as i32 - 1), y));
+    ice::vertex_code(b, y, cold)
 }
 
 /// The tile data of the liquid cell `p`: its kind and flow direction, packed as `kind | dir << 2`.

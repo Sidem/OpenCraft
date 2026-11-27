@@ -7,12 +7,13 @@
 // covers down by one common factor, so their proportions survive. Pure numbers, no Web Audio. To add a bed: a row in
 // `BEDS` (and in `WATER` if it is water).
 
-export type BedName = 'wind' | 'surf' | 'river' | 'rain' | 'hum';
+export type BedName = 'wind' | 'leaves' | 'surf' | 'river' | 'rain' | 'hum';
 
 /** `peak` is the gain at a bed's level 1; `loud` its loudness per unit of gain next to the wind's (measured with an
  * offline render, A-weighted: river 0.17 sounds as loud as wind 0.3). */
 export const BEDS: Record<BedName, { peak: number; loud: number }> = {
   wind: { peak: 0.4, loud: 1 },
+  leaves: { peak: 0.24, loud: 1.1 },
   surf: { peak: 0.5, loud: 0.5 },
   river: { peak: 0.17, loud: 1.8 },
   rain: { peak: 0.3, loud: 1.2 },
@@ -34,7 +35,7 @@ const loudness = (gains: Record<BedName, number>, names: readonly BedName[]): nu
 
 /** The gain of each bed for target `levels` (0 to 1 each), turned down together when they would pass a ceiling. */
 export function bedGains(levels: Record<BedName, number>): Record<BedName, number> {
-  const out = { wind: 0, surf: 0, river: 0, rain: 0, hum: 0 };
+  const out = { wind: 0, leaves: 0, surf: 0, river: 0, rain: 0, hum: 0 };
   const all = Object.keys(BEDS) as BedName[];
   for (const name of all) out[name] = Math.min(1, Math.max(0, levels[name])) * BEDS[name].peak;
   const water = Math.min(1, WATER_CEILING / (loudness(out, WATER) || 1));

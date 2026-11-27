@@ -308,3 +308,34 @@ fn waterlogged_belt_draws_water_and_merges_across_neighbours_and_chunk_borders()
     let border = Mesher::new().mesh(&refs, &DAYLIGHT, None);
     assert_eq!(border.liquid_quads, 5, "+X liquid face culled by water in neighbour chunk");
 }
+
+#[test]
+fn a_water_surface_carries_its_cold_and_kind_for_ice_and_other_faces_never_freeze() {
+    use crate::block::FLOW_1;
+    use crate::weather::ice::{cold_of, NEVER};
+    use crate::worldgen::Biome;
+    let air = Chunk::uniform(AIR);
+    let mut c = Chunk::uniform(AIR);
+    c.set(5, 5, 5, WATER);
+    c.set(9, 5, 5, FLOW_1 + 2);
+    let mut refs = [&air; 27];
+    refs[neighbor_index(0, 0, 0)] = &c;
+    let biomes = vec![Biome::Plains; 1024];
+    let mut m = Mesher::new();
+    m.set_origin([0, 96, 0]);
+    let cover = Cover { x0: 0, z0: 0, biomes: &biomes, cleared: &[], warmth: [-500; 4] };
+    let out = m.mesh(&refs, &DAYLIGHT, Some(&cover));
+    let cold = u32::from(cold_of(-500, 101));
+    let first = (out.opaque_quads + out.cutout_quads) as usize * 4;
+    let (mut lake, mut flowing) = (0, 0);
+    for i in first..first + out.liquid_quads as usize * 4 {
+        let (x, _, _, face, _) = decode(out.verts[i]);
+        let code = (out.verts[out.vertex_count() + i / 2] >> ((i % 2) * 16 + 8)) & 127;
+        match (face, x < 8) {
+            (2, true) => (lake += 1, assert_eq!(code, cold)).1,
+            (2, false) => (flowing += 1, assert_eq!(code, cold | 64)).1,
+            _ => assert_eq!(code, u32::from(NEVER), "face {face}"),
+        }
+    }
+    assert_eq!((lake, flowing), (4, 4), "one top quad each");
+}

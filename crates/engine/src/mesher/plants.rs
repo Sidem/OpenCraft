@@ -26,6 +26,7 @@ impl Mesher {
     }
 
     /// The crossed quads of a plant in chunk cell (x, y, z) drawn with texture `layer`, lit by `light`.
+    /// Bottom vertices carry `ao = 2` and top vertices `ao = 3` so `chunkVert` can sway the top smoothly in wind.
     pub(super) fn push_plant(&mut self, x: u32, y: u32, z: u32, layer: u32, light: u8) {
         let (lo, hi) = (layer & 0x1FF, ((layer >> 9) as u8) << 5);
         for _ in 0..16 {
@@ -33,7 +34,8 @@ impl Mesher {
             self.cutout_light.push(hi);
         }
         let v = |dx: u32, dy: u32, dz: u32, face: u32| {
-            (x + dx) | ((y + dy) << 6) | ((z + dz) << 12) | (face << 18) | (3 << 21) | (lo << 23)
+            let ao = if dy == 0 { 2 } else { 3 };
+            (x + dx) | ((y + dy) << 6) | ((z + dz) << 12) | (face << 18) | (ao << 21) | (lo << 23)
         };
         let a = [v(0, 0, 0, 6), v(1, 0, 1, 6), v(1, 1, 1, 6), v(0, 1, 0, 6)];
         let b = [v(1, 0, 0, 7), v(0, 0, 1, 7), v(0, 1, 1, 7), v(1, 1, 0, 7)];

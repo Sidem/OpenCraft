@@ -94,7 +94,9 @@ fn bench_meshing() {
 /// underside caps, false 2x2 saucers, and branch-ladder loops (`mesher/logs.rs`, `mesher/logs/node.rs`, `ring.rs`), and
 /// 2026-11-26 when turf's lit sides turned green and its shaded ones soil (`mesher/face_layer.rs`, GRASS-SIDES), and
 /// 2026-11-27 when leaf cards gained species/drop-hash metadata and deciduous canopies gained ground litter
-/// (`mesher/foliage.rs`, `mesher/cover.rs`, SEASON-TREES).
+/// (`mesher/foliage.rs`, `mesher/cover.rs`, SEASON-TREES), and 2026-11-27 when ground cover plants were reworked into
+/// sculpted multi-segment 3D shapes (cupped/domed blossoms, curved stems, 3-segment ferns, 2-segment reeds/bellflowers,
+/// peaked shrub domes; `mesher/cover/shape.rs`, `mesher/plants.rs`).
 #[test]
 fn untouched_chunks_mesh_as_they_always_did() {
     // Generator version 10, so a new terrain version (11 flattened the spawn) never moves what this guards: the mesher.
@@ -116,7 +118,7 @@ fn untouched_chunks_mesh_as_they_always_did() {
     let cutout: u32 = meshes.iter().map(|m| m.cutout_quads).sum();
     // 39 chunks and 0 cube-cutout quads (ground cover and leaves live in `shaped_cutout`; cube vertices now carry
     // `[light, paint]` byte pairs for L-COLOUR per-face surface paint).
-    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 0, 0xff6e_fd57_61c0_e315));
+    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 0, 0xaaff_cb9b_f177_774b));
 }
 
 fn drain_meshes(w: &mut World) {

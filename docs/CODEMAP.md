@@ -26,7 +26,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `action.rs`: the `Action` enum. `action/`: `apply.rs` (one arm each), `clicks.rs`, `blocks.rs`, `docks.rs`, `multiblock.rs`,
   `codec.rs` + `codec/read.rs` (bytes; tags append only).
 - `bytes.rs`: canonical encoding (a block id is one byte below 255, else 255 and a `u16`). `save.rs`: the file, `SAVE_VERSION`. `join.rs`: const-table joins. `math.rs`: vectors, hashes, `Rng`.
-- `doors.rs`, `deposits.rs` (pools, tiers, `HAND_YIELD`), `daytime.rs` (clock and calendar: seasons, day length, growth by season), `weather/` (the atmosphere, core state saved since 92: `air.rs` a wrapping grid of temperature, vapour, cloud, pressure and wind stepped every 10 in-game minutes; `physics.rs` saturation, dew point, noise; `reading.rs` a station's reading at a place; `climate.rs` the ground's temperature and damp; `forecast.rs` the air run ahead on a copy), `crafting.rs`, `take_apart.rs`, `perks.rs`, `mode.rs`, `tools.rs` (tool classes, retired tools).
+- `doors.rs`, `deposits.rs` (pools, tiers, `HAND_YIELD`), `daytime.rs` (clock and calendar: seasons, day length, growth by season), `weather/` (the atmosphere, core state saved since 92: `air.rs` a wrapping grid of temperature, vapour, cloud, pressure and wind stepped every 10 in-game minutes; `physics.rs` saturation, dew point, noise; `reading.rs` a station's reading at a place; `climate.rs` the ground's temperature and damp; `forecast.rs` the air run ahead on a copy; `ice.rs` frozen water from a place's frost, a pure function of place and date), `crafting.rs`, `take_apart.rs`, `perks.rs`, `mode.rs`, `tools.rs` (tool classes, retired tools).
 - `inventory.rs` + `inventory/stacks.rs` + `inventory/kinds.rs`; `equipment.rs` (worn gear, packs, upgrades); `tool_belt/` (the worn Tool Belt: speeds, crouch reach, the hand's head, migration); `offhand.rs`.
 - `research.rs`; `research/`: `techs.rs` (`TECHS`), `ids.rs`, `rings.rs` (rings, wedges, thresholds, red deeds), `red_green.rs`, `blue.rs`, `violet.rs`, `gold_sky.rs`, `later.rs` (techs added since, at the open end), `migrate.rs` (save < 86 migration), `queue.rs`, `bonus.rs`.
 - `codex/`: world-wide obtained-items bitset (save 83), `data.rs` (periodic table forms/facts), `achievements.rs`.
@@ -94,7 +94,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `noise.rs`, `light.rs` (sky and block light while meshing; render cache only).
 
 ### Local player: hands, tools and previews (presentation; act only by queuing actions)
-- `interaction.rs` + `interaction/aim.rs` (+ `interaction/chop.rs`), `player.rs`, `physics.rs`, `raycast.rs`, `hitbox.rs`, `camera.rs`,
+- `interaction.rs` + `interaction/aim.rs` (+ `interaction/chop.rs`), `player.rs`, `physics.rs`, `up.rs` (up and gravity at a position), `raycast.rs`, `hitbox.rs`, `camera.rs`,
   `strategy.rs` + `strategy/navigation.rs`, `item_select.rs`.
 - `belt_line.rs` + `belt_line/` (`path.rs`, `preview.rs`, `route.rs`), `upgrade_aim.rs`, `belt_bend.rs`, `shape_hands.rs` (slab/stair/roof shape mode & ghost preview), `colour_hands.rs` (Paint Sprayer hands & eyedropper), `pipette.rs` (Middle-click/V block & ghost picker), `place_refusal.rs`.
 - Previews and hands: `quarry_preview.rs`, `forester_preview.rs`, `footprint_preview.rs`, `port_view.rs` + `port_view/`,
@@ -128,7 +128,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `main.ts`: bootstrap, frame loop. `pause.ts`, `input.ts` (keys, mouse, one-shot `Action`s), `controls/view.ts`, `base.css`,
   `patch-notes.md`.
 - `render/`: `renderer.ts` (+ `frame.ts`), `mesh-events.ts`, `shaped.ts`, `falling.ts`, `geometry.ts`, `shaders.ts`, `boxes.ts` +
-  `round-mesh.ts` + `box-glsl.ts`, `water.ts`, `outlines.ts`, `precip.ts`, `grass.ts` (GPU-instanced 3D grass blades), `halos.ts`, `fire.ts` (instanced shader flames & embers), `sky.ts` + `sky/`, `art-pack.ts` (128 px pack),
+  `round-mesh.ts` + `box-glsl.ts`, `water.ts` + `water-glsl.ts` (its shader parts, ice), `outlines.ts`, `precip.ts`, `grass.ts` (GPU-instanced 3D grass blades), `halos.ts`, `fire.ts` (instanced shader flames & embers), `sky.ts` + `sky/`, `art-pack.ts` (128 px pack),
   `art/` (the pack's files), `held-light.ts`, `sign-faces.ts` + `sign-layout.ts`, `tier-paint.ts` + `tier-wire.ts` (a tier palette recolours the baked layers), `frame-stats.ts`, `gpu-probe.ts`, `quality.ts`, `auto-quality.ts`, `gl.ts`, `mat4.ts`.
 - `audio/`: `sound.ts` (master bus), `sound-actions.ts`, `synth.ts` + `synth-orbit.ts` + `synth-fire.ts` + `synth-seismic.ts` + `synth-chime.ts` (Codex unlock chimes) + `flame-loop.ts` (continuous torch audio), `settings.ts`, `ambience.ts` +
   `ambience-levels.ts` + `ambience-mix.ts` + `synth-ambience.ts`, `surroundings.ts`, `music.ts` + `music-director.ts` +

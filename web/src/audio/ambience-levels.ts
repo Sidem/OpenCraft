@@ -5,7 +5,7 @@
 // the extension, and tsconfig allows it). To add a sound: a field in `Mix` and a line in `mixFor`, then a bed or a shot in
 // ambience.ts.
 
-import { BASALT, caveness, clamp01, DESERT, daylight, HIGHLANDS, S } from './surroundings.ts';
+import { BAMBOO, BASALT, BOREAL, caveness, clamp01, DESERT, daylight, HIGHLANDS, REDWOODS, S, SAVANNA, WOODLAND } from './surroundings.ts';
 
 /** Exponent on the fresh-water reading: above 1, a river a few blocks off is much quieter than one at your feet. */
 const RIVER_CURVE = 1.6;
@@ -15,6 +15,8 @@ const SEA_CURVE = 1.5;
 /** Target levels, each 0 to 1 (see `mixFor`). */
 export interface Mix {
   wind: number;
+  /** 0 to 1: wind rustling through nearby tree leaves, scaled by wind speed and seasonal canopy fullness. */
+  leaves: number;
   /** 0 to 1: how dry and hissing the wind is (deserts, basalt fields). */
   dry: number;
   surf: number;
@@ -31,10 +33,13 @@ export interface Mix {
   duck: number;
 }
 
-/** The weather as heard: how hard it rains or snows (0 to 1, the drawn weather's `precip`) and whether it is snow. */
+/** The weather as heard: precipitation, optional wind speed (m/s) and seasonal deciduous/savanna canopy fullness (0..1). */
 export interface Falling {
   precip: number;
   snow: boolean;
+  wind?: number;
+  canopy?: number;
+  dryCanopy?: number;
 }
 
 /** What should be heard for a `surroundings` reading at the time of day `tod` (0 midnight, 0.5 noon) in the weather `falling`. */
@@ -45,11 +50,18 @@ export function mixFor(s: ArrayLike<number>, tod: number, falling: Falling = { p
   const dryland = biome === DESERT ? 1 : biome === BASALT ? 0.5 : 0;
   const high = clamp01((s[S.height] - 20) / 120 + (biome === HIGHLANDS ? 0.15 : 0));
   const precip = clamp01(falling.precip);
+  const windBoost = falling.wind !== undefined ? clamp01(falling.wind / 12) * 0.35 * sky * (0.3 + 0.7 * open) : 0;
   const wind = sky * (0.3 + 0.7 * open) * (0.1 + 0.9 * high + 0.25 * dryland) * (1 - 0.5 * trees);
+  const evergreen = biome === WOODLAND || biome === BAMBOO || biome === REDWOODS || biome === DESERT;
+  const dec = clamp01(falling.canopy ?? 1);
+  const biomeCanopy = evergreen ? 1 : biome === BOREAL ? 0.65 + 0.35 * dec : biome === SAVANNA ? clamp01(falling.dryCanopy ?? 1) : 0.15 + 0.85 * dec;
+  const breeze = falling.wind !== undefined ? clamp01(falling.wind / 10) : 0.35 + 0.45 * precip;
+  const leaves = trees * biomeCanopy * (1 - cave) * (0.25 + 0.75 * sky) * clamp01(0.08 + 0.92 * breeze + 0.2 * precip);
   const green = biome === DESERT || biome === BASALT ? 0 : 1;
   const calm = 1 - 0.85 * precip; // birds and crickets keep quiet in weather
   return {
-    wind: clamp01(wind + 0.25 * precip * sky),
+    wind: clamp01(wind + windBoost + 0.25 * precip * sky),
+    leaves: clamp01(leaves),
     dry: dryland,
     surf: s[S.sea] ** SEA_CURVE * (0.3 + 0.7 * sky),
     river: s[S.fresh] ** RIVER_CURVE * (0.3 + 0.7 * sky), // the reading saturates near any water; the curve lets it fade sooner

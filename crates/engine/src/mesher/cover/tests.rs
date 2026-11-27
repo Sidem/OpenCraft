@@ -19,7 +19,7 @@ fn floor(ground: BlockId, biome: Biome, light: &[u8], x0: i32) -> MeshOutput {
     let mut refs = [&air; 27];
     refs[neighbor_index(0, 0, 0)] = &c;
     let biomes = vec![biome; 1024];
-    Mesher::new().mesh(&refs, light, Some(&Cover { x0, z0: 0, biomes: &biomes, cleared: &[] }))
+    Mesher::new().mesh(&refs, light, Some(&Cover { x0, z0: 0, biomes: &biomes, cleared: &[], warmth: [0; 4] }))
 }
 
 /// Decoded position (chunk-local blocks) of one shaped vertex.
@@ -105,7 +105,7 @@ fn no_cover_without_sky_without_biomes_or_off_natural_ground() {
     refs[neighbor_index(0, 0, 0)] = &c;
     let none = Mesher::new().mesh(&refs, &DAYLIGHT, None);
     assert_eq!(none.shaped_cutout, 0, "versions without biomes get no cover");
-    let short = Cover { x0: 0, z0: 0, biomes: &[], cleared: &[] };
+    let short = Cover { x0: 0, z0: 0, biomes: &[], cleared: &[], warmth: [0; 4] };
     assert_eq!(Mesher::new().mesh(&refs, &DAYLIGHT, Some(&short)).shaped_cutout, 0);
 }
 
@@ -121,7 +121,11 @@ fn cover_stays_off_cells_that_are_not_empty() {
     let mut refs = [&air; 27];
     refs[neighbor_index(0, 0, 0)] = &c;
     let biomes = vec![Biome::Plains; 1024];
-    let m = Mesher::new().mesh(&refs, &DAYLIGHT, Some(&Cover { x0: 0, z0: 0, biomes: &biomes, cleared: &[] }));
+    let m = Mesher::new().mesh(
+        &refs,
+        &DAYLIGHT,
+        Some(&Cover { x0: 0, z0: 0, biomes: &biomes, cleared: &[], warmth: [0; 4] }),
+    );
     assert_eq!(m.shaped_cutout, 0);
 }
 
@@ -142,7 +146,11 @@ fn reeds_stand_on_the_bank() {
     let mut refs = [&air; 27];
     refs[neighbor_index(0, 0, 0)] = &c;
     let biomes = vec![Biome::Plains; 1024];
-    let m = Mesher::new().mesh(&refs, &DAYLIGHT, Some(&Cover { x0: 0, z0: 0, biomes: &biomes, cleared: &[] }));
+    let m = Mesher::new().mesh(
+        &refs,
+        &DAYLIGHT,
+        Some(&Cover { x0: 0, z0: 0, biomes: &biomes, cleared: &[], warmth: [0; 4] }),
+    );
     let reeds = count(&m, tex::REED);
     assert!(reeds > 5 && reeds < 32, "reeds only along the shore line: {reeds}");
 }
@@ -231,7 +239,11 @@ fn fallen_leaf_litter_appears_under_deciduous_canopies_only() {
         let mut refs = [&air; 27];
         refs[neighbor_index(0, 0, 0)] = &c;
         let biomes = vec![Biome::Plains; 1024];
-        let m = Mesher::new().mesh(&refs, &DAYLIGHT, Some(&Cover { x0: 0, z0: 0, biomes: &biomes, cleared }));
+        let m = Mesher::new().mesh(
+            &refs,
+            &DAYLIGHT,
+            Some(&Cover { x0: 0, z0: 0, biomes: &biomes, cleared, warmth: [0; 4] }),
+        );
         let start = m.shaped_opaque as usize * 12;
         let cutout = &m.shaped[start..start + m.shaped_cutout as usize * 12];
         cutout

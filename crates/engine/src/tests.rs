@@ -322,6 +322,8 @@ fn standing_on_a_belt_carries_the_player_without_footsteps() {
 #[test]
 fn a_player_splashes_into_a_pool_where_items_float_and_steps_are_silent() {
     let mut g = Game::new(2024, 3);
+    // Mid-summer: a world starts just after winter, when a still pool near spawn may still be frozen (weather/ice.rs).
+    g.sim.tick = crate::daytime::DAY_TICKS * crate::daytime::YEAR_DAYS * 3 / 8;
     run_until_ready(&mut g);
     for _ in 0..60 {
         g.update(1.0 / 60.0);
@@ -925,6 +927,7 @@ mod fire_spikes;
 #[cfg(test)]
 mod forest_bench;
 mod frame_bench;
+mod ice;
 mod machine_panels;
 mod machine_upgrade;
 mod time_console;

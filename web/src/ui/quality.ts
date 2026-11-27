@@ -36,6 +36,8 @@ export class QualityPanel {
       h('p', 'comfort-help', 'How many chunks away the world is shown. Shorter is easier on both the processor and the graphics card.'),
       this.choices('Lush grass', ['Off', 'Low', 'Full'], () => store.settings.grass, (i) => store.choose('grass', i as 0 | 1 | 2)),
       h('p', 'comfort-help', '3D grass blades around you that follow the seasons and bend in the wind.'),
+      this.choices('Wind motion', ['Off', 'On'], () => Number(store.settings.windMotion), (i) => store.choose('windMotion', i === 1)),
+      h('p', 'comfort-help', 'Swaying tree canopies, plants, grass, water ripples and wind-slanted rain. Turn off for reduced motion.'),
       this.choices('Smooth edges', ['Off', 'On'], () => Number(store.settings.antialias), (i) => store.choose('antialias', i === 1)),
       h('p', 'comfort-help', 'Antialiasing. A change here applies the next time you load the game.'),
       this.choices('Automatic', ['Off', 'On'], () => Number(store.settings.auto), (i) => store.set('auto', i === 1)),
@@ -103,6 +105,7 @@ export class QualityPanel {
     renderer.setScale(store.settings.scale / 100);
     renderer.setViewRadius(store.settings.radius);
     renderer.setGrassQuality(store.settings.grass);
+    renderer.setWindMotion(store.settings.windMotion);
     game.set_view_radius(store.settings.radius);
   }
 

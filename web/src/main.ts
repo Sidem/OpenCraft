@@ -15,7 +15,7 @@ import { Input } from './input';
 import { wirePause } from './pause';
 import { composeTextures } from './render/art-pack';
 import { FrameTimes } from './render/frame-stats';
-import { boxViews } from './render/frame';
+import { boxViews, waterConstants } from './render/frame';
 import { drainMeshes } from './render/mesh-events';
 import { DEFAULT_RADIUS, QualityStore } from './render/quality';
 import { Renderer } from './render/renderer';
@@ -143,7 +143,7 @@ async function main(): Promise<void> {
   renderer.setTurns(new Uint32Array(game.texture_turns()));
   renderer.setColourPalette(new Float32Array(game.colour_palette()));
   renderer.setSeasonLayers(new Uint32Array(game.season_layers()));
-  renderer.setWaterLayer(game.water_layer());
+  renderer.setWater(waterConstants(game));
   const hud = new Hud(game, texPixels, texSize);
   wireTierPalette(game, renderer, hud, texPixels, texSize, document.getElementById('tier-palette')!);
   const comfort = new ComfortStore();
@@ -322,7 +322,9 @@ async function main(): Promise<void> {
       sound.playEvents(events, game.sound_count(), game.camera_yaw());
     }
     game.clear_sounds();
-    sound.ambience.weather = renderer.weather.ease.value; // rain is heard as it is drawn
+    const canopy = (seasonFoliage[43] + seasonFoliage[47] + seasonFoliage[55]) / 3;
+    const dryCanopy = (seasonFoliage[63] + seasonFoliage[67]) / 2;
+    sound.ambience.weather = { ...renderer.weather.ease.value, wind: wind[2], canopy, dryCanopy };
     if (!document.hidden) sound.poll(game, dt);
 
     loaded ||= game.ready();
@@ -360,13 +362,16 @@ async function main(): Promise<void> {
   };
 
   // Seasonal foliage and ground uniforms, re-read only when the year fraction moves noticeably (or after a time jump).
+  // The ice table (`game.ice_table()`) moves as slowly, so it rides along.
   let seasonYear = -1, seasonFoliage = new Float32Array(game.season_foliage()), seasonGround = new Float32Array(game.season_ground());
+  let ice = game.ice_table();
   const seasonNow = () => {
     const yf = game.year_fraction();
     if (Math.abs(yf - seasonYear) > 1e-4) {
       seasonYear = yf;
       seasonFoliage = new Float32Array(game.season_foliage());
       seasonGround = new Float32Array(game.season_ground());
+      ice = game.ice_table();
     }
   };
 
@@ -387,8 +392,11 @@ async function main(): Promise<void> {
     scope.update();
     const hasTarget = game.has_target();
     signFaces.update();
+    const eye: [number, number, number] = [game.eye_x(), game.eye_y(), game.eye_z()];
+    // Poll grass cells before taking zero-copy views into wasm.memory.buffer, since `grass_cells()` can grow wasm memory.
+    renderer.pollGrass(eye, now);
     renderer.render({
-      eye: [game.eye_x(), game.eye_y(), game.eye_z()],
+      eye,
       yaw: game.camera_yaw(),
       pitch: game.camera_pitch(),
       target: hasTarget ? [game.target_x(), game.target_y(), game.target_z()] : null,
@@ -399,15 +407,15 @@ async function main(): Promise<void> {
       days: game.day_number() - 1 + game.time_of_day(),
       weather: weatherNow(now),
       wind,
-      seasonFoliage,
-      seasonGround,
-      ...boxViews(game, wasm.memory, instanceFloats),
+      seasonFoliage, seasonGround, ice,
       lineCells: game.line_cells(),
       quarryBoxes: machine.quarryBox() ?? game.placement_box(),
       cracks: game.quarry_cracks(),
       chopMark: game.chop_mark_at(),
       underwater: game.eye_in_water(),
       satellites: game.sky_satellites(),
+      // Zero-copy views into `wasm.memory.buffer` come last so no earlier wasm allocation in this frame can detach them.
+      ...boxViews(game, wasm.memory, instanceFloats),
       held: new Float32Array(wasm.memory.buffer, game.held_light_ptr(), game.held_light_count() * 4),
       halos: new Float32Array(wasm.memory.buffer, game.halo_ptr(), game.halo_count() * game.halo_floats()),
       haloCount: game.halo_count(),

@@ -27,8 +27,9 @@ const DEFAULTS: AmbienceSettings = { volume: 15, muted: false };
 const POLL = 0.25;
 const GLIDE = 1.2;
 const BED_SECONDS = 3;
-/** The rain's own noise loop is long, so its hiss does not repeat where an ear can catch it. */
+/** The rain and leaf-rustle loops are long so neither repeats audibly. */
 const RAIN_SECONDS = 13;
+const LEAF_SECONDS = 11;
 
 /** The one-shots: its level in `Mix`, how many variants are synthesised, the wait in seconds at full and at no level. */
 interface Shot {
@@ -108,8 +109,10 @@ export class Ambience {
     const white = this.loop(bed(ctx.sampleRate, BED_SECONDS, rand, 'white'));
     const rumble = this.loop(bed(ctx.sampleRate, BED_SECONDS, rand, 'rumble'));
     const rainNoise = this.loop(bed(ctx.sampleRate, RAIN_SECONDS, mulberry32(31), 'white'));
+    const leafNoise = this.loop(bed(ctx.sampleRate, LEAF_SECONDS, mulberry32(53), 'leaves'));
     this.beds = {
       wind: this.makeBed(white, [filter(ctx, 'bandpass', 500, 0.6)], 0.17, 0.25),
+      leaves: this.makeBed(leafNoise, [filter(ctx, 'highpass', 700, 0.5), filter(ctx, 'lowpass', 4800, 0.6)], 1, 0),
       surf: this.makeBed(white, [filter(ctx, 'lowpass', 750, 0.7)], 0.09, 0.5),
       river: this.makeBed(white, [filter(ctx, 'highpass', 300, 0.5), filter(ctx, 'lowpass', 2400, 0.5)], 5.5, 0.1),
       rain: this.makeBed(rainNoise, [filter(ctx, 'highpass', 500, 0.5), filter(ctx, 'lowpass', 5500, 0.5)], 1, 0), // no steady tremolo: gusts (`gust`) vary it
@@ -163,13 +166,14 @@ export class Ambience {
     });
   }
 
-  /** Every second or few, the rain swells or eases to a new random loudness: the sound of wind-driven showers, never a steady loop. */
+  /** Every second or few, rain and leaf rustle swell or ease organically so gusts feel natural, never a steady loop. */
   private gust(dt: number): void {
     this.gustIn -= dt;
     const { ctx, beds } = this;
     if (this.gustIn > 0 || !ctx || !beds) return;
     this.gustIn = 0.7 + this.rand() * 3.5;
     beds.rain.swell.gain.setTargetAtTime(0.55 + this.rand() * 0.5, ctx.currentTime, 0.5);
+    beds.leaves.swell.gain.setTargetAtTime(0.45 + this.rand() * 0.65, ctx.currentTime, 0.65);
   }
 
   /** Aims the beds at `target` (they glide there). */
@@ -184,6 +188,7 @@ export class Ambience {
     to(bus.gain, duck);
     to(beds.wind.filters[0].frequency, 280 + 700 * wind + 500 * dry);
     to(beds.wind.filters[0].Q, 0.6 + 0.9 * dry);
+    to(beds.leaves.filters[1].frequency, 2200 + 2800 * target.leaves);
     to(beds.rain.filters[1].frequency, 1300 + 4200 * target.sky); // a roof turns the hiss into a muffled patter
     for (const name of Object.keys(gains) as BedName[]) to(beds[name].level.gain, gains[name]);
   }

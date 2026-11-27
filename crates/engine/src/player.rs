@@ -23,6 +23,7 @@ use crate::math::IVec3;
 use crate::math::Vec3;
 use crate::physics::{move_axis_boxes, move_walk_boxes, Aabb};
 use crate::shape::CellBoxes;
+use crate::up::gravity_at;
 
 pub const HALF_WIDTH: f64 = 0.3;
 pub const HEIGHT: f64 = 1.8;
@@ -287,7 +288,8 @@ impl Player {
             };
             self.vel.y = (f64::from(u8::from(inp.jump)) - f64::from(u8::from(inp.crouch))) * rate;
         } else {
-            self.vel.y = (self.vel.y - GRAVITY * dt).max(-TERMINAL_VELOCITY);
+            // Physics runs in the grid, whose y is up (`up.rs`); a round world bends the picture, not this.
+            self.vel.y = (self.vel.y + gravity_at(self.pos, GRAVITY).y * dt).max(-TERMINAL_VELOCITY);
             if self.thrust {
                 self.vel.y = (self.vel.y + JET_ACCEL * dt).min(self.vel.y.max(JET_CLIMB));
             }
@@ -369,12 +371,12 @@ impl Player {
             self.vel.y = JUMP_VELOCITY;
         } else if self.vel.y > SWIM_UP_SPEED {
             // A leap carries on through the water's surface.
-            self.vel.y -= GRAVITY * 0.1 * dt;
+            self.vel.y += gravity_at(self.pos, GRAVITY * 0.1).y * dt;
         } else if jump && !chest_out {
             self.vel.y += (SWIM_UP_SPEED - self.vel.y) * (1.0 - (-WATER_DRAG * dt).exp());
         } else {
             // Sinking; with jump held the chest bobs at the surface.
-            self.vel.y = (self.vel.y - GRAVITY * 0.1 * dt) * (-WATER_DRAG * dt).exp();
+            self.vel.y = (self.vel.y + gravity_at(self.pos, GRAVITY * 0.1).y * dt) * (-WATER_DRAG * dt).exp();
         }
     }
 }

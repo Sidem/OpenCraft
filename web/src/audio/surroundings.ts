@@ -6,7 +6,7 @@
 /** Indices of the floats in `Game.surroundings()`. */
 export const S = { biome: 0, sky: 1, open: 2, height: 3, depth: 4, sea: 5, fresh: 6, trees: 7, din: 8, town: 9 } as const;
 /** `Biome` variants in the engine's order. */
-export const DESERT = 1, HIGHLANDS = 2, LOWLANDS = 3, BASALT = 4;
+export const DESERT = 1, HIGHLANDS = 2, LOWLANDS = 3, BASALT = 4, SAVANNA = 5, BOREAL = 6, WOODLAND = 7, BAMBOO = 8, REDWOODS = 9;
 /** Machine din threshold (0..1) above which a working factory gets its own music. */
 export const FACTORY_DIN = 0.6;
 /** Height above sea level where Orbit-era players hear space music by day as well as night. */

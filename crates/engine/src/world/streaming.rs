@@ -225,7 +225,9 @@ impl World {
             self.lighting.light(&refs, &std::array::from_fn(|i| &above[i][..count]));
             let biomes = self.generator.biomes(p.x, p.z);
             let cleared = self.cleared.rows(p.x, p.z);
-            let cover = Cover { x0: p.x << CHUNK_SHIFT, z0: p.z << CHUNK_SHIFT, biomes: &biomes, cleared };
+            let (x0, z0) = (p.x << CHUNK_SHIFT, p.z << CHUNK_SHIFT);
+            let warmth = crate::weather::ice::lattice_corners(&self.generator, x0, z0);
+            let cover = Cover { x0, z0, biomes: &biomes, cleared, warmth };
             self.mesher.mesh(&refs, &self.lighting.pad, Some(&cover))
         };
         self.dirty.remove(&p);

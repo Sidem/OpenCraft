@@ -10,7 +10,7 @@
 //! bits 21..23  ambient occlusion (0 = darkest, 3 = unoccluded)
 //! bits 23..32  texture array layer low 9 bits (high 3 bits sit in `a_light.y` bits 5..8, so layers reach 4095;
 //!              `block::turn::MASK` and shaped vertices cap terrain layers at 2048)
-//! (a liquid vertex holds its surface drop, kind of water and flow direction there instead: `water.rs`)
+//! (a liquid vertex holds its surface drop, kind of water, flow direction and ice there instead: `water.rs`)
 //! ```
 //!
 //! UVs are not stored: the shader derives them from the vertex position, so a merged 5x3 quad
@@ -51,7 +51,7 @@ pub use cover::{bears_cover, Cover};
 use face_layer::face_layer;
 pub use foliage::{pack_foliage, pack_ground, season_layers};
 pub use quad::MeshOutput;
-use quad::{corner, corners_of, emit_quad, CORNER_BITS, KEY_CUTOUT, KEY_FLAG, KEY_LAYER, KEY_LIQUID, KEY_TRANSLUCENT};
+use quad::{corner, emit_quad, grow, CORNER_BITS, KEY_CUTOUT, KEY_FLAG, KEY_LAYER, KEY_LIQUID, KEY_TRANSLUCENT};
 pub use tree_grid::REACH as TREE_REACH;
 pub use water::height as water_height;
 
@@ -104,6 +104,8 @@ pub struct Mesher {
     trees: tree_grid::TreeGrid,
     /// The world block at the chunk's lowest corner: leaf cards scatter by world cell.
     origin: [i32; 3],
+    /// The climate round the chunk (`Cover::warmth`), which water surfaces read for ice; `None` with no cover.
+    warmth: Option<[i32; 4]>,
 }
 
 impl Default for Mesher {
@@ -143,6 +145,7 @@ impl Mesher {
             shaped: shaped::Shaped::default(),
             trees: tree_grid::TreeGrid::default(),
             origin: [0; 3],
+            warmth: None,
         }
     }
 
@@ -163,6 +166,7 @@ impl Mesher {
         self.liquid_light.clear();
         self.translucent_light.clear();
         self.shaped.clear();
+        self.warmth = cover.map(|c| c.warmth);
         if !Self::is_trivially_empty(n) {
             self.fill_padded(n);
             for face in 0..6 {
@@ -273,6 +277,7 @@ impl Mesher {
         let centre_paint = &self.centre_paint;
         let has_paint = self.has_paint;
         let centre_bare = &self.centre_bare;
+        let (warmth, y0) = (self.warmth, self.origin[1]);
         let opp_bit = 1u8 << (face ^ 1);
         let mask = &mut self.mask;
 
@@ -320,7 +325,7 @@ impl Mesher {
                                 corners |= u64::from(k) << (i * CORNER_BITS);
                             }
                             let layer = if liquid {
-                                u64::from(water::look(pad, p))
+                                u64::from(water::look(pad, p) | water::ice(b, face, c, y0, warmth) << 5)
                             } else {
                                 u64::from(face_layer(b, face, c, light[q] & 15, centre_bare))
                             };
@@ -354,31 +359,7 @@ impl Mesher {
                         bu += 1;
                         continue;
                     }
-                    let [c00, c10, c11, c01] = corners_of(key);
-                    let can_u = c00 == c10 && c01 == c11;
-                    let can_v = c00 == c01 && c10 == c11;
-
-                    let mut w = 1;
-                    if can_u {
-                        while bu + w < N && mask[bu + w + bv * N] == entry {
-                            w += 1;
-                        }
-                    }
-                    let mut h = 1;
-                    if can_v {
-                        'grow: while bv + h < N {
-                            for k in 0..w {
-                                if mask[bu + k + (bv + h) * N] != entry {
-                                    break 'grow;
-                                }
-                            }
-                            h += 1;
-                        }
-                    }
-                    for dv in 0..h {
-                        mask[bu + (bv + dv) * N..bu + w + (bv + dv) * N].fill((0, 0));
-                    }
-
+                    let (w, h) = grow(mask, (bu, bv), N);
                     let out = if key & (1 << KEY_TRANSLUCENT) != 0 {
                         (&mut self.translucent, &mut self.translucent_light)
                     } else if key & (1 << KEY_LIQUID) != 0 {

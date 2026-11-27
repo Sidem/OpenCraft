@@ -60,3 +60,17 @@ test('birds and crickets keep quiet in weather, and the wind picks up', () => {
   assert.ok(night.insects > 0 && nightWet.insects < 0.25 * night.insects, `crickets ${night.insects} -> ${nightWet.insects}`);
   assert.ok(wet.wind > dry.wind, 'a squall has wind in it');
 });
+
+test('leaf rustle scales with trees, wind speed and seasonal canopy fullness, and stays silent underground', () => {
+  const calm = mixFor(reading(), NOON, { precip: 0, snow: false, wind: 1, canopy: 1 }).leaves;
+  const gusty = mixFor(reading(), NOON, { precip: 0, snow: false, wind: 9, canopy: 1 }).leaves;
+  const bareWinter = mixFor(reading(), NOON, { precip: 0, snow: false, wind: 9, canopy: 0 }).leaves;
+  const evergreenWinter = mixFor(reading({ [S.biome]: 9 }), NOON, { precip: 0, snow: false, wind: 9, canopy: 0 }).leaves;
+  const treeless = mixFor(reading({ [S.trees]: 0 }), NOON, { precip: 0, snow: false, wind: 9, canopy: 1 }).leaves;
+  const cave = mixFor(reading({ [S.sky]: 0, [S.depth]: 12 }), NOON, { precip: 0, snow: false, wind: 9, canopy: 1 }).leaves;
+  assert.ok(calm > 0 && gusty > calm * 2, `gusty ${gusty} > calm ${calm}`);
+  assert.ok(bareWinter < gusty * 0.3, `bare deciduous winter ${bareWinter} hushes below ${gusty}`);
+  assert.ok(evergreenWinter > bareWinter * 3, `evergreen redwoods stay leafy in winter: ${evergreenWinter}`);
+  assert.equal(treeless, 0, 'no trees, no leaf rustle');
+  assert.equal(cave, 0, 'silent underground');
+});

@@ -9,7 +9,7 @@ import { BoxPipeline } from './boxes';
 import { FirePipeline } from './fire';
 import { GrassPass } from './grass';
 import { HaloPipeline } from './halos';
-import type { FrameInfo, RenderStats } from './frame';
+import type { FrameInfo, RenderStats, WaterConstants } from './frame';
 import { deleteShaped, shapedVert, uploadShaped, type ShapedPart } from './shaped';
 import { createProgram, uniforms } from './gl';
 import { PrecipPass } from './precip';
@@ -87,7 +87,10 @@ export class Renderer {
   readonly precip: PrecipPass; // rain, snow and the ground's wet or snowy look (precip.ts)
   readonly grass: GrassPass; // lush seasonal 3D grass blades around the camera (grass.ts)
   private grassQuality: 0 | 1 | 2 = 2;
+  private windMotion = true;
   private scale = 1;
+  private windNow = 0;
+  private windVec: [number, number, number, number] = [1, 0, 0.2, 0];
 
   constructor(private readonly canvas: HTMLCanvasElement, private viewRadius: number, instanceFloats: number, roundBit: number, antialias = true) {
     const gl = canvas.getContext('webgl2', {
@@ -100,7 +103,7 @@ export class Renderer {
     if (!gl) throw new Error('WebGL2 is not available in this browser.');
     this.gl = gl;
 
-    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground', 'u_turns', 'u_colourPalette', 'u_held', 'u_pivot', 'u_turn', 'u_seasonMask', 'u_seasonFoliage', 'u_seasonGround'] as const;
+    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground', 'u_turns', 'u_colourPalette', 'u_held', 'u_pivot', 'u_turn', 'u_seasonMask', 'u_seasonFoliage', 'u_seasonGround', 'u_wind', 'u_hideTufts'] as const;
     const pass = (vert: string, defines: string[]) => {
       const prog = createProgram(gl, vert, S.litFrag, ['TERRAIN', ...defines]);
       return { prog, u: uniforms(gl, prog, lit) };
@@ -130,8 +133,12 @@ export class Renderer {
   setScale(s: number): void { this.scale = s; }
   /** Lush 3D grass density: 0 Off, 1 Low, 2 Full (quality.ts, grass.ts). */
   setGrassQuality(q: 0 | 1 | 2): void { this.grassQuality = q; }
-  /** The texture layer of water (`game.water_layer()`; liquid vertices don't carry one). */
-  setWaterLayer(layer: number): void { this.water.layer = layer; }
+  /** Enables or disables wind motion across trees, plants, grass, water and rain (quality.ts). */
+  setWindMotion(on: boolean): void { this.windMotion = on; }
+  /** Refreshes the instanced grass cell buffer before zero-copy wasm memory views are created for this frame. */
+  pollGrass(eye: [number, number, number], now: number): void { this.grass.poll(eye, this.grassQuality, now); }
+  /** Water's constants from the engine: its texture layer (liquid vertices don't carry one) and ice's (water.ts). */
+  setWater(c: WaterConstants): void { this.water.constants = c; }
 
   setTextures(pixels: Uint8Array, size: number, layers: number, glow: Uint8Array | null = null): void {
     const gl = this.gl;
@@ -292,6 +299,18 @@ export class Renderer {
     const look = this.weather.look(this.skySettings, f.weather, performance.now()); // undefined: the plain sky
     const sky = skyAt(f.time, look);
     const now = performance.now(), drawn = look ? this.weather.ease.value : undefined;
+    const wdt = this.windNow > 0 ? Math.min((now - this.windNow) / 1000, 0.1) : 1 / 60;
+    this.windNow = now;
+    const wease = 1 - Math.exp(-wdt * 2.5);
+    const wv = this.windVec;
+    wv[0] += (f.wind[0] - wv[0]) * wease;
+    wv[1] += (f.wind[1] - wv[1]) * wease;
+    const wlen = Math.hypot(wv[0], wv[1]) || 1;
+    wv[0] /= wlen;
+    wv[1] /= wlen;
+    const targetWind = this.windMotion ? Math.min(1.5, 0.16 + f.wind[2] / 10.0) : 0;
+    wv[2] = this.windMotion ? wv[2] + (targetWind - wv[2]) * wease : 0;
+    if (this.windMotion) wv[3] = (wv[3] + wdt * (1.2 + wv[2] * 2.4)) % (Math.PI * 200);
     const ground = this.precip.groundLook(drawn, this.skySettings.precip, now);
     const murk = 1 - 0.35 * (look?.gloom ?? 0); // gloom shortens the sight
     const fog = fogFor(sky, f.underwater, [this.viewRadius * CHUNK * 0.95 * 0.55 * murk, this.viewRadius * CHUNK * 0.95 * murk]);
@@ -350,6 +369,8 @@ export class Renderer {
       gl.uniform2f(pass.u.u_ground, ground[0], ground[1]);
       gl.uniform4fv(pass.u.u_seasonGround, f.seasonGround);
       if (pass.u.u_seasonFoliage) gl.uniform4fv(pass.u.u_seasonFoliage, f.seasonFoliage);
+      if (pass.u.u_wind) gl.uniform4f(pass.u.u_wind, wv[0], wv[1], wv[2], wv[3]);
+      if (pass.u.u_hideTufts) gl.uniform1f(pass.u.u_hideTufts, this.grassQuality > 0 ? 1 : 0);
       uploadHeldLights(gl, pass.u.u_held);
       gl.uniform3f(pass.u.u_pivot, 0, 0, 0);
       gl.uniformMatrix3fv(pass.u.u_turn, false, IDENTITY3);
@@ -386,9 +407,9 @@ export class Renderer {
     drawCalls += this.boxes.drawXray(this.viewProj, sky, fog, f.xray, f.xrayCount, f.xrayRound, f.xrayRoundCount, f.xrayRadius, f.xrayFade, f.beltScroll);
     drawCalls += this.boxes.drawStatic(this.viewProj, this.planes, [ex, ey, ez], sky, fog, f.beltScroll);
     drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.boxes, f.boxCount, f.round, f.roundCount, undefined, f.beltScroll);
-    const [grassCalls] = this.grass.draw(this.viewProj, f.eye, sky, fog, f.seasonGround, ground, f.wind, this.grassQuality, now);
+    const [grassCalls] = this.grass.draw(this.viewProj, f.eye, sky, fog, f.seasonGround, ground, wv, this.grassQuality);
     drawCalls += grassCalls;
-    const [waterCalls, waterQuads] = this.water.draw(vis, this.viewProj, [ex, ey, ez], sky, fog);
+    const [waterCalls, waterQuads] = this.water.draw(vis, this.viewProj, [ex, ey, ez], sky, fog, f.ice, ground, wv);
     drawCalls += waterCalls;
     quads += waterQuads;
     if (vis.some((m) => m.translucent > 0 || (m.shaped?.translucent ?? 0) > 0)) {
@@ -405,7 +426,7 @@ export class Renderer {
     drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.marks, f.marksCount, f.marksRound, f.marksRoundCount, undefined, f.beltScroll);
     drawCalls += this.halos.draw(this.view, this.proj, sky, fog.range, f.halos, f.haloCount, f.haloFloats);
     drawCalls += this.fire.draw(this.view, this.proj, f.renderTime, fog.range, f.fire, f.fireCount, f.fireFloats);
-    if (!f.underwater) drawCalls += this.precip.draw(this.viewProj, f.eye, sky, drawn, this.skySettings.precip, now);
+    if (!f.underwater) drawCalls += this.precip.draw(this.viewProj, f.eye, sky, drawn, this.skySettings.precip, now, wv);
 
     drawCalls += this.overlays.draw(this.viewProj, f, [ex, ey, ez]);
     gl.bindVertexArray(null);

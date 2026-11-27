@@ -64,11 +64,27 @@ impl Climate {
 
     /// The day's mean temperature at sea level at `tick` (tenths of a degree): the climate and the season, no hour.
     pub fn mean_temperature(self, tick: u64) -> i32 {
-        const YEAR: u64 = YEAR_DAYS * DAY_TICKS;
-        // The year's wave crests at 3/8 (mid-summer).
-        let year = YEAR_SWING * wave((tick + START + YEAR - YEAR / 8) % YEAR, YEAR) / 1000;
-        (MILD + i64::from(self.warmth) * WARMTH_SPAN / 1000 + year) as i32
+        self.year_mean(SEA_LEVEL) + year_wave(tick)
     }
+
+    /// The year's mean temperature at height `y` (tenths of a degree): `day_mean` without the season. Ice reads it.
+    pub fn year_mean(self, y: i32) -> i32 {
+        let height = i64::from((y - SEA_LEVEL).max(0)) * 10 / LAPSE_BLOCKS;
+        (MILD + i64::from(self.warmth) * WARMTH_SPAN / 1000 - height) as i32
+    }
+}
+
+/// How far the season moves every place's temperature at `tick` (tenths of a degree, ±`YEAR_SWING`): the year's wave,
+/// cresting at 3/8 of the year (mid-summer).
+pub fn year_wave(tick: u64) -> i32 {
+    year_wave_by_clock(tick + START)
+}
+
+/// `year_wave` by the clock (`tick + START`: ticks since the midnight before the world began), which ice counts
+/// its days by.
+pub(super) fn year_wave_by_clock(at: u64) -> i32 {
+    const YEAR: u64 = YEAR_DAYS * DAY_TICKS;
+    (YEAR_SWING * wave((at + YEAR - YEAR / 8) % YEAR, YEAR) / 1000) as i32
 }
 
 /// A smooth wave over `period` in thousandths: a parabola up to 1000 over the first half, down to -1000 over the second.

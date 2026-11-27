@@ -15,6 +15,7 @@
 mod air;
 mod climate;
 mod forecast;
+pub mod ice;
 mod physics;
 mod reading;
 

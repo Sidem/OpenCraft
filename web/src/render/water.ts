@@ -1,12 +1,14 @@
 // The water pass and the underwater look. Liquid quads are stored after each chunk's opaque and cutout
 // quads (engine `mesher.rs`); this draws them last, blended, without depth writes, chunks back to front,
 // from both sides (the surface shows from below). With the camera in water the fog turns blue-green and
-// short and the sky is not drawn. Presentation only. To change the look: the constants below and the
-// `WATER` variant in shaders.ts.
+// short and the sky is not drawn. Ice (engine `weather/ice.rs`) comes from the engine's table each frame, looked up
+// per vertex by the cold index and kind the mesher packs. Presentation only. To change the look: the constants below
+// and the `WATER` variant in shaders.ts.
 
 import { createProgram, uniforms } from './gl';
 import { uploadHeldLights } from './held-light';
 import * as S from './shaders';
+import type { WaterConstants } from './frame';
 import type { Sky } from './sky';
 
 type Rgb = [number, number, number];
@@ -41,20 +43,28 @@ export class WaterPass {
     this.prog = createProgram(gl, S.chunkVert, S.litFrag, ['WATER']);
     this.u = uniforms(gl, this.prog, [
       'u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_time', 'u_sunDir', 'u_direct', 'u_held',
-      'u_waterLayer',
+      'u_waterLayer', 'u_ice', 'u_iceShape', 'u_ground', 'u_wind',
     ] as const);
   }
 
-  /** The texture layer every liquid vertex shares (the engine's `water_layer`). */
-  layer = 0;
+  /** The engine's constants (frame.ts `waterConstants`): every liquid vertex's texture layer, the sea, ice's table. */
+  constants: WaterConstants = { layer: 0, seaLevel: 0, iceLevels: 1, iceBears: 255 };
+  private readonly iceWords = new Uint32Array(S.ICE_WORDS * 4);
 
-  /** Draws the liquid quads of `vis` (sorted front to back); returns [draw calls, quads]. */
-  draw(vis: readonly WaterMesh[], viewProj: Float32Array, eye: Rgb, sky: Sky, fog: { color: Rgb; range: [number, number] }): [number, number] {
-    const gl = this.gl, u = this.u;
+  /** Draws the liquid quads of `vis` (sorted front to back), iced from `ice` (`game.ice_table()`) with snow from
+   *  `ground` (precip.ts); returns [draw calls, quads]. */
+  draw(vis: readonly WaterMesh[], viewProj: Float32Array, eye: Rgb, sky: Sky, fog: { color: Rgb; range: [number, number] },
+    ice: Uint8Array, ground: readonly number[], wind: readonly [number, number, number, number]): [number, number] {
+    const gl = this.gl, u = this.u, c = this.constants;
     gl.useProgram(this.prog);
     gl.uniformMatrix4fv(u.u_viewProj, false, viewProj);
     gl.uniform1i(u.u_tex, 0);
-    gl.uniform1f(u.u_waterLayer, this.layer);
+    gl.uniform1f(u.u_waterLayer, c.layer);
+    this.iceWords.set(new Uint32Array(ice.buffer, ice.byteOffset, Math.min(ice.length >> 2, this.iceWords.length)));
+    gl.uniform4uiv(u.u_ice, this.iceWords);
+    gl.uniform4f(u.u_iceShape, c.seaLevel, c.iceLevels, c.iceBears / 255, 0);
+    gl.uniform2f(u.u_ground, ground[0], ground[1]);
+    gl.uniform4f(u.u_wind, wind[0], wind[1], wind[2], wind[3]);
     gl.uniform3f(u.u_fogColor, ...fog.color);
     gl.uniform3f(u.u_skyLight, ...sky.light);
     gl.uniform3f(u.u_sunDir, ...sky.lightDir);
@@ -71,6 +81,8 @@ export class WaterPass {
       const m = vis[i];
       if (m.liquid === 0) continue;
       gl.uniform3f(u.u_offset, m.x * 32 - eye[0], m.y * 32 - eye[1], m.z * 32 - eye[2]);
+      const period = S.TERRAIN_TINT_PERIOD, wrap = (v: number) => ((v % period) + period) % period;
+      gl.uniform3f(u.u_worldOrigin, wrap(m.x * 32), m.y * 32, wrap(m.z * 32));
       gl.bindVertexArray(m.vao);
       gl.drawElements(gl.TRIANGLES, m.liquid * 6, gl.UNSIGNED_INT, (m.opaque + m.cutout) * 24);
       calls++;

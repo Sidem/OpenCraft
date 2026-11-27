@@ -68,6 +68,8 @@ uniform mat3 u_turn; // and how far it has tipped; the identity for chunks
 uniform uvec4 u_seasonMask[32]; // 2 bits per layer: 0 none, 1 grass, 2 woodland, 3 flower
 uniform vec4 u_seasonFoliage[30]; // 0..9 leafA, 10..19 leafB (w=cover), 20..29 litter (w=cover)
 uniform vec4 u_seasonGround[3]; // [0] grass, [1] woodland, [2] (budding, flowerCover, 0, 0)
+uniform vec4 u_wind; // (dirX, dirZ, strength 0..1+, integrated phase) shared with GrassPass
+uniform float u_hideTufts; // 1 when 3D Lush Grass replaces flat GRASS_TUFT cutout sprites
 
 out vec3 v_uvl;
 out float v_light;
@@ -87,6 +89,8 @@ out float v_bud;
 
 const float SCALE = 100.0; // engine SHAPED_SCALE
 const float OFFSET = 2.0; // engine SHAPED_OFFSET
+// Species canopy flexibility (0 oak, 1 birch, 2 pine, 3 cherry, 4 palm, 5 baobab, 6 acacia, 7 redwood, 8 eucalyptus, 9 bamboo).
+const float SPECIES_FLEX[10] = float[10](0.85, 1.15, 0.55, 1.10, 1.45, 0.70, 1.05, 0.50, 1.15, 1.35);
 ${LIGHT}
 vec3 octahedral(uint bits) {
   vec2 e = vec2(float(bits & 255u), float(bits >> 8u)) / 255.0 * 2.0 - 1.0;
@@ -134,6 +138,23 @@ void main() {
     }
     v_leafMeta = sp | (isLitter ? 16u : 0u) | 32u;
     v_leafHash = cardHash;
+    // Tree canopy wind sway & species-tuned leaf flutter (fallen ground litter stays pinned).
+    if (!hidden && !isLitter && u_wind.z > 0.001) {
+      vec3 wp = u_worldOrigin + p;
+      vec2 wdir = u_wind.xy;
+      vec2 wperp = vec2(-wdir.y, wdir.x);
+      float flex = SPECIES_FLEX[sp];
+      // Travelling downwind canopy gust wave + brisk per-card leaf flutter (scaled by outer corner so bases stay anchored).
+      float gust = sin(dot(wp.xz, wdir) * 0.16 - u_wind.w * 0.65 + wp.y * 0.07) * 0.65
+                 + sin(dot(wp.xz, wdir * 0.6 + wperp * 0.8) * 0.31 - u_wind.w * 1.15 + cardHash * 4.5) * 0.35;
+      float flutter = sin(u_wind.w * 2.9 + cardHash * 6.28318 + dot(wp, vec3(0.7, 0.4, 0.5))) * (0.35 + 0.65 * corner.y);
+      float wAmp = u_wind.z * flex;
+      vec2 swayXZ = wdir * (0.14 * wAmp * (0.45 + 0.55 * gust))
+                  + wperp * (0.045 * wAmp * gust + 0.028 * wAmp * flutter);
+      float swayY = (0.022 * wAmp * flutter - 0.03 * wAmp * max(0.0, gust)) * (0.4 + 0.6 * corner.x);
+      p.xz += swayXZ;
+      p.y += swayY;
+    }
   } else if (kind >= 1u && kind <= 3u) {
     uint a = kind - 1u;
     uv = vec2(u, -p[a]); // around, then along the trunk
@@ -144,11 +165,40 @@ void main() {
     // Ground cover (engine mesher/cover/shape.rs): 6-bit u and v in 60ths, drawn whole without the leaf-card mask.
     uint b = (w1 >> 12u) & 4095u;
     uv = vec2(float(b & 63u), float((b >> 6u) & 63u)) / 60.0;
-    if (v_seasonRole == 3u && u_seasonGround[2].y < 0.999) {
+    if (u_hideTufts > 0.5 && v_seasonRole == 1u) {
+      hidden = true;
+    } else if (v_seasonRole == 3u && u_seasonGround[2].y < 0.999) {
       ivec3 fc = ivec3(floor(u_worldOrigin + p));
       uint fh = uint(fc.x * 374761393 + fc.z * 668265263 + fc.y * 1274126177);
       fh = (fh ^ (fh >> 13u)) * 1274126177u;
       if (float((fh ^ (fh >> 16u)) & 1023u) / 1024.0 >= u_seasonGround[2].y) hidden = true;
+    }
+    if (!hidden) {
+      // Dynamic wind sway & player foot parting matched to GrassPass; roots (h = 0) and rock lichen (h < 0.03) stay pinned.
+      float h = clamp(p.y - floor(p.y + 0.002), 0.0, 1.0);
+      float flex = h * h * smoothstep(0.03, 0.10, h);
+      if (flex > 0.0005) {
+        vec2 wxz = u_worldOrigin.xz + p.xz;
+        vec2 cellXZ = floor(wxz);
+        float cHash = fract(sin(dot(cellXZ, vec2(127.1, 311.7))) * 43758.5453);
+        vec2 wdir = u_wind.xy;
+        vec2 wperp = vec2(-wdir.y, wdir.x);
+        float gust = sin(dot(wxz, wdir) * 0.28 - u_wind.w) * 0.65
+                   + sin(dot(wxz, wdir * 0.7 + wperp * 0.7) * 0.54 - u_wind.w * 1.45 + cHash * 4.0) * 0.35;
+        float flutter = sin(u_wind.w * 2.3 + cHash * 6.28318) * 0.035 * (0.4 + u_wind.z);
+        // Woodland ferns & reeds flex slightly fuller than stiffer woody brush/shrubs.
+        float supple = v_seasonRole == 0u ? 0.55 : 1.0;
+        float wAmp = u_wind.z * (0.55 + 0.55 * gust) * supple;
+        vec2 dispXZ = (wdir * (0.34 * wAmp) + wperp * (0.07 * gust * u_wind.z * supple + flutter)) * flex;
+        vec3 footRel = u_offset + p;
+        if (abs(footRel.y + 1.62) < 1.35) {
+          float footDist = length(footRel.xz);
+          float push = smoothstep(0.95, 0.15, footDist) * 0.42 * smoothstep(0.03, 0.25, h);
+          dispXZ += (footRel.xz / max(footDist, 0.05)) * push;
+        }
+        p.xz += dispXZ;
+        p.y -= min(h * 0.32, dot(dispXZ, dispXZ) * 0.45);
+      }
     }
   }
   v_uvl = vec3(uv, layer);
@@ -160,6 +210,12 @@ void main() {
   v_pos = p;
   v_kind = kind;
   v_rel = u_offset + u_pivot + u_turn * (p - u_pivot);
+  if (kind == 7u && !hidden) {
+    float sky = pow(0.8, 15.0 - float(light & 15u));
+    float h = clamp(p.y - floor(p.y + 0.002), 0.0, 1.0);
+    float backLit = pow(max(dot(normalize(v_rel), u_sunDir), 0.0), 3.0);
+    v_sun += u_direct * (backLit * smoothstep(0.04, 0.35, h) * sky * 0.28);
+  }
   v_ground = (u_worldOrigin + p).xz;
   v_open = vec2(clamp(float(light & 15u) - 12.0, 0.0, 3.0) / 3.0, smoothstep(0.45, 0.8, n.y));
   gl_Position = hidden ? vec4(2.0, 2.0, 2.0, 1.0) : u_viewProj * vec4(v_rel, 1.0);

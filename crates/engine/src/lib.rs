@@ -133,6 +133,7 @@ mod tool_belt;
 mod tools;
 mod town_preview;
 mod train_tools;
+mod up;
 mod upgrade_aim;
 mod upgrade_lesson;
 mod weather;

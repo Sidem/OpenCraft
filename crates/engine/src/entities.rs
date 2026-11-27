@@ -19,6 +19,7 @@ use crate::math::IVec3;
 use crate::math::Vec3;
 use crate::physics::{move_axis_boxes, Aabb};
 use crate::shape::CellBoxes;
+use crate::up::gravity_at;
 
 mod merge;
 
@@ -164,7 +165,7 @@ impl Items {
                     let drift = Vec3::new(angle.cos(), FLOAT_SPEED / DRIFT_SPEED, angle.sin()) * DRIFT_SPEED;
                     e.vel += (drift - e.vel) * k;
                 } else {
-                    e.vel.y = (e.vel.y - GRAVITY * dt).max(-40.0);
+                    e.vel.y = (e.vel.y + gravity_at(e.pos, GRAVITY).y * dt).max(-40.0);
                 }
                 let mut bb = Aabb::centered(e.pos, HALF);
                 let want_y = e.vel.y * dt;

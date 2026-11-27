@@ -7,8 +7,8 @@ import { biquad, normalize, type Rand } from './synth';
 
 const TAU = 2 * Math.PI;
 
-/** Seamless looping noise of `seconds`: white, or `rumble` (brown-ish, mostly below 150 Hz). */
-export function bed(sr: number, seconds: number, rand: Rand, kind: 'white' | 'rumble'): Float32Array {
+/** Seamless looping noise of `seconds`: white, `rumble` (brown-ish, mostly below 150 Hz), or `leaves` (dual-band rustle with organic flutter). */
+export function bed(sr: number, seconds: number, rand: Rand, kind: 'white' | 'rumble' | 'leaves'): Float32Array {
   const n = Math.floor(sr * seconds);
   const out = new Float32Array(n);
   for (let i = 0; i < n; i++) out[i] = rand() * 2 - 1;
@@ -17,9 +17,23 @@ export function bed(sr: number, seconds: number, rand: Rand, kind: 'white' | 'ru
   const twice = new Float32Array(2 * n);
   twice.set(out);
   twice.set(out, n);
-  biquad(twice, sr, 'lp', 150, 0.7);
-  biquad(twice, sr, 'lp', 220, 0.5);
-  return normalize(twice.slice(n), 0.9);
+  if (kind === 'rumble') {
+    biquad(twice, sr, 'lp', 150, 0.7);
+    biquad(twice, sr, 'lp', 220, 0.5);
+    return normalize(twice.slice(n), 0.9);
+  }
+  // Leaves: warm mid-band body + crisp high leaf-tip shimmer modulated by integer-cycle slow swells (click-free loop).
+  const shimmer = new Float32Array(twice);
+  biquad(twice, sr, 'bp', 1450, 0.75);
+  biquad(shimmer, sr, 'bp', 3600, 1.1);
+  const res = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const u = (TAU * i) / n;
+    const swell = 0.68 + 0.16 * Math.sin(u * 2 + 0.4) + 0.10 * Math.sin(u * 5 + 1.9) + 0.06 * Math.sin(u * 11 + 3.1);
+    const flutter = 0.60 + 0.25 * Math.sin(u * 7 + 0.8) + 0.15 * Math.sin(u * 17 + 2.3);
+    res[i] = twice[n + i] * swell + shimmer[n + i] * flutter * 0.55;
+  }
+  return normalize(res, 0.85);
 }
 
 /** A bird: one to four short notes, each a whistle that bends and trembles, in a high register. */

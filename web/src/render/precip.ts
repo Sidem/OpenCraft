@@ -33,6 +33,7 @@ uniform vec2 u_gridRel;  // the roof grid's corner minus the eye (x, z)
 uniform vec3 u_eyeMod;   // the eye modulo the box (x, y, z): drops stay put in the world
 uniform float u_eyeY;
 uniform float u_time;
+uniform vec4 u_wind;     // (dirX, dirZ, strength 0..1+, integrated phase)
 out vec2 v_uv;
 out float v_fade;
 #ifdef SNOW
@@ -57,11 +58,18 @@ void main() {
   float speed = 17.0 + seed.z * 5.0;
 #endif
   vec3 rel;
-  rel.x = mod(seed.x * ${BOX}.0 - u_eyeMod.x + ${BOX / 2}.0, ${BOX}.0) - ${BOX / 2}.0;
-  rel.z = mod(seed.y * ${BOX}.0 - u_eyeMod.z + ${BOX / 2}.0, ${BOX}.0) - ${BOX / 2}.0;
+  float drift = u_wind.z * (
+#ifdef SNOW
+    2.4
+#else
+    3.6
+#endif
+  );
+  rel.x = mod(seed.x * ${BOX}.0 + u_wind.x * drift * u_time - u_eyeMod.x + ${BOX / 2}.0, ${BOX}.0) - ${BOX / 2}.0;
+  rel.z = mod(seed.y * ${BOX}.0 + u_wind.y * drift * u_time - u_eyeMod.z + ${BOX / 2}.0, ${BOX}.0) - ${BOX / 2}.0;
   rel.y = mod(fract(seed.x * 91.7 + seed.y * 37.3) * ${BOX_HEIGHT}.0 - speed * u_time - u_eyeMod.y + ${BOX_HEIGHT - BOX_ABOVE}.0, ${BOX_HEIGHT}.0) - ${BOX_HEIGHT - BOX_ABOVE}.0;
 #ifdef SNOW
-  rel.xz += vec2(sin(u_time * 0.8 + seed.x * 40.0), cos(u_time * 0.7 + seed.y * 40.0)) * 0.45;
+  rel.xz += vec2(sin(u_time * 0.8 + seed.x * 40.0), cos(u_time * 0.7 + seed.y * 40.0)) * (0.35 + 0.25 * u_wind.z);
 #endif
 
   // Nothing falls below the height the roof grid says this column catches it at.
@@ -80,7 +88,8 @@ void main() {
   up = vec3(0.0, 0.065, 0.0);
   vec3 p = rel + side * (corner.x - 0.5) * 2.0 + up * (corner.y - 0.5) * 2.0;
 #else
-  vec3 slant = normalize(vec3(0.07, -1.0, 0.04));
+  float lean = 0.04 + 0.26 * min(u_wind.z, 1.4);
+  vec3 slant = normalize(vec3(u_wind.x * lean, -1.0, u_wind.y * lean));
   side = normalize(cross(slant, rel)) * 0.022;
   vec3 p = rel + side * (corner.x - 0.5) * 2.0 - slant * (corner.y * 1.2);
 #endif
@@ -107,7 +116,7 @@ void main() {
 `;
 
 type Look = { prog: WebGLProgram; u: ReturnType<typeof makeUniforms> };
-const NAMES = ['u_viewProj', 'u_roof', 'u_gridRel', 'u_eyeMod', 'u_eyeY', 'u_time', 'u_colour', 'u_alpha'] as const;
+const NAMES = ['u_viewProj', 'u_roof', 'u_gridRel', 'u_eyeMod', 'u_eyeY', 'u_time', 'u_wind', 'u_colour', 'u_alpha'] as const;
 const makeUniforms = (gl: WebGL2RenderingContext, prog: WebGLProgram) => uniforms(gl, prog, NAMES);
 
 export class PrecipPass {
@@ -130,6 +139,7 @@ export class PrecipPass {
     this.rain = make([]);
     this.snow = make(['SNOW']);
     this.roof = gl.createTexture()!;
+    gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.roof);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -147,7 +157,8 @@ export class PrecipPass {
   }
 
   /** Draws the falling drops for the weather `w` (eased) round `eye`; returns the draw calls made (0 or 1). */
-  draw(viewProj: Float32Array, eye: [number, number, number], sky: Sky, w: Weather | undefined, quality: number, now: number): number {
+  draw(viewProj: Float32Array, eye: [number, number, number], sky: Sky, w: Weather | undefined, quality: number, now: number,
+    wind: readonly [number, number, number, number]): number {
     const count = w ? Math.floor(DROPS[quality] * Math.min(1, w.precip * 1.15)) : 0;
     if (count < 8) return 0;
     const gl = this.gl, look = w!.snow ? this.snow : this.rain, u = look.u;
@@ -171,6 +182,7 @@ export class PrecipPass {
     gl.uniform3f(u.u_eyeMod, mod(eye[0], BOX), mod(eye[1], BOX_HEIGHT), mod(eye[2], BOX));
     gl.uniform1f(u.u_eyeY, eye[1]);
     gl.uniform1f(u.u_time, (now / 1000) % 600);
+    gl.uniform4f(u.u_wind, wind[0], wind[1], wind[2], wind[3]);
     gl.uniform3f(u.u_colour, tint[0] * lum, tint[1] * lum, tint[2] * lum);
     gl.uniform1f(u.u_alpha, w!.snow ? 0.85 : 0.32);
     gl.enable(gl.BLEND);

@@ -17,6 +17,7 @@ use crate::helpers::drone::{Trip, DWELL};
 use crate::item::{self, ItemId, PERSONAL_DRONE};
 use crate::math::{IVec3, Vec3};
 use crate::player::Player;
+use crate::up::{along_up, up_at};
 use crate::{Game, TICK};
 
 #[cfg(test)]
@@ -91,7 +92,7 @@ impl Flyer {
     fn fly(&mut self, time: f64, target: impl Fn(f64) -> (Vec3, Option<ItemId>), trip: bool) -> Option<ItemId> {
         let (goal, carried) = target(time);
         if !self.live || (goal - self.pos).length() > SNAP || time < self.time {
-            *self = Flyer { pos: goal, up: Vec3::new(0.0, 1.0, 0.0), time, live: true, ..*self };
+            *self = Flyer { pos: goal, up: up_at(goal), time, live: true, ..*self };
             return carried;
         }
         let dt = (time - self.time).min(0.1);
@@ -110,7 +111,7 @@ impl Flyer {
             self.pos += self.vel * h;
         }
         // Thrust along up: acceleration, gravity and drag; eased so a jolt does not flick it.
-        let lean = tilt(accel, self.vel);
+        let lean = tilt(self.pos, accel, self.vel);
         let k = 1.0 - (-dt * 8.0).exp();
         self.up = unit(self.up + (lean - self.up) * k);
         let flat = Vec3::new(self.vel.x, 0.0, self.vel.z);
@@ -124,16 +125,18 @@ impl Flyer {
     }
 }
 
-/// Where a drone points its up when it accelerates by `accel` at `vel`: thrust balances gravity, drag and the push,
-/// leaning at most [`MAX_LEAN`].
-pub fn tilt(accel: Vec3, vel: Vec3) -> Vec3 {
-    let mut side = Vec3::new(accel.x + DRAG * vel.x, 0.0, accel.z + DRAG * vel.z);
-    let lift = (GRAVITY + accel.y + DRAG * vel.y).max(GRAVITY * 0.3);
+/// Where a drone at `pos` points its up when it accelerates by `accel` at `vel`: thrust balances gravity (along the
+/// world's up there, `up.rs`), drag and the push, leaning at most [`MAX_LEAN`].
+pub fn tilt(pos: Vec3, accel: Vec3, vel: Vec3) -> Vec3 {
+    let up = up_at(pos);
+    let push = accel + vel * DRAG;
+    let mut side = push - up * along_up(pos, push);
+    let lift = (GRAVITY + along_up(pos, accel) + DRAG * along_up(pos, vel)).max(GRAVITY * 0.3);
     let most = lift * MAX_LEAN.tan();
     if side.length() > most {
         side = side * (most / side.length());
     }
-    unit(Vec3::new(side.x, lift, side.z))
+    unit(side + up * lift)
 }
 
 /// The spot off the player's right shoulder, a little behind (out of view until they turn), swaying slowly.

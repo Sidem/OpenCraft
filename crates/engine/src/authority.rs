@@ -17,8 +17,12 @@ use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::net::Role;
 use crate::player::{self, Player};
+use crate::shape::CellBoxes;
 use crate::sim::PlayerId;
 use crate::sound;
+use crate::up::up_at;
+use crate::weather::ice::{ice_boxes, IceTable};
+use crate::world::World;
 use crate::{Game, TICK};
 
 /// Player physics substeps per tick (1/120 s each).
@@ -93,7 +97,7 @@ impl Game {
         let (world, factory) = (&self.sim.world, &self.sim.factory);
         let players = &self.sim.players;
         let core = |slot: usize| players.get(slot).and_then(Option::as_ref);
-        let mut boxes = |x, y, z| world.cell_boxes(x, y, z);
+        let ice = IceTable::at(self.sim.tick);
         let mut block = |x, y, z| world.get_block(IVec3::new(x, y, z)).unwrap_or(AIR);
         let respawn = self.spawn + Vec3::new(0.0, 2.0, 0.0);
         let may_fly = self.sim.may_fly();
@@ -105,13 +109,15 @@ impl Game {
             }
             body.flying &= may_fly;
             // Wait while the ground isn't loaded rather than fall through it.
-            if world.is_loaded(body.pos) && world.is_loaded(body.pos - Vec3::new(0.0, 1.0, 0.0)) {
+            if world.is_loaded(body.pos) && world.is_loaded(body.pos - up_at(body.pos)) {
                 body.conveyor = factory.conveyor_at(body.pos);
                 body.hoist = factory.hoist_rate(body.pos, &mut block);
                 body.thrust = core(slot).is_some_and(|p| p.helpers.thrusting);
                 body.hover = core(slot).is_some_and(|p| p.helpers.hover);
                 body.boost = core(slot).map(|p| p.inventory.boost()).unwrap_or_default();
                 for _ in 0..PHYSICS_SUBSTEPS {
+                    let feet = body.pos.y;
+                    let mut boxes = |x, y, z| solid_or_ice(world, &ice, feet, x, y, z);
                     body.step_boxes(TICK / PHYSICS_SUBSTEPS as f64, &mut boxes, &mut block);
                 }
             }
@@ -143,8 +149,13 @@ impl Game {
             collectors.push(Collector { center, room: core.inventory.clone() });
         }
         let world = &self.sim.world;
-        let mut boxes = |x, y, z| world.cell_boxes(x, y, z);
-        let water = |p: Vec3| world.is_water(p.floor().x, p.floor().y, p.floor().z);
+        let ice = IceTable::at(self.sim.tick);
+        let mut boxes = |x, y, z| solid_or_ice(world, &ice, f64::INFINITY, x, y, z);
+        // An item on ice lies there; it floats only in open water.
+        let water = |p: Vec3| {
+            let c = p.floor();
+            world.is_water(c.x, c.y, c.z) && ice_boxes(world, &ice, f64::INFINITY, c.x, c.y, c.z).is_empty()
+        };
         let loaded = |p: Vec3| world.is_loaded(p);
         let mut picked = Vec::new();
         let collected = |c: usize, item, count| picked.push((ids[c], item, count));
@@ -168,5 +179,15 @@ impl Game {
         if !matches!(self.role, Role::Client(_)) {
             self.items.spawn(pos, vel, item, n, pickup_delay);
         }
+    }
+}
+
+/// A cell's collision boxes for bodies and loose items: its blocks, else frozen water that bears what stands at `feet`.
+fn solid_or_ice(world: &World, ice: &IceTable, feet: f64, x: i32, y: i32, z: i32) -> CellBoxes {
+    let boxes = world.cell_boxes(x, y, z);
+    if boxes.is_empty() {
+        ice_boxes(world, ice, feet, x, y, z)
+    } else {
+        boxes
     }
 }

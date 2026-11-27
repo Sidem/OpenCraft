@@ -1,6 +1,7 @@
 //! Camera easing and the optional third-person view (presentation only, never core state).
 //! `CrouchGlide`: the eye glides between standing and crouching height instead of snapping, because a
-//! sudden vertical jump of the whole view is a common trigger of motion sickness.
+//! sudden vertical jump of the whole view is a common trigger of motion sickness. Both ease along the world's up
+//! (`up.rs`).
 //! `ThirdPerson`: a comfort option (the host sets the distance, 0 is first person). The camera sits
 //! behind the right shoulder, leaving the avatar left of the crosshair. Interaction traces this
 //! camera ray, then checks reach and visibility from the hands (interaction/aim.rs).
@@ -9,6 +10,7 @@
 
 use crate::math::{IVec3, Vec3};
 use crate::player::CROUCH_DIP;
+use crate::up::up_at;
 
 /// How fast the eye settles, per second: about 95% of the way in a fifth of a second.
 const GLIDE_RATE: f64 = 15.0;
@@ -39,7 +41,8 @@ impl CrouchGlide {
     pub fn apply(&mut self, eye: Vec3, crouched: bool, dt: f64) -> Vec3 {
         let target = if crouched { CROUCH_DIP } else { 0.0 };
         self.dip += (target - self.dip) * (1.0 - (-GLIDE_RATE * dt.max(0.0)).exp());
-        Vec3::new(eye.x, eye.y + target - self.dip, eye.z)
+        let up = up_at(eye);
+        eye + up * target + up * -self.dip
     }
 }
 
@@ -66,7 +69,7 @@ impl StepGlide {
             return eye;
         }
         self.offset *= (-STEP_GLIDE_RATE * dt.max(0.0)).exp();
-        Vec3::new(eye.x, eye.y + self.offset, eye.z)
+        eye + up_at(eye) * self.offset
     }
 }
 

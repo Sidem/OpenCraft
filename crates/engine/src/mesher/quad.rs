@@ -85,6 +85,29 @@ pub(super) fn corner(pad: &[BlockId], light: &[u8], q: usize, du: isize, dv: isi
     ao(o1, o2, od) | (l << 2)
 }
 
+/// How far the quad at (bu, bv) of a slice's `n` × `n` mask of (key, paint) entries merges along u, then v (only where
+/// its corners' AO and light stay the same that way), clearing the cells it covers. Returns (width, height).
+pub(super) fn grow(mask: &mut [(u64, u8)], (bu, bv): (usize, usize), n: usize) -> (usize, usize) {
+    let entry = mask[bu + bv * n];
+    let [c00, c10, c11, c01] = corners_of(entry.0);
+    let mut w = 1;
+    if c00 == c10 && c01 == c11 {
+        while bu + w < n && mask[bu + w + bv * n] == entry {
+            w += 1;
+        }
+    }
+    let mut h = 1;
+    if c00 == c01 && c10 == c11 {
+        while bv + h < n && (0..w).all(|k| mask[bu + k + (bv + h) * n] == entry) {
+            h += 1;
+        }
+    }
+    for dv in 0..h {
+        mask[bu + (bv + dv) * n..bu + w + (bv + dv) * n].fill((0, 0));
+    }
+    (w, h)
+}
+
 pub(super) fn emit_quad(
     (out, lights): (&mut Vec<u32>, &mut Vec<u8>),
     face: usize,
@@ -94,9 +117,12 @@ pub(super) fn emit_quad(
     (w, h): (u32, u32),
     (key, paint): (u64, u8),
 ) {
-    let layer = (key >> KEY_LAYER) as u32 & 0xFFF; // for a liquid quad: its kind and direction (`water.rs`)
-    let lo = layer & 0x1FF;
-    let attr = (paint & 31) | (((layer >> 9) as u8) << 5);
+    let layer = (key >> KEY_LAYER) as u32 & 0xFFF; // for a liquid quad: kind and direction, then its ice (`water.rs`)
+    let (lo, attr) = if key & (1 << KEY_LIQUID) != 0 {
+        (layer & 31, (layer >> 5) as u8)
+    } else {
+        (layer & 0x1FF, (paint & 31) | (((layer >> 9) as u8) << 5))
+    };
     let corner = corners_of(key);
     let corners = [(bu, bv), (bu + w, bv), (bu + w, bv + h), (bu, bv + h)];
     let mut vs = [0u32; 4];

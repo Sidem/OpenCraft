@@ -6,18 +6,18 @@ import { BEDS, bedGains, CEILING, WATER, WATER_CEILING } from '../src/audio/ambi
 
 const NAMES = Object.keys(BEDS);
 const loudness = (g, names = NAMES) => Math.sqrt(names.reduce((sum, n) => sum + (g[n] * BEDS[n].loud) ** 2, 0));
-const levels = (over) => ({ wind: 0, surf: 0, river: 0, rain: 0, hum: 0, ...over });
+const levels = (over) => ({ wind: 0, leaves: 0, surf: 0, river: 0, rain: 0, hum: 0, ...over });
 
 test('a bed alone is never louder than the ceiling and silence stays silent', () => {
   for (const n of NAMES) assert.ok(loudness(bedGains(levels({ [n]: 1 }))) <= CEILING + 1e-9, n);
-  assert.deepEqual(bedGains(levels({})), { wind: 0, surf: 0, river: 0, rain: 0, hum: 0 });
+  assert.deepEqual(bedGains(levels({})), { wind: 0, leaves: 0, surf: 0, river: 0, rain: 0, hum: 0 });
 });
 
 test('every combination of levels stays under the ceiling, and the water under its own', () => {
   const steps = [0, 0.25, 0.5, 0.75, 1];
-  for (const wind of steps) for (const surf of steps) for (const river of steps) for (const hum of steps) for (const rain of [0, 1]) {
-    const g = bedGains(levels({ wind, surf, river, rain, hum }));
-    assert.ok(loudness(g) <= CEILING + 1e-9, `${wind} ${surf} ${river} ${rain} ${hum}`);
+  for (const wind of steps) for (const leaves of [0, 0.5, 1]) for (const surf of steps) for (const river of steps) for (const hum of steps) for (const rain of [0, 1]) {
+    const g = bedGains(levels({ wind, leaves, surf, river, rain, hum }));
+    assert.ok(loudness(g) <= CEILING + 1e-9, `${wind} ${leaves} ${surf} ${river} ${rain} ${hum}`);
     assert.ok(loudness(g, WATER) <= WATER_CEILING + 1e-9, `water ${surf} ${river}`);
   }
 });

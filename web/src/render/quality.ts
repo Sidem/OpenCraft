@@ -14,12 +14,14 @@ export interface QualitySettings {
   radius: number;
   /** Lush 3D instanced grass blades: 0 Off, 1 Low, 2 Full (render/grass.ts). */
   grass: 0 | 1 | 2;
+  /** Wind sway on trees, plants, grass, water and rain (WIND-FX); off for reduced motion. */
+  windMotion: boolean;
   /** Applies at the next page load: a WebGL context can't change it. */
   antialias: boolean;
   auto: boolean;
 }
 
-export const DEFAULTS: QualitySettings = { scale: 100, radius: DEFAULT_RADIUS, grass: 2, antialias: true, auto: true };
+export const DEFAULTS: QualitySettings = { scale: 100, radius: DEFAULT_RADIUS, grass: 2, windMotion: true, antialias: true, auto: true };
 
 const STORAGE_KEY = 'opencraft.quality';
 
@@ -31,6 +33,7 @@ function load(): QualitySettings {
     if ((SCALES as readonly unknown[]).includes(rec.scale)) s.scale = rec.scale as number;
     if ((RADII as readonly unknown[]).includes(rec.radius)) s.radius = rec.radius as number;
     if (rec.grass === 0 || rec.grass === 1 || rec.grass === 2) s.grass = rec.grass;
+    if (typeof rec.windMotion === 'boolean') s.windMotion = rec.windMotion;
     if (typeof rec.antialias === 'boolean') s.antialias = rec.antialias;
     if (typeof rec.auto === 'boolean') s.auto = rec.auto;
   } catch {

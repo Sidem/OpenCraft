@@ -53,11 +53,11 @@ fn it_carries_what_it_fetched_after_the_stop_and_what_it_stores_before() {
 
 #[test]
 fn it_leans_into_speed_and_push_but_never_past_its_limit() {
-    let still = tilt(Vec3::ZERO, Vec3::ZERO);
+    let still = tilt(Vec3::ZERO, Vec3::ZERO, Vec3::ZERO);
     assert!((still - Vec3::new(0.0, 1.0, 0.0)).length() < 1e-9, "level at rest");
-    let cruise = tilt(Vec3::ZERO, Vec3::new(16.0, 0.0, 0.0));
+    let cruise = tilt(Vec3::ZERO, Vec3::ZERO, Vec3::new(16.0, 0.0, 0.0));
     assert!(cruise.x > 0.1, "drag tilts it forward at cruise");
-    let hard = tilt(Vec3::new(500.0, 0.0, -300.0), Vec3::ZERO);
+    let hard = tilt(Vec3::ZERO, Vec3::new(500.0, 0.0, -300.0), Vec3::ZERO);
     let lean = hard.y.acos();
     assert!(lean <= MAX_LEAN + 1e-9 && lean > MAX_LEAN - 1e-3, "clamped: {lean}");
 }
