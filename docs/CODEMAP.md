@@ -144,7 +144,7 @@ local player's hands, presentation, then the **deterministic core**, which never
     `drag-throw.ts`, `craft-terms.ts`, `creative.ts`, `gear-upgrade.ts`, `box-label.ts`, `drone.ts`, `drone-slots.ts`, `slot-view.ts`.
   - Machines: `machine.ts`, `machine-upgrade.ts`, `machine-recipes.ts` (+ `recipe-rates.ts`), `rate-table.ts`, `filter-panel.ts`,
     `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `elevator.ts`, `site.ts`, `logbook.ts`, `vault.ts`, `sign.ts` (`colour-wheel.ts`,
-    `colour.ts`), `seismic.ts` + `seismic-controls.ts` + `seismic-render.ts` + `seismic-volume.ts` + `seismic-data.ts`, `train.ts`.
+    `colour.ts`), `seismic.ts` + `seismic-controls.ts` + `seismic-render.ts` + `seismic-volume.ts` + `seismic-data.ts`, `grader.ts` + `grader-map.ts` (the Site Grader's console and survey map), `train.ts`.
   - Research: `research.ts` (screen, HUD tracker), `research-frontier.ts` (pure: cells, discovery, wide rings, chains), `research-grid.ts` (rings × disciplines grid, hover lines), `research-chip.ts`, `research-now.ts` (now, ready, next-ring checklist), `research-detail.ts` (selected tech), `research-wedges.ts` (12 discipline rows), `research-kinds.ts`, `research-search.ts`, `research-queue.ts`, `codex.ts` (+ `codex-elements.ts`: periodic table & achievements; `codex-toast.ts`: unlock popups).
   - Maps: `worldmap.ts`, `pins.ts`, `map-pin-list.ts`, `map-filter.ts` + `map-filter-panel.ts`, `map-info.ts`, `map-key.ts` (+
     `map-key-rows.ts`), `map-focus.ts` + `map-focus-layer.ts`, `map-pin-editor.ts`, `map-weather.ts` (stations' readings; numbers and colours in `weather-scale.ts`), `ore-guide.ts`. Analytics (P): `analytics.ts`, a tab each in
