@@ -52,7 +52,7 @@ pub use felling::{mark_of, trunk, work_needed, Fallen, Felling, Trunk, LOW, SWIN
 pub use fire::Fire;
 pub(crate) use saplings::SAPLING_CHANCE;
 pub use timers::BlockTimers;
-pub(crate) use timers::{can_green, TimerKind, LEAF_SUPPORT_STEPS};
+pub(crate) use timers::{can_green, leaf_held_by_tree, TimerKind, LEAF_SUPPORT_STEPS};
 pub use water::WaterQueue;
 
 /// Index of a player in `Sim::players`. Ids are reused after a player leaves.

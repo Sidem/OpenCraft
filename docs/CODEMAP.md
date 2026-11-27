@@ -20,7 +20,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `events.rs`: `SimEvent`s → item spawns, sounds, toasts, analytics. `authority.rs`: bodies, loose items, join/leave. `grass_sweep.rs`: seeds grass on bare dirt near bodies (`Action::GrowGrass`).
 
 ### Deterministic core (changes only through `Action`s at a tick)
-- `sim.rs`: `Sim`, `step`, `state_hash`, `PlayerId`. `sim/`: `state.rs` (the core's bytes, in order), `event.rs`, `timers.rs` (leaf decay, grass, saplings),
+- `sim.rs`: `Sim`, `step`, `state_hash`, `PlayerId`. `sim/`: `state.rs` (the core's bytes, in order), `event.rs`, `timers.rs` (leaf decay and `leaf_held_by_tree`, grass, saplings),
   `sod.rs` (turf faces a dig uncovers start bare and regrow), `water.rs`,
   `saplings.rs`, `torches.rs`, `scrap.rs`, `vault.rs` (ruin vault puzzle), `felling.rs` + `felling/tree.rs` (grown trees felled whole), `fire/` (`blaze.rs`, `front.rs`: burning trees to charcoal, grass fronts, flamethrower rays).
 - `action.rs`: the `Action` enum. `action/`: `apply.rs` (one arm each), `clicks.rs`, `blocks.rs`, `docks.rs`, `multiblock.rs`,

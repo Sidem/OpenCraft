@@ -36,6 +36,44 @@ const LEAF_CHECK_RADIUS: i32 = 6;
 /// A leaf stays while a log is at most this many face steps away through leaves.
 pub(crate) const LEAF_SUPPORT_STEPS: i32 = 4;
 
+/// Whether the leaf at `pos` belongs to a grown tree: its wood (`block::is_tree_wood`) lies within
+/// `LEAF_SUPPORT_STEPS` face steps through leaves. Such a leaf is never broken by itself; felling takes it with the
+/// tree (`sim/felling.rs`). Leaves a player placed by their own logs (the oak's `LOG`) still break. `get` reads.
+pub fn leaf_held_by_tree(get: impl FnMut(IVec3) -> BlockId, pos: IVec3) -> bool {
+    reaches_wood(get, pos, crate::block::is_tree_wood)
+}
+
+/// Whether wood that `wood` accepts is within `LEAF_SUPPORT_STEPS` face steps of `leaf` through leaves.
+fn reaches_wood(mut get: impl FnMut(IVec3) -> BlockId, leaf: IVec3, wood: fn(BlockId) -> bool) -> bool {
+    const SPAN: i32 = 2 * LEAF_SUPPORT_STEPS + 1;
+    let mut seen = [false; (SPAN * SPAN * SPAN) as usize];
+    let index = |p: IVec3| {
+        let d = p - leaf + IVec3::new(LEAF_SUPPORT_STEPS, LEAF_SUPPORT_STEPS, LEAF_SUPPORT_STEPS);
+        ((d.y * SPAN + d.z) * SPAN + d.x) as usize
+    };
+    seen[index(leaf)] = true;
+    let mut frontier = vec![leaf];
+    for _ in 0..LEAF_SUPPORT_STEPS {
+        let mut next = Vec::new();
+        for p in frontier {
+            for n in FACES.map(|f| p + f) {
+                if std::mem::replace(&mut seen[index(n)], true) {
+                    continue;
+                }
+                let b = get(n);
+                if wood(b) {
+                    return true;
+                }
+                if is_leaves(b) {
+                    next.push(n);
+                }
+            }
+        }
+        frontier = next;
+    }
+    false
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TimerKind {
     LeafDecay = 0,
@@ -236,33 +274,7 @@ impl Sim {
 
     /// Whether a log is within `LEAF_SUPPORT_STEPS` face steps of `leaf` through leaves.
     fn leaf_supported(&mut self, leaf: IVec3) -> bool {
-        const SPAN: i32 = 2 * LEAF_SUPPORT_STEPS + 1;
-        let mut seen = [false; (SPAN * SPAN * SPAN) as usize];
-        let index = |p: IVec3| {
-            let d = p - leaf + IVec3::new(LEAF_SUPPORT_STEPS, LEAF_SUPPORT_STEPS, LEAF_SUPPORT_STEPS);
-            ((d.y * SPAN + d.z) * SPAN + d.x) as usize
-        };
-        seen[index(leaf)] = true;
-        let mut frontier = vec![leaf];
-        for _ in 0..LEAF_SUPPORT_STEPS {
-            let mut next = Vec::new();
-            for p in frontier {
-                for n in FACES.map(|f| p + f) {
-                    if std::mem::replace(&mut seen[index(n)], true) {
-                        continue;
-                    }
-                    let b = self.block(n);
-                    if is_log(b) {
-                        return true;
-                    }
-                    if is_leaves(b) {
-                        next.push(n);
-                    }
-                }
-            }
-            frontier = next;
-        }
-        false
+        reaches_wood(|p| self.block(p), leaf, is_log)
     }
 
     /// Whether the dirt at `p` can green (`can_green` on the core's blocks).

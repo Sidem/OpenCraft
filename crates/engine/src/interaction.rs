@@ -158,6 +158,13 @@ impl Game {
         }
     }
 
+    /// Whether `id` at `pos` is a leaf its grown tree holds (read from loaded chunks): it is not mined, the tree is
+    /// felled (`sim::leaf_held_by_tree`).
+    pub(crate) fn leaf_held(&self, pos: IVec3, id: block::BlockId) -> bool {
+        block::is_leaves(id)
+            && crate::sim::leaf_held_by_tree(|p| self.sim.world.get_block(p).unwrap_or(block::AIR), pos)
+    }
+
     pub(crate) fn update_mining(&mut self, dt: f32) {
         self.mine_cooldown = (self.mine_cooldown - dt).max(0.0);
         if self.ghost_mode {
@@ -189,7 +196,7 @@ impl Game {
             self.dig_timer = DIG_SOUND_INTERVAL;
             self.play(sound::DIG, def.sound, center, 1.0);
         }
-        if def.break_time < 0.0 {
+        if def.break_time < 0.0 || self.leaf_held(hit.block, hit.id) {
             return;
         }
         // A crouched swing with a Mk3+ belt takes more blocks and as much longer as the root of their count.

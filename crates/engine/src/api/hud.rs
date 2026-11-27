@@ -16,6 +16,7 @@ use crate::Game;
 /// What the readout says on a grown tree: how felling works, and when the swing is too high to count.
 const CHOP_HOW: &str = "Strike the mark near the ground for 2× speed\n\tLMB=Chop tree";
 const CHOP_LOWER: &str = "Too high up · aim near the ground";
+const LEAF_HELD: &str = "Part of its tree · fell the trunk to take it";
 
 #[wasm_bindgen]
 impl Game {
@@ -255,6 +256,9 @@ impl Game {
         let Some(hit) = self.target else { return String::new() };
         if block::is_tree_wood(hit.id) {
             return if self.chop_too_high() { CHOP_LOWER } else { CHOP_HOW }.to_string();
+        }
+        if self.leaf_held(hit.block, hit.id) {
+            return LEAF_HELD.to_string();
         }
         if let Some(text) = self.sim.factory.describe(hit.block) {
             let text = match self.town_line(hit.block) {

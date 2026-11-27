@@ -8,7 +8,7 @@ use crate::factory;
 use crate::inventory::Stack;
 use crate::item::{ItemId, LOCOMOTIVE, RAIL_SIGNAL, WAGON};
 use crate::math::{IVec3, Vec3};
-use crate::sim::{PlayerId, Sim, SimEvent};
+use crate::sim::{leaf_held_by_tree, PlayerId, Sim, SimEvent};
 use crate::tool_belt;
 
 impl Sim {
@@ -71,6 +71,10 @@ impl Sim {
         let def = block::def(id);
         // A grown tree is felled whole, never a block at a time (`sim/felling.rs`).
         if id == AIR || def.break_time < 0.0 || block::is_tree_wood(id) {
+            return None;
+        }
+        // Its leaves too: they come down with it (`sim/timers.rs`, `leaf_held_by_tree`).
+        if block::is_leaves(id) && leaf_held_by_tree(|p| self.world.block_anywhere_or_generate(p), pos) {
             return None;
         }
         let ore = block::is_ore(id);

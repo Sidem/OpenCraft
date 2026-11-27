@@ -189,6 +189,62 @@ fn a_grown_tree_does_not_mine_a_block_at_a_time_but_a_placed_log_does() {
 }
 
 #[test]
+fn a_grown_trees_leaves_do_not_break_one_by_one_but_a_hedge_does() {
+    for kind in 0..KINDS.len() {
+        let at = IVec3::new(0, Y, 0);
+        let mut sim = with_tree(&[(kind, at)]);
+        let mut leaves = Vec::new();
+        for z in -14..=14 {
+            for y in Y..Y + 60 {
+                for x in -14..=14 {
+                    let p = IVec3::new(x, y, z);
+                    if is_leaves(sim.world.block_anywhere_or_generate(p)) {
+                        leaves.push(p);
+                    }
+                }
+            }
+        }
+        assert!(!leaves.is_empty(), "kind {kind}: a crown");
+        for &p in &leaves {
+            sim.apply(P, Action::BreakBlock { pos: p });
+            assert!(is_leaves(sim.world.block_anywhere_or_generate(p)), "kind {kind}: the leaf at {p:?} broke");
+        }
+    }
+    // A hedge by a log a player placed, and a loose leaf, still break.
+    let mut sim = with_tree(&[]);
+    let (wall, hedge, loose) = (IVec3::new(10, Y + 1, 10), IVec3::new(11, Y + 1, 10), IVec3::new(-10, Y + 1, 0));
+    for (p, b) in [(wall, LOG), (hedge, block::LEAVES), (loose, block::LEAVES)] {
+        sim.world.set_block_anywhere_later(p, b);
+    }
+    for p in [hedge, loose] {
+        sim.apply(P, Action::BreakBlock { pos: p });
+        assert_eq!(sim.world.block_anywhere_or_generate(p), AIR);
+    }
+}
+
+#[test]
+fn a_felled_crown_lands_as_leaves() {
+    let at = IVec3::new(0, Y, 0);
+    let mut sim = with_tree(&[(0, at)]);
+    let t = trunk_at(&mut sim, at);
+    swings_to_fell(&mut sim, &t, true);
+    let crown = sim.fallen.pop().unwrap().blocks.iter().filter(|b| is_leaves(b.1)).count() as u32;
+    sim.events.clear();
+    for _ in 0..FALL_TICKS {
+        sim.step();
+    }
+    let landed: u32 = sim
+        .events
+        .iter()
+        .filter_map(|e| match *e {
+            SimEvent::Dropped { item, count, .. } if item == ItemId::block(block::LEAVES) => Some(count),
+            _ => None,
+        })
+        .sum();
+    assert!(crown > 0 && landed == crown.div_ceil(LEAVES_PER_ITEM), "{landed} leaves landed from a crown of {crown}");
+}
+
+#[test]
 fn a_swing_high_up_the_trunk_does_nothing() {
     let at = IVec3::new(0, Y, 0);
     let mut sim = with_tree(&[(3, at)]);

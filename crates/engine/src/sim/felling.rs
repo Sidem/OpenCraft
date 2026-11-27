@@ -3,7 +3,8 @@
 //! `SWING_SECONDS`) add work; a mark on the bark (`mark_of`) counts whole and moves once struck, a swing elsewhere
 //! counts half. When the work reaches what mining the trunk would take (`work_needed`) the tree comes down: its
 //! blocks leave the world at once (`tree.rs`), the host draws it falling (`Sim::fallen`, not state), and after
-//! `FALL_TICKS` the trunk's logs, its limbs as sticks and a sapling or two land where the trunk lies.
+//! `FALL_TICKS` the trunk's logs, its limbs as sticks, its crown as leaves and a sapling or two land where the trunk
+//! lies. The crown comes down with it: a leaf the tree holds is never broken by itself (`sim::leaf_held_by_tree`).
 //!
 //! Invariants: chops and falls change only through actions and ticks, and are saved (`write_state`); a chop is
 //! keyed by its trunk's foot (`tree::Trunk`), so swings at any of its low logs add up. Old worlds' oaks and logs a
@@ -36,6 +37,8 @@ const MARK_HEIGHT: f32 = 0.75;
 /// Limb logs for each stick a felled tree gives, and leaves for each sapling past the first.
 const LIMBS_PER_STICK: u32 = 2;
 const LEAVES_PER_SAPLING: u32 = 120;
+/// Leaf blocks of a felled crown for each leaves item it gives.
+const LEAVES_PER_ITEM: u32 = 4;
 
 /// Trees being chopped and trees falling.
 #[derive(Default, Clone, Debug, PartialEq)]
@@ -229,10 +232,10 @@ impl Sim {
             drops.push((crown, STICK, sticks));
         }
         if taken.leaves > 0 {
-            let sapling = block::sapling_of(
-                taken.blocks.iter().map(|b| b.1).find(|&b| block::is_leaves(b)).unwrap_or(block::LEAVES),
-            );
-            drops.push((crown, ItemId::block(sapling), 1 + taken.leaves / LEAVES_PER_SAPLING));
+            let leaf = taken.blocks.iter().map(|b| b.1).find(|&b| block::is_leaves(b)).unwrap_or(block::LEAVES);
+            drops.push((crown, ItemId::block(block::sapling_of(leaf)), 1 + taken.leaves / LEAVES_PER_SAPLING));
+            // Leaves can't be picked off a grown tree (`sim::leaf_held_by_tree`): its crown gives them here.
+            drops.push((crown, ItemId::block(block::def(leaf).drop), taken.leaves.div_ceil(LEAVES_PER_ITEM)));
         }
         let drops = drops
             .into_iter()

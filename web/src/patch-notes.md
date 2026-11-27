@@ -4,6 +4,11 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-27 · v0.18.5 · Whole trees
+- **A tree's leaves stay on it.** You can no longer pick leaves off a grown tree one by one; fell the trunk and the whole crown comes down with it.
+- **A felled crown gives leaves:** one Leaves for every 4 leaf blocks, landing with the logs, sticks and saplings, so thatch stays easy to make.
+- Leaves you placed yourself (a hedge) still break by hand.
+
 ## 2026-11-26 · v0.18.4 · Calendar
 - **A season chip under the map:** the year as a small ring with today's mark, the season's icon, the day of the season (3/9) and the clock, gold by day and blue by night.
 - **Shift+N opens the calendar:** the year ring with every day's daylight, today's day and night hours, and how many days until each season comes and how fast plants grow in it.
