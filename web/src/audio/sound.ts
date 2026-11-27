@@ -23,6 +23,7 @@ import {
   type SoundSettings,
 } from './settings';
 import { Ambience } from './ambience';
+import { FactoryBeat, type BeatGame } from './factory-beat';
 import { FlameLoop } from './flame-loop';
 import { Music, type MusicGame } from './music';
 import { ACTION_BASE, EVENT_ACTIONS, PREVIEW_DISTANCE, PREVIEW_VOLUME } from './sound-actions';
@@ -56,6 +57,7 @@ export class SoundSystem {
   lastMaterial = 0;
   readonly music = new Music(() => this.notify());
   readonly ambience = new Ambience(() => this.notify());
+  readonly beat = new FactoryBeat(() => this.notify());
   private readonly torch = new FlameLoop();
 
   private ctx: AudioContext | null = null;
@@ -91,7 +93,7 @@ export class SoundSystem {
   }
 
   private get channelsMuted(): boolean {
-    return this.muted && this.music.settings.muted && this.ambience.settings.muted;
+    return this.muted && this.music.settings.muted && this.ambience.settings.muted && this.beat.settings.muted;
   }
 
   get design(): SoundDesign {
@@ -122,15 +124,18 @@ export class SoundSystem {
       this.scheduleWarm(0);
       this.music.start(ctx, out);
       this.ambience.start(ctx, out);
+      this.beat.start(ctx, out);
       this.torch.start(ctx, this.effects);
       this.hush();
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
 
-  /** Call every frame (not while hidden): ambience, music and the continuous flamethrower torch read game state. */
-  poll(game: MusicGame & { torch_burning?: () => boolean; camera_yaw?: () => number; camera_pitch?: () => number }, dt: number): void {
+  /** Call every frame (not while hidden): ambience, factory beat, music and the continuous flamethrower torch read game state. */
+  poll(game: MusicGame & BeatGame & { torch_burning?: () => boolean; camera_yaw?: () => number; camera_pitch?: () => number }, dt: number): void {
     this.ambience.poll(game, dt);
+    this.beat.poll(game, dt);
+    this.music.setBeatActivity(this.beat.activity);
     this.music.poll(game, dt);
     const a = this.design.actions.flame;
     this.torch.poll(Boolean(game.torch_burning?.()), game.camera_yaw?.() ?? 0, game.camera_pitch?.() ?? 0, dt, level(a.volume), ACTION_BASE.flame.pitch * 2 ** ((a.pitch / 100 - 0.5) * 2));
@@ -160,6 +165,7 @@ export class SoundSystem {
       this.setMuted(false);
       this.music.setMuted(false);
       this.ambience.setMuted(false);
+      this.beat.setMuted(false);
     }
     return off;
   }
@@ -173,6 +179,7 @@ export class SoundSystem {
     this.settings.muteInBackground = false;
     this.music.resetLevels();
     this.ambience.resetLevels();
+    this.beat.resetLevels();
     this.effectsChanged();
     this.masterChanged();
   }
@@ -289,8 +296,10 @@ export class SoundSystem {
 
   /** Music and ambience stop (rather than play on unheard) while the master is muted, and ambience also in the background if set. */
   private hush(): void {
+    const awayBg = this.settings.masterMuted || (this.away && this.settings.muteInBackground);
     this.music.setHushed(this.settings.masterMuted);
-    this.ambience.setAway(this.settings.masterMuted || (this.away && this.settings.muteInBackground));
+    this.ambience.setAway(awayBg);
+    this.beat.setAway(awayBg);
   }
 
   private notify(): void {

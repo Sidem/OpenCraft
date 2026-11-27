@@ -300,7 +300,9 @@ a report to copy if you want to tell us about a problem. **F3** shows the frame 
 
 The menu's **Sound** page has a **Master** dial over everything (drag it, scroll on it, use the arrow keys, double-click to
 reset; a short sound plays when you stop) and a volume slider and a mute button each for sound effects, ambience (wind,
-water, birds) and music, and a choice of how the music is picked: **By place** (the default: night, caves, deserts and highlands each have a
+water, birds), **Factory beat** (nearby working machines play a warm, quantised groove on a shared beat—at most the four
+nearest families within 26 blocks—so a healthy line hums along and a starved or blocked machine leaves a gap you can hear;
+music ducks softly underneath) and music, and a choice of how the music is picked: **By place** (the default: night, caves, deserts and highlands each have a
 piece of their own, the two Open Ground pieces play by day and at the coast; a piece plays now and then with a few quiet
 minutes between, and the music changes only after you have stayed somewhere about 20 seconds), **Always calm** (soft, slow
 pieces one after another) or **Always adventurous** (fuller pieces). Switching crossfades. **K** (or **Mute all**) mutes the
