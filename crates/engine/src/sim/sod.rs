@@ -66,7 +66,7 @@ impl Sim {
         let nth = self.rng.next_u32() % mask.count_ones();
         let bit = (0..6).map(|f| 1u8 << f).filter(|&b| mask & b != 0).nth(nth as usize).unwrap_or(0);
         let rest = mask & !bit;
-        self.world.set_bare_anywhere(pos, rest);
+        self.world.grow_bare_anywhere(pos, rest);
         if rest != 0 {
             self.schedule(pos, TimerKind::SodGrow, SOD_HALF_LIFE);
         }

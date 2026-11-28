@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{AIR, WATER};
+use crate::block::{AIR, DIRT, GRASS, WATER};
 use crate::math::Vec3;
 use crate::world::Event;
 
@@ -13,12 +13,7 @@ fn world() -> (World, IVec3) {
 
 /// One host frame's streaming work; the mesh events it produced.
 fn drain(w: &mut World) -> usize {
-    loop {
-        w.begin_work();
-        if !w.work_step() {
-            break;
-        }
-    }
+    drain_keep(w);
     let events = std::mem::take(&mut w.events);
     events.iter().filter(|e| matches!(e, Event::Mesh(_))).count()
 }
@@ -47,6 +42,60 @@ fn a_change_that_stays_waits_then_reaches_the_meshes() {
     w.advance_clock(1.0);
     assert!(drain(&mut w) > 0);
     assert_eq!(w.settling_count(), 0);
+}
+
+/// One host frame's streaming work; the mesh events it produced for chunk `c` (earlier events dropped).
+fn meshed(w: &mut World, c: IVec3) -> usize {
+    w.events.clear();
+    drain_keep(w);
+    w.events.iter().filter(|e| matches!(e, Event::Mesh(m) if m.pos == c)).count()
+}
+
+fn drain_keep(w: &mut World) {
+    loop {
+        w.begin_work();
+        if !w.work_step() {
+            break;
+        }
+    }
+}
+
+#[test]
+fn growth_in_a_chunk_shares_one_remesh_after_the_wait() {
+    let (mut w, p) = world();
+    let (c, q) = (chunk_of(p), p + IVec3::new(1, 0, 0));
+    for cell in [p, q] {
+        w.set_block_anywhere(cell, DIRT);
+    }
+    w.advance_clock(1.0);
+    drain(&mut w);
+    assert!(w.grow_block_anywhere(p, GRASS), "the block changes at once");
+    assert_eq!(w.get_block(p), Some(GRASS));
+    assert_eq!(meshed(&mut w, c), 0, "the chunk waits");
+    w.advance_clock(GROWTH_WAIT / 2.0);
+    assert!(w.grow_block_anywhere(q, GRASS));
+    assert_eq!(meshed(&mut w, c), 0, "still waiting");
+    w.advance_clock(GROWTH_WAIT / 2.0 + 0.01);
+    assert_eq!(meshed(&mut w, c), 1, "both growths, one remesh, timed from the first");
+    w.advance_clock(GROWTH_WAIT * 2.0);
+    assert_eq!(meshed(&mut w, c), 0, "nothing left over");
+}
+
+#[test]
+fn a_player_edit_meshes_a_growth_held_chunk_at_once() {
+    let (mut w, p) = world();
+    let (c, q) = (chunk_of(p), p + IVec3::new(1, 0, 0));
+    // Dirt to grass changes no light, which would mark the chunk again for its own reasons.
+    for cell in [p, q] {
+        w.set_block_anywhere(cell, DIRT);
+    }
+    w.advance_clock(1.0);
+    drain(&mut w);
+    assert!(w.grow_block_anywhere(p, GRASS));
+    assert!(w.set_block_anywhere(q, GRASS), "an immediate edit remeshes now");
+    assert!(w.events.iter().any(|e| matches!(e, Event::Mesh(m) if m.pos == c)));
+    w.advance_clock(GROWTH_WAIT * 2.0);
+    assert_eq!(meshed(&mut w, c), 0, "that mesh already showed the growth");
 }
 
 #[test]

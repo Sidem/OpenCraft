@@ -234,8 +234,17 @@ impl Sim {
             TimerKind::GrassDie => self.buried(t.pos),
             TimerKind::SaplingGrow | TimerKind::SodGrow => false, // returned above
         };
-        // The remesh waits for the streaming budget: many timers fire in a burst (a felled tree's leaves).
-        if !holds || !self.world.set_block_anywhere_later(t.pos, new) {
+        // The remesh waits for the streaming budget: many timers fire in a burst (a felled tree's leaves); grass waits
+        // longer, so a spreading lawn's chunks remesh once for many cells (`world/settle.rs`).
+        if !holds {
+            return;
+        }
+        let changed = if t.kind == TimerKind::LeafDecay {
+            self.world.set_block_anywhere_later(t.pos, new)
+        } else {
+            self.world.grow_block_anywhere(t.pos, new)
+        };
+        if !changed {
             return;
         }
         if t.kind == TimerKind::GrassGrow {

@@ -216,6 +216,7 @@ impl World {
     /// Meshes `p` if all neighbours are present; emits a mesh event when the visible result changes.
     pub(super) fn remesh(&mut self, p: IVec3) -> bool {
         self.flush_near(p);
+        self.growth_meshed(p);
         let Some(refs) = neighbourhood(&self.chunks, &self.air, &self.floor, p) else { return false };
         self.mesher.set_origin([p.x << CHUNK_SHIFT, p.y << CHUNK_SHIFT, p.z << CHUNK_SHIFT]);
         let out = if Mesher::is_trivially_empty(&refs) {

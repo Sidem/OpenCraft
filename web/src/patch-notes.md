@@ -4,6 +4,9 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-28 · v0.18.8 · Smoother grass
+- **Spreading grass no longer slows the game.** Grass creeping over an old dug base made the game redraw the ground about 170 times a second; nearby grass now shows up in batches every few seconds instead, and a standing base runs about three times lighter while it spreads.
+
 ## 2026-11-27 · v0.18.7 · Gear
 - **Your left hand informs, your right hand acts.** Put a scanner, core drill or telescope in your left hand (J) and press **G** to use it. A **G** on the left-hand slot shows when that works.
 - **The scanner pings by itself** from the left hand. Hold an ore in your right hand and it looks for that ore only.
