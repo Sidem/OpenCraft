@@ -11,7 +11,26 @@ use crate::block::tex;
 use crate::math::Vec3;
 
 use super::render::{push_box, INSTANCE_FLOATS};
-use super::{smoke, tier_mark};
+use super::tier_mark;
+
+/// Emitter scale for a coal miner's chimney (`factory/smoke.rs`).
+pub(super) const SMOKE_SCALE: f32 = 0.4;
+
+/// Camera-relative chimney mouth position for a coal miner with drill face `drill` at cell centre `rel`.
+pub(super) fn chimney_mouth(drill: u8, rel: Vec3) -> Vec3 {
+    let axis = drill as usize / 2;
+    let sign = if drill.is_multiple_of(2) { 1.0 } else { -1.0 };
+    let (ua, wa) = match axis {
+        0 => (1, 2),
+        1 => (0, 2),
+        _ => (0, 1),
+    };
+    let mut d = [0.0; 3];
+    d[ua] = -0.2;
+    d[axis] = sign * -0.94;
+    d[wa] = -0.2;
+    rel + Vec3::new(d[0], d[1], d[2])
+}
 
 /// What the model shows besides its place.
 pub(super) struct Look {
@@ -23,8 +42,8 @@ pub(super) struct Look {
     /// The status lamp's texture.
     pub lamp: u16,
     pub running: bool,
-    /// A coal miner (`miner_burner.rs`): the smoke's seed. It gets a chimney instead of the tier's band.
-    pub coal_seed: Option<f64>,
+    /// A coal miner (`miner_burner.rs`) gets a chimney instead of the tier's band.
+    pub is_coal: bool,
 }
 
 /// Boxes placed in the drill's frame: `u` and `w` across it, `v` along it towards the ore.
@@ -107,38 +126,32 @@ pub(super) fn write(out: &mut Vec<f32>, rel: Vec3, look: &Look, time: f64) {
     // The motor housing with the tier's band, a fan on its back and the status lamp.
     f.shake = shiver;
     f.put([0.0, -0.35, 0.0], [0.72, 0.3, 0.72], None, [tex::MINER_TOP, look.side, tex::FRAME], false);
-    match look.coal_seed {
-        None => {
-            f.put([0.0, -0.17, 0.0], [0.76, 0.06, 0.76], None, [tex::FRAME, tex::stripe(look.tier), tex::FRAME], false);
-            // The Mk studs on the housing's sides that face the camera.
-            if tier_mark::near(rel) {
-                let (paint, s, d, half) = ([tex::paint(look.tier); 3], tier_mark::STUD, tier_mark::DEPTH, 0.36 + 0.015);
-                for side in [-half, half] {
-                    let (u_face, w_face) = (f.point([side, -0.35, 0.0]), f.point([0.0, -0.35, side]));
-                    let toward = |face: Vec3| {
-                        let n = face - f.point([0.0, -0.35, 0.0]);
-                        n.x * face.x + n.y * face.y + n.z * face.z < 0.0
-                    };
-                    let (u_seen, w_seen) = (toward(u_face), toward(w_face));
-                    for o in tier_mark::offsets(look.tier) {
-                        if u_seen {
-                            f.put([side, -0.35, o], [d, s, s], None, paint, false);
-                        }
-                        if w_seen {
-                            f.put([o, -0.35, side], [s, s, d], None, paint, false);
-                        }
+    if !look.is_coal {
+        f.put([0.0, -0.17, 0.0], [0.76, 0.06, 0.76], None, [tex::FRAME, tex::stripe(look.tier), tex::FRAME], false);
+        // The Mk studs on the housing's sides that face the camera.
+        if tier_mark::near(rel) {
+            let (paint, s, d, half) = ([tex::paint(look.tier); 3], tier_mark::STUD, tier_mark::DEPTH, 0.36 + 0.015);
+            for side in [-half, half] {
+                let (u_face, w_face) = (f.point([side, -0.35, 0.0]), f.point([0.0, -0.35, side]));
+                let toward = |face: Vec3| {
+                    let n = face - f.point([0.0, -0.35, 0.0]);
+                    n.x * face.x + n.y * face.y + n.z * face.z < 0.0
+                };
+                let (u_seen, w_seen) = (toward(u_face), toward(w_face));
+                for o in tier_mark::offsets(look.tier) {
+                    if u_seen {
+                        f.put([side, -0.35, o], [d, s, s], None, paint, false);
+                    }
+                    if w_seen {
+                        f.put([o, -0.35, side], [s, s, d], None, paint, false);
                     }
                 }
             }
         }
-        Some(seed) => {
-            // A coal miner burns its fuel: a soot-black chimney rises from the housing and smokes while it digs.
-            f.put([-0.2, -0.62, -0.2], [0.16, 0.54, 0.16], None, [tex::SOOT; 3], false);
-            f.put([-0.2, -0.9, -0.2], [0.22, 0.06, 0.22], None, [tex::SOOT; 3], false);
-            if look.running {
-                smoke::puffs(f.out, f.point([-0.2, -0.94, -0.2]), time, seed, 0.4);
-            }
-        }
+    } else {
+        // A coal miner burns its fuel: a soot-black chimney rises from the housing (smoke emitted in `factory/smoke.rs`).
+        f.put([-0.2, -0.62, -0.2], [0.16, 0.54, 0.16], None, [tex::SOOT; 3], false);
+        f.put([-0.2, -0.9, -0.2], [0.22, 0.06, 0.22], None, [tex::SOOT; 3], false);
     }
     f.put([0.0, -0.49, 0.0], [0.1, 0.04, 0.1], None, ribbed, true);
     f.put([0.0, -0.485, 0.0], [0.36, 0.03, 0.06], Some(fan), ribbed, true);

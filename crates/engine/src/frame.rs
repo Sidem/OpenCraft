@@ -96,6 +96,8 @@ impl Game {
             |cx, cz| atlas.tile(cx, cz).is_some(),
         );
         self.instances.clear();
+        let wind_ms = self.reading_here().wind() as f32 * 0.01;
+        self.smoke.begin_frame(dt, wind_ms);
         self.write_item_instances(dt, eye);
         self.write_avatars(dt, eye);
         self.write_move_marker(eye);
@@ -111,6 +113,13 @@ impl Game {
             self.sim.world.view_distance(),
             &cone,
         );
+        self.sim.factory.record_smoke(
+            &self.static_boxes.index,
+            &mut self.smoke,
+            eye,
+            time,
+            self.sim.world.view_distance(),
+        );
         let factory_to = self.instances.len() / crate::factory::INSTANCE_FLOATS;
         self.write_signs(eye);
         self.write_leds(eye);
@@ -122,6 +131,16 @@ impl Game {
             let world = &mut self.sim.world;
             let mut reader = crate::world::LightReader::default();
             factory::light_boxes(&mut self.instances, eye, |c| reader.read(world, c));
+            let strategy = self.strategy.active();
+            let atlas = &self.minimap.atlas;
+            let max_range = world.view_distance();
+            self.smoke.finish(
+                eye,
+                max_range,
+                &cone,
+                |c| reader.read(world, c),
+                |w| !strategy || atlas.tile((w.x.floor() as i32) >> 5, (w.z.floor() as i32) >> 5).is_some(),
+            );
         }
         self.write_elevator(eye);
         self.write_line_preview(eye, time);

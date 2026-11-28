@@ -14,20 +14,40 @@ pub(super) const SMALL_DISPLAY: [f32; 3] = [0.36, 0.44, 0.36];
 /// The product display of a bigger machine.
 pub(super) const DISPLAY: [f32; 3] = [0.6, 0.6, 0.6];
 
-/// A brick furnace: a dark upper ore mouth over a glowing crucible, a short chimney that smokes while it works (lower
-/// than the display beside it, which shows over it), a status lamp, the product display on its roof.
-pub(super) const SMELTER_PARTS: [Part; 11] = [
+/// A reinforced firebrick smelter: cast-iron hearth plinth, refractory brick chamber bound by four forged steel corner
+/// buckstays, a framed front firebox with cast-iron grate bars over a glowing crucible, sloped ore-charge hopper hood,
+/// brass side damper, stepped iron crown mantel, tapered round cast-iron smokestack, status lamp and roof display.
+pub(super) const SMELTER_PARTS: [Part; 22] = [
     part([0.0, -0.42, 0.0], [0.94, 0.16, 0.94], Look::Band(tex::FRAME)),
-    part([0.0, -0.06, -0.1], [0.82, 0.67, 0.72], Look::Tex(BRICK)),
-    part([0.0, 0.31, -0.1], [0.9, 0.1, 0.8], FRAME),
-    part([0.0, 0.14, 0.32], [0.46, 0.23, 0.13], SOOT),
-    part([0.0, -0.24, 0.34], [0.55, 0.2, 0.15], Look::Fire(tex::SOOT)),
-    part([0.0, -0.31, 0.46], [0.65, 0.07, 0.08], FRAME), // above the Mk studs
-    part([-0.23, 0.375, -0.23], [0.27, 0.27, 0.27], Look::Tex(BRICK)),
-    part([-0.23, 0.535, -0.23], [0.33, 0.07, 0.33], SOOT),
-    part([-0.23, 0.6, -0.23], [0.5, 0.0, 0.0], Look::Smoke),
-    part([0.33, 0.34, 0.32], [0.12, 0.08, 0.12], Look::Lamp),
-    part([0.12, 0.58, -0.05], SMALL_DISPLAY, Look::Product),
+    // Main refractory firebrick furnace chamber (x: ±0.40, y: -0.34..+0.24, z: -0.44..+0.28).
+    part([0.0, -0.05, -0.08], [0.80, 0.58, 0.72], Look::Tex(BRICK)),
+    // Four forged cast-iron corner buckstay piers reinforcing the brickwork.
+    part([-0.385, -0.05, -0.415], [0.09, 0.56, 0.09], JOINT),
+    part([0.385, -0.05, -0.415], [0.09, 0.56, 0.09], JOINT),
+    part([-0.385, -0.05, 0.255], [0.09, 0.56, 0.09], JOINT),
+    part([0.385, -0.05, 0.255], [0.09, 0.56, 0.09], JOINT),
+    // Front cast-iron firebox faceplate, protruding hearth ash sill, and sloped ore-charge hopper hood.
+    part([0.0, -0.07, 0.32], [0.58, 0.48, 0.08], JOINT),
+    part([0.0, -0.30, 0.365], [0.64, 0.06, 0.13], FRAME),
+    leaned([0.0, 0.14, 0.36], [0.46, 0.16, 0.10], SOOT, 0.0, 0.34),
+    // Crucible fire opening (soot when idle, glowing ember hearth when working) with three iron grate bars.
+    part([0.0, -0.14, 0.37], [0.38, 0.22, 0.04], Look::Fire(tex::SOOT)),
+    part([-0.10, -0.14, 0.395], [0.025, 0.21, 0.02], JOINT),
+    part([0.0, -0.14, 0.395], [0.025, 0.21, 0.02], JOINT),
+    part([0.10, -0.14, 0.395], [0.025, 0.21, 0.02], JOINT),
+    // Brass air-damper wheel on the right flank.
+    round_x([0.425, -0.05, -0.08], [0.05, 0.14, 0.14], Look::Tex([tex::MAT_BRASS; 3])),
+    // Stepped cast-iron crown mantel (y: +0.24..+0.31) and upper refractory deck (y: +0.31..+0.37).
+    part([0.0, 0.275, -0.08], [0.88, 0.07, 0.77], FRAME),
+    part([0.0, 0.34, -0.08], [0.74, 0.06, 0.66], Look::Tex(BRICK)),
+    // Rear-left brick flue collar, tapered round cast-iron smokestack, flared crown ring and smoke vent.
+    part([-0.27, 0.42, -0.27], [0.18, 0.10, 0.18], Look::Tex(BRICK)),
+    tapered([-0.27, 0.62, -0.27], [0.16, 0.30, 0.16], SOOT, 0.78),
+    round([-0.27, 0.79, -0.27], [0.17, 0.045, 0.17], JOINT),
+    part([-0.27, 0.82, -0.27], [0.5, 0.0, 0.0], Look::Smoke),
+    // Status lamp on the front-right mantel corner, and product display standing flush on the upper deck.
+    part([0.33, 0.345, 0.275], [0.10, 0.07, 0.04], Look::Lamp),
+    part([0.13, 0.59, 0.04], SMALL_DISPLAY, Look::Product),
 ];
 
 /// An open press: tray, rear gantry, a ram and head that pump while working, a status lamp, the product display on

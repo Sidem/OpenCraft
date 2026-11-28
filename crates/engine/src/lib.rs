@@ -274,6 +274,8 @@ pub struct Game {
     packed: box_pack::Packed,
     /// This frame's halos round light-giving blocks (`halos.rs`), `halos::HALO_FLOATS` each.
     halos: Vec<f32>,
+    /// Smoke stream history tracker and this frame's packed GPU emitters (`factory/smoke.rs`).
+    smoke: factory::smoke::SmokeTrack,
     /// This frame's fire emitters and active flamethrower jets (`fire_view.rs`).
     fire_view: fire_view::FireView,
     /// Whether first person shows the local player's hand and what it holds (a comfort setting; `avatars.rs`).
@@ -406,6 +408,7 @@ impl Game {
             instances: Vec::new(),
             packed: box_pack::Packed::default(),
             halos: Vec::new(),
+            smoke: factory::smoke::SmokeTrack::default(),
             fire_view: fire_view::FireView::default(),
             show_hand: true,
             wire_props: Default::default(),

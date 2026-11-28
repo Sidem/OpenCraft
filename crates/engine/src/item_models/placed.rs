@@ -31,6 +31,8 @@ struct Placed {
 const ALONG_X: u8 = 0b11;
 
 const PLACED: &[Placed] = &[
+    Placed { block: block::STORAGE, facing: 0, joined: 0 },
+    Placed { block: block::SMELTER, facing: 2, joined: 0 },
     Placed { block: block::PIPE, facing: 1, joined: ALONG_X },
     Placed { block: block::RAIL, facing: 0, joined: 0 },
     Placed { block: block::FIBRE_NODE, facing: 0, joined: 0 },

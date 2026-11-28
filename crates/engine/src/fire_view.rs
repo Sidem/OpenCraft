@@ -139,13 +139,14 @@ impl Game {
                             0.0,
                         );
                     }
-                    if d2q < (96 * 96 * 4) {
-                        smoke::puffs(
-                            &mut self.instances,
-                            base + Vec3::new(0.0, f64::from(h) * 0.9, 0.0),
-                            time,
-                            smoke::seed(b.foot),
+                    if d2q < (128 * 128 * 4) {
+                        self.smoke.record(
+                            smoke::source_key(smoke::TAG_FIRE, b.foot, 0),
+                            eye + base + Vec3::new(0.0, f64::from(h) * 0.85, 0.0),
                             1.15,
+                            smoke::seed(b.foot),
+                            1.0,
+                            smoke::KIND_FIRE,
                         );
                     }
                     if self.fire_view.halos.len() < MAX_FIRE_HALOS * HALO_FLOATS && f64::from(d2q) * 0.25 <= halo_d2 {
@@ -188,13 +189,14 @@ impl Game {
                             0.0,
                         );
                     }
-                    if d2q < (96 * 96 * 4) {
-                        smoke::puffs(
-                            &mut self.instances,
-                            base + Vec3::new(0.0, f64::from(h) * 0.72, 0.0),
-                            time,
-                            smoke::seed(b.foot),
+                    if d2q < (128 * 128 * 4) {
+                        self.smoke.record(
+                            smoke::source_key(smoke::TAG_FIRE, b.foot, 0),
+                            eye + base + Vec3::new(0.0, f64::from(h) * 0.72, 0.0),
                             1.4,
+                            smoke::seed(b.foot),
+                            1.0,
+                            smoke::KIND_FIRE,
                         );
                     }
                     if self.fire_view.halos.len() < MAX_FIRE_HALOS * HALO_FLOATS && f64::from(d2q) * 0.25 <= halo_d2 {

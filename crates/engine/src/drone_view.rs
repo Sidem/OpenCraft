@@ -57,7 +57,7 @@ impl Game {
             }
             push_capsule(out, at, 1.0, time * TICK, (i as f64 * 0.37).fract());
         }
-        self.orbit_fx.write(&mut self.instances, eye, time * TICK);
+        self.orbit_fx.write(&mut self.smoke, eye, time * TICK);
     }
 }
 

@@ -65,21 +65,39 @@ pub(super) fn drill(x: i32, y: i32) -> [u8; 4] {
     }
 }
 
-/// Stackable chest: inset timber panels, a hinged lid seam, latch and steel corners.
+/// Reinforced oak supply chest: plank boards with grain, recessed grooves, iron top/bottom strapping and bronze rivets.
 pub(super) fn crate_wood(x: i32, y: i32, top: bool) -> [u8; 4] {
-    let bracket = (x <= 2 || x >= 13) && (y <= 2 || y >= 13);
-    let frame = x <= 1 || y <= 1 || x >= 14 || y >= 14;
-    let seam = if top { y == 4 || y == 11 } else { y == 5 || y == 6 };
-    let latch = (6..=9).contains(&x) && (6..=8).contains(&y);
-    let grain = 0.87 + 0.1 * n(50, x / 3, y) + 0.05 * smooth(51, x, y, 4);
-    if bracket || latch {
-        rgb([130.0, 139.0, 143.0], 0.9 + 0.07 * n(52, x, y))
-    } else if frame || seam {
-        rgb([76.0, 59.0, 47.0], 0.9 + 0.08 * n(53, x, y))
-    } else if x == 11 || (!top && x == 5) || (top && x == 4) {
-        rgb([100.0, 79.0, 61.0], grain)
+    let grain = 0.86 + 0.12 * n(50, x / 4, y) + 0.06 * smooth(51, x, y, 4);
+    if top {
+        let rim = x == 0 || y == 0 || x == 15 || y == 15;
+        let corner = (x <= 2 || x >= 13) && (y <= 2 || y >= 13);
+        let rivet = (x == 1 || x == 14) && (y == 1 || y == 14);
+        let seam = y == 5 || y == 10;
+        if rivet {
+            return rgb([196.0, 152.0, 74.0], 1.05);
+        }
+        if rim || corner {
+            return rgb([54.0, 62.0, 76.0], 0.9 + 0.1 * n(52, x, y));
+        }
+        if seam {
+            return rgb([72.0, 48.0, 32.0], 0.9);
+        }
+        let plank = 0.94 + 0.12 * n(53, 0, y / 5);
+        return rgb([154.0, 114.0, 74.0], grain * plank);
+    }
+    let strap = y <= 2 || y >= 13;
+    let rivet = (y == 1 || y == 14) && (x == 2 || x == 7 || x == 8 || x == 13);
+    let edge = x == 0 || x == 15;
+    let groove = y == 6 || y == 10;
+    if rivet {
+        rgb([196.0, 152.0, 74.0], 1.05)
+    } else if strap || edge {
+        rgb([52.0, 60.0, 74.0], 0.88 + 0.12 * n(52, x, y))
+    } else if groove {
+        rgb([68.0, 46.0, 30.0], 0.92)
     } else {
-        rgb([165.0, 133.0, 98.0], grain)
+        let plank = 0.93 + 0.14 * n(53, 0, y / 4);
+        rgb([150.0, 110.0, 72.0], grain * plank)
     }
 }
 
@@ -102,20 +120,33 @@ pub(super) fn ingot(x: i32, y: i32, c: [f64; 3]) -> [u8; 4] {
     }
 }
 
-/// Fire bricks in running bond (rows of 4 pixels), with a glowing grate low on the sides.
+/// Kiln-fired refractory firebrick courses bound by riveted dark-iron tension bands (`SMELTER_SIDE` / `SMELTER_TOP`).
 pub(super) fn smelter(x: i32, y: i32, side: bool) -> [u8; 4] {
-    if side && (10..=13).contains(&y) && (5..=10).contains(&x) {
-        let glow = if x % 2 == 0 { 0.7 } else { 1.0 + 0.2 * n(57, x, y) };
-        return rgb([236.0, 124.0, 44.0], glow);
+    if !side {
+        let edge = x == 0 || y == 0 || x == 15 || y == 15;
+        let corner = (x == 1 || x == 14) && (y == 1 || y == 14);
+        let ring = ((x as f64 - 7.5).powi(2) + (y as f64 - 7.5).powi(2)).sqrt();
+        if corner {
+            return rgb([196.0, 152.0, 74.0], 1.0);
+        }
+        if edge || (3.2..=4.8).contains(&ring) {
+            return rgb([54.0, 62.0, 76.0], 0.9 + 0.1 * n(57, x, y));
+        }
+        if ring < 3.2 {
+            return rgb([76.0, 82.0, 92.0], 0.85 + 0.15 * n(58, x, y));
+        }
+    } else if y == 2 || y == 13 {
+        let rivet = x % 4 == 1;
+        return if rivet { rgb([196.0, 152.0, 74.0], 1.0) } else { rgb([52.0, 60.0, 74.0], 0.9 + 0.1 * n(57, x, y)) };
     }
     let row = y / 4;
     let shift = if row % 2 == 0 { 0 } else { 4 };
     let mortar = y % 4 == 3 || (x + shift) % 8 == 7;
-    let k = 0.82 + 0.14 * n(55, x, y) + 0.1 * n(56, (x + shift) / 8, row);
+    let k = 0.84 + 0.14 * n(55, x, y) + 0.12 * n(56, (x + shift) / 8, row);
     if mortar {
-        rgb([96.0, 90.0, 84.0], 0.9 + 0.1 * n(58, x, y))
+        rgb([76.0, 68.0, 66.0], 0.9 + 0.1 * n(58, x, y))
     } else {
-        rgb([151.0, 106.0, 82.0], k)
+        rgb([152.0, 88.0, 64.0], k)
     }
 }
 

@@ -16,7 +16,11 @@ use crate::TICK_RATE;
 use super::buffer::Buffer;
 use super::panel::{Panel, ROLE_FUEL};
 use super::render::push_box;
-use super::{smoke, tier_mark, Factory, Kind, Machine};
+use super::{tier_mark, Factory, Kind, Machine};
+
+/// Camera-relative chimney mouth offset from cell centre and emitter scale (`factory/smoke.rs`).
+pub(super) const CHIMNEY_MOUTH: Vec3 = Vec3::new(-0.22, 0.82, -0.26);
+pub(super) const SMOKE_SCALE: f32 = 0.45;
 
 /// What a generator tier gives, Mk1 first.
 pub struct GeneratorTier {
@@ -192,9 +196,6 @@ impl Machine for Generator {
         push_box(out, rel + Vec3::new(-0.2, 0.2, 0.2), 0.0, [0.34, 0.24, 0.3], 0.0, hopper, false);
         push_box(out, rel + Vec3::new(-0.22, 0.38, -0.26), 0.0, [0.18, 0.76, 0.18], 0.0, [tex::SOOT; 3], false);
         push_box(out, rel + Vec3::new(-0.22, 0.78, -0.26), 0.0, [0.24, 0.06, 0.24], 0.0, [tex::SOOT; 3], false);
-        if self.running() {
-            smoke::puffs(out, rel + Vec3::new(-0.22, 0.82, -0.26), time, smoke::seed(self.pos), 0.45);
-        }
         let lamp = match (self.running(), self.fuel.total() > 0 || self.energy > 0) {
             (true, _) => tex::LAMP_GREEN,
             (false, true) => tex::FRAME,

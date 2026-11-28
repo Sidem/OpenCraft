@@ -77,13 +77,33 @@ pub(super) fn draw(out: &mut Vec<f32>, base: Vec3, yaw: f32, climb: f64, thrust:
     }
     let length = thrust * (PLUME_PAD + (PLUME_CLIMB - PLUME_PAD) * (climb / 6.0).min(1.0) as f32);
     push_plume(out, at(0.0, ENGINES - 0.3, 0.0), yaw, 0.0, PLUME_WIDE * thrust.sqrt(), length, time, 0.3);
-    // Exhaust boiling out from under the mount, thinning as the rocket climbs away.
+}
+
+/// Records the boiling exhaust cloud around the launch mount into `track` (`factory/smoke.rs`).
+pub(super) fn record_smoke(
+    track: &mut smoke::SmokeTrack,
+    pos: crate::math::IVec3,
+    base: Vec3,
+    yaw: f32,
+    climb: f64,
+    thrust: f32,
+) {
+    if thrust <= 0.0 {
+        return;
+    }
     let cloud = (1.0 - climb / CLOUD_CLIMB) as f32 * thrust;
     if cloud > 0.05 {
-        for k in 0..6 {
-            let a = k as f32 / 6.0 * TAU;
+        for k in 0..6u8 {
+            let a = f32::from(k) / 6.0 * TAU;
             let puff = local(base, yaw, [f64::from(2.2 * a.cos()), -0.2, f64::from(2.2 * a.sin())]);
-            smoke::puffs(out, puff, time, k as f64 / 6.0, 2.6 * cloud);
+            track.record(
+                smoke::source_key(smoke::TAG_ROCKET, pos, k),
+                puff,
+                2.6 * cloud,
+                f64::from(k) / 6.0,
+                cloud,
+                smoke::KIND_ROCKET,
+            );
         }
     }
 }

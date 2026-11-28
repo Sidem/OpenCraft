@@ -56,6 +56,8 @@ pub(crate) struct ChunkMembers {
     pub(crate) poles: Vec<u32>,
     pub(crate) collar_poles: Vec<u32>,
     pub(crate) processors: Vec<u32>,
+    pub(crate) smoke_processors: Vec<u32>,
+    pub(crate) storages: Vec<u32>,
     pub(crate) routers: Vec<u32>,
     pub(crate) pipework: Vec<u32>,
     pub(crate) dynamic_pipes: Vec<u32>,
@@ -76,6 +78,7 @@ impl ChunkMembers {
         !(self.belts.is_empty()
             && self.poles.is_empty()
             && self.processors.is_empty()
+            && self.storages.is_empty()
             && self.routers.is_empty()
             && self.pipework.is_empty()
             && self.rails.is_empty()
@@ -91,6 +94,8 @@ impl ChunkMembers {
         self.poles.clear();
         self.collar_poles.clear();
         self.processors.clear();
+        self.smoke_processors.clear();
+        self.storages.clear();
         self.routers.clear();
         self.pipework.clear();
         self.dynamic_pipes.clear();
@@ -163,6 +168,9 @@ impl ChunkIndex {
         for (i, p) in f.processors.iter().enumerate() {
             let m = self.chunks.entry(chunk_of(p.pos)).or_default();
             m.processors.push(i as u32);
+            if p.has_smoke() {
+                m.smoke_processors.push(i as u32);
+            }
             mix_ivec3(&mut m.factory_fp, p.pos);
             let bits = u64::from(p.spec.block)
                 | (u64::from(p.dir) << 16)
@@ -170,6 +178,12 @@ impl ChunkIndex {
                 | (u64::from(p.channel()) << 24)
                 | (u64::from(p.is_compact()) << 32);
             mix(&mut m.factory_fp, bits);
+        }
+        for (i, s) in f.storages.iter().enumerate() {
+            let m = self.chunks.entry(chunk_of(s.pos)).or_default();
+            m.storages.push(i as u32);
+            mix_ivec3(&mut m.factory_fp, s.pos);
+            mix(&mut m.factory_fp, u64::from(s.tier));
         }
         for (i, r) in f.routers.iter().enumerate() {
             let m = self.chunks.entry(chunk_of(r.pos)).or_default();
@@ -299,6 +313,10 @@ impl Factory {
             let p = &self.processors[i as usize];
             p.write_static(out, rel(p.pos));
         }
+        for &i in &m.storages {
+            let s = &self.storages[i as usize];
+            s.write_static(out, rel(s.pos));
+        }
         for &i in &m.routers {
             let r = &self.routers[i as usize];
             router_model::draw_static(r, out, rel(r.pos));
@@ -370,6 +388,13 @@ impl Factory {
                     p.write_dynamic(out, rel, time);
                 }
             }
+            for &i in &m.storages {
+                let s = &self.storages[i as usize];
+                let rel = s.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye;
+                if rel.x * rel.x + rel.y * rel.y + rel.z * rel.z <= range2 {
+                    s.write_dynamic(out, rel);
+                }
+            }
             for &i in &m.dynamic_pipes {
                 let p = &self.pipework[i as usize];
                 let rel = p.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye;
@@ -379,7 +404,6 @@ impl Factory {
             }
         }
         models_in_view(&self.miners, out, eye, time, range, cone);
-        models_in_view(&self.storages, out, eye, time, range, cone);
         models_in_view(&self.generators, out, eye, time, range, cone);
         models_in_view(&self.labs, out, eye, time, range, cone);
         // Not culled: a quarry's drill hangs down to the depth it digs, far past `MODEL_REACH`; quarries are few.

@@ -91,46 +91,79 @@ def arch_mask(x0=34, x1=94, top=48, bottom=120):
 
 
 def smelter_side(seed=0):
-    """Firebrick wall with an iron-framed furnace mouth full of ember glow and soot above it."""
+    """Kiln-fired refractory firebrick courses bound by riveted dark-iron tension straps with bronze rivets."""
     X, Y = coords()
-    img = bricks(seed + 20, heights=(32, 32, 32, 32), moss=False)[..., :3].copy()
-    # recolour the courses with the firebrick ramp, keeping their light and shade
-    lum = (img.astype(float) @ [0.3, 0.59, 0.11]) / 255.0
-    img = paint(FIREBRICK, np.clip(lum * 1.05 + 0.05, 0, 1), 0.3)
-    mouth = arch_mask()
-    frame_m = grow(mouth, 6) & ~mouth
-    soot = np.clip((np.arange(N)[:, None] - 0) / 1.0, 0, 1) * 0
-    above = np.clip(1 - (np.arange(N)[:, None] / 70.0), 0, 1) * (np.abs(np.arange(N)[None, :] - 64) < 34) * (fbm(X, Y, 8, 2, seed + 4) + 0.3)
-    img = np.where((above > 0.45)[..., None], paint(FIREBRICK, 0.08 + 0.1 * fbm(X, Y, 12, 2, seed + 5), 0.3), img)
-    iron = paint(STEEL, 0.25 + 0.35 * relief_light(grow(mouth, 6).astype(float) * 4, 1.2) + 0.1 * fbm(X, Y, 20, 2, seed), 0.3)
-    img = np.where(frame_m[..., None], iron, img)
     ys, xs = np.mgrid[0:N, 0:N]
-    flame = 1 - ((120 - ys) / 72.0) * 0.9 + (fbm(X * 1.0, Y * 0.6, 7, 3, seed + 6) - 0.5) * 0.9
-    heat = np.clip(flame, 0, 1)
-    fire = paint(EMBER, 0.12 + heat * 0.88, 0.3)
-    img = np.where(mouth[..., None], fire, img)
-    for cx, cy in ((24, 56), (104, 56), (24, 112), (104, 112)):
-        rivet(img, cx, cy, 3, STEEL)
-    glow = np.where(mouth, np.clip(0.35 + heat * 0.65, 0, 1), 0.0)
-    return rgba(img, glow=glow)
+    # 5 irregular brick courses (clean masonry for all four walls & flue collar; front 3D grate carries the live fire).
+    img = bricks(seed + 20, heights=(26, 24, 26, 26, 26), mortar=2, moss=False)[..., :3].copy()
+    lum = (img.astype(float) @ [0.3, 0.59, 0.11]) / 255.0
+    # Subtle per-brick heat variation and light soot darkening near the top crown.
+    heat_var = (fbm(X, Y, 5, 3, seed + 22) - 0.5) * 0.22
+    top_soot = np.clip(1.0 - ys / 40.0, 0.0, 1.0) * (0.14 + 0.16 * fbm(X, Y, 9, 2, seed + 23))
+    img = paint(FIREBRICK, np.clip(lum * 1.06 + 0.04 + heat_var - top_soot, 0.02, 0.96), 0.28)
+    # Recessed iron border edges on left & right so panel edges seat cleanly behind corner buckstays.
+    edge_m = (xs < 5) | (xs >= N - 5)
+    edge_steel = paint(STEEL, 0.22 + 0.14 * fbm(X, Y, 12, 2, seed + 24), 0.2)
+    img = np.where(edge_m[..., None], edge_steel, img)
+    # Two heavy forged dark-iron tension bands across the brickwork (top & bottom third).
+    brush = (vnoise(X * 4, Y * 80, 4, seed + 25) - 0.5) * 0.14
+    wear = (fbm(X, Y, 8, 2, seed + 26) - 0.5) * 0.16
+    for y0, y1 in ((12, 26), (100, 114)):
+        band = (ys >= y0) & (ys < y1)
+        dy = np.minimum(ys - y0, y1 - 1 - ys)
+        bevel = np.where(ys == y0, 0.34, np.where(ys == y0 + 1, 0.20, np.where(ys == y1 - 1, -0.32, np.where(ys == y1 - 2, -0.16, 0.0))))
+        strap = paint(STEEL, np.clip(0.36 + bevel + brush + wear, 0.04, 0.92), 0.22)
+        img = np.where(band[..., None], strap, img)
+        # Drop shadow right under each iron strap onto the brick below.
+        shad = (ys >= y1) & (ys < y1 + 3)
+        img = np.where(shad[..., None], paint(FIREBRICK, np.clip(lum * 0.48, 0.02, 0.4), 0.25), img)
+        cy = (y0 + y1) // 2
+        for cx in (16, 48, 80, 112):
+            rivet(img, cx, cy, 3, BRONZE)
+    # Authentic cast-iron square wall-tie anchor plates with bronze nuts at mid-height flanks.
+    for cx in (22, 106):
+        plate_m = (np.abs(xs - cx) <= 6) & (np.abs(ys - 64) <= 6)
+        plate_rim = (np.abs(xs - cx) == 6) | (np.abs(ys - 64) == 6)
+        lit_edge = (xs == cx - 5) | (ys == 64 - 5)
+        img = np.where((plate_m & ~plate_rim)[..., None], np.where(lit_edge[..., None], STEEL[4], STEEL[2]), img)
+        img = np.where((plate_m & plate_rim)[..., None], STEEL[0], img)
+        rivet(img, cx, 64, 3, BRONZE)
+    return rgba(img)
 
 
 def smelter_top(seed=0):
-    """Firebrick deck inside an iron rim, a glowing vent grate."""
+    """Refractory firebrick hearth deck inside a riveted iron rim with a central cast-iron circular damper hatch."""
     X, Y = coords()
-    base = bricks(seed + 21, heights=(32, 32, 32, 32), moss=False)[..., :3]
-    lum = (base.astype(float) @ [0.3, 0.59, 0.11]) / 255.0
-    img = paint(FIREBRICK, np.clip(lum + 0.05, 0, 1), 0.3)
-    rim_img, rim, d = plate(seed + 7, 9)
-    img = np.where(rim[..., None], rim_img, img)
     ys, xs = np.mgrid[0:N, 0:N]
-    vent = (np.abs(xs - 64) < 24) & (np.abs(ys - 64) < 24) & (((xs - 40) // 6) % 2 == 0)
-    img = np.where(vent[..., None], paint(EMBER, 0.45 + 0.4 * fbm(X, Y, 6, 2, seed + 8), 0.3), img)
-    wall = grow(vent | ((np.abs(xs - 64) < 26) & (np.abs(ys - 64) < 26)), 2) & ~vent & (np.abs(xs - 64) < 27) & (np.abs(ys - 64) < 27)
-    img = np.where(wall[..., None] & ~vent[..., None], STEEL[2], img)
+    base = bricks(seed + 21, heights=(32, 32, 32, 32), mortar=2, moss=False)[..., :3]
+    lum = (base.astype(float) @ [0.3, 0.59, 0.11]) / 255.0
+    soot = np.clip(1.0 - np.hypot(xs - 63.5, ys - 63.5) / 56.0, 0.0, 1.0) * 0.18
+    img = paint(FIREBRICK, np.clip(lum * 1.02 + 0.03 - soot, 0.04, 0.92), 0.28)
+    rim_img, rim, _ = plate(seed + 7, 9, STEEL)
+    img = np.where(rim[..., None], rim_img, img)
+    # Central circular cast-iron damper inspection hatch with bronze flange ring and radial stiffening ribs.
+    dx, dy = xs - 63.5, ys - 63.5
+    r = np.hypot(dx, dy)
+    ang = np.arctan2(dy, dx)
+    flange = (r >= 27) & (r < 35)
+    cover = r < 27
+    ribs = cover & (r > 7) & (np.abs(np.sin(ang * 3.0)) < 0.16)
+    ring_l = 0.5 + 0.35 * np.cos(ang + np.pi * 0.75)
+    img = np.where(flange[..., None], paint(BRONZE, np.clip(0.32 + 0.38 * ring_l + (fbm(X, Y, 10, 2, seed + 8) - 0.5) * 0.14, 0.05, 0.92), 0.22), img)
+    cover_v = 0.28 + 0.14 * (1.0 - r / 28.0) + 0.16 * (ring_l - 0.5) + (fbm(X, Y, 14, 2, seed + 9) - 0.5) * 0.14
+    img = np.where(cover[..., None], paint(STEEL, np.clip(cover_v, 0.05, 0.85), 0.22), img)
+    img = np.where(ribs[..., None], paint(STEEL, np.clip(cover_v + 0.22, 0.12, 0.94), 0.2), img)
+    # Dark outer groove around the damper flange.
+    groove = (r >= 35) & (r < 37)
+    img = np.where(groove[..., None], STEEL[0], img)
+    # Center bronze damper boss and flange bolts.
+    rivet(img, 64, 64, 5, BRONZE)
+    for k in range(6):
+        a = k * np.pi / 3.0
+        rivet(img, int(round(63.5 + np.cos(a) * 31)), int(round(63.5 + np.sin(a) * 31)), 2, STEEL)
     for cx, cy in ((18, 18), (109, 18), (18, 109), (109, 109)):
-        rivet(img, cx, cy, 3, STEEL)
-    return rgba(img, glow=np.where(vent, 0.7, 0.0))
+        rivet(img, cx, cy, 3, BRONZE)
+    return rgba(img)
 
 
 def generator_side(seed=0):

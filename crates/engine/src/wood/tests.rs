@@ -153,3 +153,27 @@ fn every_wood_burns_as_fuel_recycles_and_lists_its_uses() {
         assert_eq!(crate::item_guide::uses(planks), crate::item_guide::uses(oak_planks));
     }
 }
+
+#[test]
+fn logs_cannot_be_placed_manually() {
+    use crate::action::Action;
+    use crate::sim::{PlayerId, Sim};
+    for w in 0..WOODS {
+        let log = item(w, Form::Log);
+        assert_eq!(log.places(), None, "wood {w} log must not be placeable");
+    }
+    for b in 0..block::BLOCK_COUNT as BlockId {
+        if block::is_log(b) {
+            assert!(!block::def(b).placeable, "log block {} must not be placeable", block::def(b).name);
+        }
+    }
+    let mut sim = Sim::new(7, 2);
+    let p = PlayerId(0);
+    let pos = crate::math::IVec3::new(0, 120, 0);
+    sim.world.set_block_anywhere(pos, block::AIR);
+    sim.apply(p, Action::Give { item: ItemId::block(LOG), count: 4 });
+    let slot = sim.player(p).unwrap().inventory.slots.iter().position(|s| s.item == ItemId::block(LOG)).unwrap() as u8;
+    sim.apply(p, Action::PlaceBlock { pos, slot, facing: 0, against: pos - crate::math::IVec3::new(0, 1, 0) });
+    assert_eq!(sim.world.block_anywhere_or_generate(pos), block::AIR, "placing a log leaves air");
+    assert_eq!(sim.player(p).unwrap().inventory.count(ItemId::block(LOG)), 4, "log stack is untouched");
+}

@@ -309,6 +309,30 @@ impl Game {
         crate::fire_view::FIRE_FLOATS
     }
 
+    /// Byte offset of this frame's packed smoke emitters (`factory/smoke.rs`): `smoke_count()` records of
+    /// `smoke_floats()` 32-bit words (7 f32 + 1 u32 stream history bitmask).
+    pub fn smoke_ptr(&self) -> usize {
+        self.smoke.out.as_ptr() as usize
+    }
+
+    pub fn smoke_count(&self) -> usize {
+        self.smoke.out.len() / crate::factory::smoke::SMOKE_FLOATS
+    }
+
+    pub fn smoke_floats(&self) -> usize {
+        crate::factory::smoke::SMOKE_FLOATS
+    }
+
+    /// Wrapped plume phase synchronized with the engine's 32-bit smoke stream masks.
+    pub fn smoke_phase(&self) -> f32 {
+        self.smoke.gpu_phase()
+    }
+
+    /// Mirrors the host's wind-motion comfort toggle so the engine's plume clock matches the renderer's wind ease.
+    pub fn set_wind_motion(&mut self, on: bool) {
+        self.smoke.wind_motion = on;
+    }
+
     /// Interpolated render time (seconds) for shader animations (fire flames, embers).
     pub fn render_time(&self) -> f32 {
         self.render_time as f32

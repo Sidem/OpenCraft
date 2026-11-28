@@ -133,7 +133,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `main.ts`: bootstrap, frame loop. `flare.ts` (Shift+F raises a flare, alone or through co-op), `pause.ts`, `input.ts` (keys, mouse, one-shot `Action`s), `controls/view.ts`, `base.css`,
   `patch-notes.md`.
 - `render/`: `renderer.ts` (+ `frame.ts`), `mesh-events.ts`, `shaped.ts`, `falling.ts`, `geometry.ts`, `shaders.ts`, `boxes.ts` +
-  `round-mesh.ts` + `box-glsl.ts`, `water.ts` + `water-glsl.ts` (its shader parts, ice), `outlines.ts`, `precip.ts`, `grass.ts` (GPU-instanced 3D grass blades), `halos.ts`, `fire.ts` (instanced shader flames & embers), `sky.ts` + `sky/`, `art-pack.ts` (128 px pack),
+  `round-mesh.ts` + `box-glsl.ts`, `water.ts` + `water-glsl.ts` (its shader parts, ice), `outlines.ts`, `precip.ts`, `grass.ts` (GPU-instanced 3D grass blades), `halos.ts`, `fire.ts` (instanced shader flames & embers), `smoke.ts` + `smoke-glsl.ts` (GPU-expanded volumetric wind-reactive smoke), `sky.ts` + `sky/`, `art-pack.ts` (128 px pack),
   `art/` (the pack's files), `held-light.ts`, `sign-faces.ts` + `sign-layout.ts`, `tier-paint.ts` + `tier-wire.ts` (a tier palette recolours the baked layers), `frame-stats.ts`, `gpu-probe.ts`, `quality.ts`, `auto-quality.ts`, `gl.ts`, `mat4.ts`.
 - `audio/`: `sound.ts` (master bus), `sound-actions.ts`, `synth.ts` + `synth-orbit.ts` + `synth-fire.ts` + `synth-seismic.ts` + `synth-chime.ts` (Codex unlock chimes) + `synth-beat.ts` (8 warm acoustic factory-instrument voices) + `flame-loop.ts` (continuous torch audio), `settings.ts`, `ambience.ts` +
   `ambience-levels.ts` + `ambience-mix.ts` + `synth-ambience.ts`, `factory-beat.ts` + `beat-score.ts` (shared-beat factory groove), `surroundings.ts`, `music.ts` + `music-director.ts` +

@@ -4,6 +4,11 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-28 · v0.18.11 · Volumetric wind-reactive smoke, redesigned Smelter & Storage Box
+- **Volumetric, wind-reactive streaming smoke.** Machine chimneys, locomotives, rocket pads, and burning trees now emit GPU-expanded billowing smoke clouds that curl lazily in calm air and churn chaotically with travelling gusts in high wind. Turning a machine on starts smoke cleanly at the chimney lip and rises upward; shutting it off detaches the plume to drift away naturally instead of flickering.
+- **Redesigned Smelter & Storage Box.** Both machines now feature bespoke 3D models, higher-craft 128 px textures, and updated hotbar icons—a refractory-brick iron-banded Smelter with glowing hearth and tapered chimney, and a chamfered oak-and-iron Storage Box with latched lid and recessed iron corners.
+- **No manual log placement.** Wood logs can no longer be placed back into the world as blocks (they remain usable for crafting and fuel).
+
 ## 2026-11-28 · v0.18.10 · Tidier left hand, mineable ice & finite water with springs
 - **A quieter, more useful left hand.** Your left hand now holds only items that do something there—scanners, core drill, telescope, line hook, and lights (torches and lamps). It rests lower at the edge of the screen so it stays out of your view, lifts when you press **G**, and holds torches and lamps compactly (torches now have a slim 3D handheld model).
 - **Real, mineable ice on top of frozen water.** In freezing weather only the top layer of still lakes and ponds turns into translucent **Ice** blocks, leaving liquid water underneath. You can mine and place ice blocks anywhere, and they gradually melt back to water (and melt away in your inventory) whenever you are above 0 °C.

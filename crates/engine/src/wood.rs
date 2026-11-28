@@ -51,9 +51,11 @@ pub fn of(id: ItemId) -> Option<(usize, Form)> {
     if (FIRST_WOOD_LOG.0..FIRST_WOOD_LOG.0 + block::OTHER_WOODS as u16).contains(&i) {
         return Some((1 + (i - FIRST_WOOD_LOG.0) as usize, Form::Log));
     }
+    if id == ItemId::block(LOG) {
+        return Some((0, Form::Log));
+    }
     let b = id.places()?;
     match b {
-        LOG => Some((0, Form::Log)),
         PLANKS => Some((0, Form::Planks)),
         WOOD_FLOOR => Some((0, Form::Floor)),
         WOOD_DOOR => Some((0, Form::Door)),

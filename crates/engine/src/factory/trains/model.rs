@@ -157,10 +157,10 @@ impl Factory {
         Some(Pose::new((front + rear) * 0.5 - eye, front - rear))
     }
 
-    /// Draws every car of every train within `range` of the camera at `eye`; a moving locomotive smokes, and an open
-    /// wagon shows a heap of what it carries most of, as high as it is full.
-    pub(in crate::factory) fn write_train_models(&self, out: &mut Vec<f32>, eye: Vec3, time: f64, range: f64) {
-        for (i, t) in self.trains.iter().enumerate() {
+    /// Draws every car of every train within `range` of the camera at `eye`; an open wagon shows a heap of what it
+    /// carries most of, as high as it is full. Locomotive smoke is emitted via [`write_train_smoke`].
+    pub(in crate::factory) fn write_train_models(&self, out: &mut Vec<f32>, eye: Vec3, _time: f64, range: f64) {
+        for t in &self.trains {
             for car in 0..=t.cars {
                 let Some(pose) = self.car_pose(t, car, eye).filter(|p| p.mid.length() <= range) else { continue };
                 let spin = (-f64::from(t.odo) / 1000.0 / WHEEL_R).rem_euclid(std::f64::consts::TAU) as f32;
@@ -170,11 +170,27 @@ impl Factory {
                     pose.draw(out, &[(0.0, HOLD + h * 0.5, 0.0, [0.7, h as f32, 2.1], layer, B)], 0.0);
                     pose.draw(out, &[(0.0, HOLD + h + crown * 0.5, 0.0, [0.42, crown as f32, 1.5], layer, B)], 0.0);
                 }
-                if car == 0 && t.idle.is_none() {
-                    let [x, y, z] = CHIMNEY_MOUTH;
-                    smoke::puffs(out, pose.point(x, y, z), time, (i as f64 * 0.37).fract(), PUFF);
-                }
             }
+        }
+    }
+
+    /// Records active smoke sources for moving locomotives within `range` of `eye` (`factory/smoke.rs`).
+    pub(in crate::factory) fn record_train_smoke(&self, track: &mut smoke::SmokeTrack, eye: Vec3, range: f64) {
+        for (i, t) in self.trains.iter().enumerate() {
+            if t.idle.is_some() {
+                continue;
+            }
+            let Some(pose) = self.car_pose(t, 0, eye).filter(|p| p.mid.length() <= range) else { continue };
+            let [x, y, z] = CHIMNEY_MOUTH;
+            let world_at = eye + pose.point(x, y, z);
+            track.record(
+                smoke::source_key(smoke::TAG_LOCO, IVec3::new(i as i32, 0, 0), 0),
+                world_at,
+                PUFF,
+                (i as f64 * 0.37).fract(),
+                1.0,
+                smoke::KIND_LOCO,
+            );
         }
     }
 }

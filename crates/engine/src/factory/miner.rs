@@ -24,7 +24,7 @@ use super::miner_burner::{Burner, COAL_STATS, COAL_TIER};
 use super::miner_model::{self, Look};
 use super::power::{FULL_SPEED, NOT_WIRED};
 use super::provenance::Tag;
-use super::{smoke, Factory, Kind, Machine, FACES};
+use super::{Factory, Kind, Machine, FACES};
 
 /// A miner tier's numbers: upgrading gets more ore out of the same deposit, for more power.
 pub struct MinerTier {
@@ -410,7 +410,7 @@ impl Machine for Miner {
             tier: self.tier,
             lamp,
             running,
-            coal_seed: self.is_coal().then(|| smoke::seed(self.pos)),
+            is_coal: self.is_coal(),
         };
         miner_model::write(out, rel, &look, time);
     }

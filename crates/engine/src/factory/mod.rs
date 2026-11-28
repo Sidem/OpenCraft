@@ -374,6 +374,7 @@ impl Factory {
         self.remove(pos);
         add_to(&mut self.storages, Storage::new(pos), &mut self.at, Slot::Storage);
         self.dirty = true;
+        self.layout_gen = self.layout_gen.wrapping_add(1);
     }
 
     /// Removes the machine at `pos`, returning whatever it was holding or carrying.

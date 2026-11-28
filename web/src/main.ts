@@ -428,6 +428,10 @@ async function main(): Promise<void> {
       fire: new Float32Array(wasm.memory.buffer, game.fire_ptr(), game.fire_count() * game.fire_floats()),
       fireCount: game.fire_count(),
       fireFloats: game.fire_floats(),
+      smoke: new Uint32Array(wasm.memory.buffer, game.smoke_ptr(), game.smoke_count() * game.smoke_floats()),
+      smokeCount: game.smoke_count(),
+      smokeFloats: game.smoke_floats(),
+      smokePhase: game.smoke_phase(),
       renderTime: game.render_time(),
     });
     vignette.update(dt, game.camera_yaw(), game.camera_pitch(), game.eye_x(), game.eye_y(), game.eye_z());

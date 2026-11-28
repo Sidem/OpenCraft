@@ -104,12 +104,12 @@ fn leaves_held_by_another_log_stay() {
     assert_eq!(sim.block(at(-1, SKY, 0)), AIR);
     assert_eq!((sim.block(at(1, SKY, 0)), sim.block(at(2, SKY, 0))), (LEAVES, LEAVES));
 
-    // A log placed before a leaf's timer fires saves it.
+    // A log appearing (e.g. a neighbouring tree growing) before a leaf's timer fires saves it.
     for (x, b) in [(10, LOG), (11, LEAVES)] {
         sim.world.set_block_anywhere(at(x, SKY, 0), b);
     }
     sim.apply(A, Action::BreakBlock { pos: at(10, SKY, 0) });
-    place(&mut sim, at(12, SKY, 0), LOG);
+    sim.world.set_block_anywhere(at(12, SKY, 0), LOG);
     run(&mut sim, 60);
     assert_eq!(sim.block(at(11, SKY, 0)), LEAVES);
 }

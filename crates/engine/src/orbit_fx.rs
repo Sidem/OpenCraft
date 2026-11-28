@@ -7,18 +7,15 @@
 //! To add an effect: an arm in `Game::orbit_event` and, for a new sound, a `sound` id (synthesised in `web/src/audio`).
 
 use std::collections::VecDeque;
-use std::f64::consts::TAU;
 
-use crate::block::tex;
-use crate::factory::push_box;
+use crate::factory::smoke;
 use crate::item::ItemId;
 use crate::math::Vec3;
 use crate::sim::SimEvent;
 use crate::{sound, Game, TICK};
 
-/// Seconds a burst lasts, puffs in its ring, and bursts kept at once (the oldest go first).
-const LIFE: f64 = 1.8;
-const PUFFS: usize = 10;
+/// Seconds a burst lasts, and bursts kept at once (the oldest go first).
+const LIFE: f64 = 2.4;
 const MAX_BURSTS: usize = 32;
 /// Bursts further than this from the eye are not drawn.
 const DRAW_RANGE: f64 = 400.0;
@@ -55,23 +52,16 @@ impl OrbitFx {
         self.bursts.push(Burst { at, start: time, scale });
     }
 
-    /// Appends every live burst's puffs to the box instances and forgets the finished ones; `time` in seconds.
-    pub(crate) fn write(&mut self, out: &mut Vec<f32>, eye: Vec3, time: f64) {
+    /// Appends one radial-burst smoke emitter (`KIND_BURST`) per live burst and forgets finished ones; `time` in seconds.
+    pub(crate) fn write(&mut self, out: &mut smoke::SmokeTrack, eye: Vec3, time: f64) {
         self.bursts.retain(|b| time - b.start < LIFE);
         for b in &self.bursts {
             let age = ((time - b.start) / LIFE).clamp(0.0, 1.0);
-            if (b.at - eye).length() > DRAW_RANGE {
+            let rel = b.at - eye;
+            if rel.length() > DRAW_RANGE {
                 continue;
             }
-            let (scale, spread) = (f64::from(b.scale), 1.0 - (1.0 - age) * (1.0 - age));
-            let layer = if age < 0.5 { tex::SMOKE } else { tex::SMOKE_THIN };
-            for k in 0..PUFFS {
-                let angle = TAU * k as f64 / PUFFS as f64 + b.start;
-                let r = scale * (0.4 + 2.2 * spread);
-                let p = b.at - eye + Vec3::new(angle.cos() * r, scale * 0.5 * age, angle.sin() * r);
-                let size = b.scale * (0.5 + 0.9 * age as f32);
-                push_box(out, p, p.x.atan2(p.z) as f32, [size; 3], 0.0, [layer; 3], false);
-            }
+            out.push_burst(rel, b.scale, b.start.fract(), age.max(0.001) as f32);
         }
     }
 }

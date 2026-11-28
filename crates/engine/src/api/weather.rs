@@ -92,7 +92,7 @@ impl Game {
         IVec3::new(e.x.floor() as i32, e.y.floor() as i32, e.z.floor() as i32)
     }
 
-    fn reading_here(&self) -> Reading {
+    pub(crate) fn reading_here(&self) -> Reading {
         let p = self.weather_spot();
         Reading::at(&self.sim.atmosphere, self.sim.world.generator(), p.x, p.y, p.z)
     }

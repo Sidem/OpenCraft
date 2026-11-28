@@ -9,6 +9,7 @@ import { BoxPipeline } from './boxes';
 import { FirePipeline } from './fire';
 import { GrassPass } from './grass';
 import { HaloPipeline } from './halos';
+import { SmokePipeline } from './smoke';
 import type { FrameInfo, RenderStats, WaterConstants } from './frame';
 import { deleteShaped, shapedVert, uploadShaped, type ShapedPart } from './shaped';
 import { createProgram, uniforms } from './gl';
@@ -70,6 +71,7 @@ export class Renderer {
 
   private readonly boxes: BoxPipeline;
   private readonly halos: HaloPipeline;
+  private readonly smoke: SmokePipeline;
   private readonly fire: FirePipeline;
   private readonly sky: SkyPass;
   private readonly water: WaterPass;
@@ -119,6 +121,7 @@ export class Renderer {
     this.ensureQuadCapacity(1 << 15);
     this.boxes = new BoxPipeline(gl, instanceFloats);
     this.halos = new HaloPipeline(gl);
+    this.smoke = new SmokePipeline(gl);
     this.fire = new FirePipeline(gl);
     this.sky = new SkyPass(gl);
     this.water = new WaterPass(gl);
@@ -311,6 +314,7 @@ export class Renderer {
     const targetWind = this.windMotion ? Math.min(1.5, 0.16 + f.wind[2] / 10.0) : 0;
     wv[2] = this.windMotion ? wv[2] + (targetWind - wv[2]) * wease : 0;
     if (this.windMotion) wv[3] = (wv[3] + wdt * (1.2 + wv[2] * 2.4)) % (Math.PI * 200);
+    this.smoke.stepWind(wdt, f.wind[2], this.windMotion);
     const ground = this.precip.groundLook(drawn, this.skySettings.precip, now);
     const murk = 1 - 0.35 * (look?.gloom ?? 0); // gloom shortens the sight
     const fog = fogFor(sky, f.underwater, [this.viewRadius * CHUNK * 0.95 * 0.55 * murk, this.viewRadius * CHUNK * 0.95 * murk]);
@@ -424,6 +428,7 @@ export class Renderer {
     drawCalls += this.boxes.drawGhost(this.viewProj, sky, fog, f.ghost, f.ghostCount, f.ghostRound, f.ghostRoundCount, f.ghostBlocked, f.beltScroll);
     // The ghost writes no depth, so a port behind it still shows its marks; a wall still hides them.
     drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.marks, f.marksCount, f.marksRound, f.marksRoundCount, undefined, f.beltScroll);
+    drawCalls += this.smoke.draw(this.view, this.proj, f.eye, sky, fog, [wv[0], wv[1]], f.smoke, f.smokeCount, f.smokeFloats, f.smokePhase);
     drawCalls += this.halos.draw(this.view, this.proj, sky, fog.range, f.halos, f.haloCount, f.haloFloats);
     drawCalls += this.fire.draw(this.view, this.proj, f.renderTime, fog.range, f.fire, f.fireCount, f.fireFloats);
     if (!f.underwater) drawCalls += this.precip.draw(this.viewProj, f.eye, sky, drawn, this.skySettings.precip, now, wv);

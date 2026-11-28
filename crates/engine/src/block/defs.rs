@@ -72,7 +72,10 @@ const BASE_DEFS: [BlockDef; BASE_COUNT] = [
     cube("Dirt", 0.45, all(tex::DIRT), DIRT, sound::DIRT),
     cube("Grass", 0.5, pillar(tex::GRASS_SIDE, tex::GRASS_TOP, tex::DIRT), DIRT, sound::GRASS),
     cube("Sand", 0.45, all(tex::SAND), SAND, sound::SAND),
-    cube("Log", 0.9, pillar(tex::LOG_SIDE, tex::LOG_TOP, tex::LOG_TOP), LOG, sound::WOOD),
+    BlockDef {
+        placeable: false,
+        ..cube("Log", 0.9, pillar(tex::LOG_SIDE, tex::LOG_TOP, tex::LOG_TOP), LOG, sound::WOOD)
+    },
     BlockDef {
         name: "Leaves",
         render: Render::Cutout,
@@ -91,7 +94,10 @@ const BASE_DEFS: [BlockDef; BASE_COUNT] = [
     cube("Spent Rock", 0.7, all(tex::SPENT_ROCK), SPENT_ROCK, sound::STONE),
     machine("Conveyor Belt", false, 0.3, pillar(tex::FRAME, tex::BELT_TOP, tex::FRAME), BELT),
     machine("Miner Mk1", true, 0.8, pillar(tex::MINER_SIDE, tex::MINER_TOP, tex::FRAME), MINER),
-    cube("Storage Box", 0.7, pillar(tex::BOX_SIDE, tex::BOX_TOP, tex::BOX_TOP), STORAGE, sound::WOOD),
+    BlockDef {
+        sound: sound::WOOD,
+        ..machine("Storage Box", true, 0.7, pillar(tex::BOX_SIDE, tex::BOX_TOP, tex::BOX_TOP), STORAGE)
+    },
     BlockDef {
         sound: sound::STONE,
         ..machine("Smelter", true, 1.0, pillar(tex::SMELTER_SIDE, tex::SMELTER_TOP, tex::SMELTER_TOP), SMELTER)

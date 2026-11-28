@@ -106,6 +106,7 @@ export class QualityPanel {
     renderer.setViewRadius(store.settings.radius);
     renderer.setGrassQuality(store.settings.grass);
     renderer.setWindMotion(store.settings.windMotion);
+    game.set_wind_motion(store.settings.windMotion);
     game.set_view_radius(store.settings.radius);
   }
 

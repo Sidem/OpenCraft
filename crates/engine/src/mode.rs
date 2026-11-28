@@ -54,9 +54,10 @@ impl Sim {
 /// Every item a creative world offers: each placeable block (except retired dyed concretes, which are painted in place
 /// with the Paint Sprayer), then every other item (not the recycling coin, which is earned, nor `tool_belt::RETIRED`).
 pub fn creative_items() -> Vec<ItemId> {
-    let blocks = (1..256u16)
-        .map(ItemId)
-        .filter(|item| item.places().is_some() && !crate::colour::is_legacy_concrete_item(*item));
+    let blocks = (1..256u16).map(ItemId).filter(|item| {
+        (*item == ItemId::block(crate::block::LOG) || item.places().is_some())
+            && !crate::colour::is_legacy_concrete_item(*item)
+    });
     let others = (256u16..)
         .map(ItemId)
         .take_while(|&item| def(item).is_some())

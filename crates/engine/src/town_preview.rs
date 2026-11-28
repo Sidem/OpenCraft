@@ -139,8 +139,15 @@ impl Game {
             }
             for p in t.plots.iter().take(t.cursor as usize).filter(|p| p.chimney(t.kind) && !t.dormant) {
                 let mouth = p.corner(t.pos) + chimney_mouth(p.shape());
-                let at = mouth.as_vec3() + Vec3::new(0.5, 0.0, 0.5) - eye;
-                smoke::puffs(&mut self.instances, at, time, smoke::seed(mouth), 1.0);
+                let world_at = mouth.as_vec3() + Vec3::new(0.5, 0.0, 0.5);
+                self.smoke.record(
+                    smoke::source_key(smoke::TAG_TOWN, mouth, 0),
+                    world_at,
+                    0.9,
+                    smoke::seed(mouth),
+                    0.9,
+                    smoke::KIND_CHIMNEY,
+                );
             }
         }
     }

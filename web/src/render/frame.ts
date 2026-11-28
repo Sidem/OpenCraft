@@ -110,6 +110,12 @@ export interface FrameInfo {
   fire: Float32Array;
   fireCount: number;
   fireFloats: number;
+  /** Smoke emitters (engine `factory/smoke.rs`): `smokeFloats` u32 words each (7 f32 + 1 u32 stream mask), `smokeCount` of them. */
+  smoke: Uint32Array;
+  smokeCount: number;
+  smokeFloats: number;
+  /** Engine-synchronized plume phase matching each emitter's 32-bit stream history mask. */
+  smokePhase: number;
   renderTime: number;
 }
 

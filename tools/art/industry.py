@@ -6,7 +6,7 @@ the tier ramp as a band with one pip per Mk. Recipes return `Face.rgba()` tiles;
 import numpy as np
 
 from kit import AETHER, BLUE, BRONZE, CONCRETE, COPPER, DARK, EMBER, FIREBRICK, GOLD, GREEN, RED, STEEL, TIERS, VERDIGRIS, VIOLET, XS, YS, Face
-from lib import N, coords, fbm, paint, rgba, vnoise
+from lib import N, coords, fbm, hash2, paint, rgba, vnoise
 from machines import rivet
 from natural import RAMPS
 
@@ -132,24 +132,70 @@ def drill():
     return rgba(img)
 
 
+def _oak_planks(seed, rows=4):
+    """Seasoned oak tongue-and-groove planks with directional wood-fiber grain, knots and bevelled seams."""
+    X, Y = coords()
+    row = (YS * rows) // N
+    local_y = (YS * rows) % N
+    row_shift = np.array([hash2(r, 3, seed) for r in range(rows)])[row]
+    row_tone = np.array([(hash2(r, 7, seed) - 0.5) * 0.16 for r in range(rows)])[row]
+    warp = (fbm(X * 2.0 + row_shift, Y * 0.8, 4, 2, seed + 1) - 0.5) * 0.12
+    fiber = vnoise((X + row_shift) * 3.0, (Y + warp) * 54.0, 4, seed + 2)
+    fine = vnoise(X * 14.0, Y * 96.0, 14, seed + 3)
+    mottle = fbm(X, Y, 6, 3, seed + 4)
+    seam = local_y < 2
+    lit_lip = (local_y >= 2) & (local_y < 5)
+    shad_lip = local_y >= (N - 3)
+    v = 0.46 + row_tone + (fiber - 0.5) * 0.24 + (fine - 0.5) * 0.10 + (mottle - 0.5) * 0.14
+    v = np.where(lit_lip, v + 0.12, np.where(shad_lip, v - 0.10, v))
+    v = np.where(seam, 0.06, v)
+    return paint(RAMPS["oak"], np.clip(v, 0.02, 0.92), 0.25)
+
+
 def box_side():
-    """A timber crate: oak panels, bronze corner brackets, a latch."""
-    f = Face(18, RAMPS["oak"], 7)
-    f.rect((16, 16, 112, 112), RAMPS["oak"], 0.45, -1.0, 4)
-    f.rect((16, 56, 112, 72), RAMPS["oak"], 0.55, 1.0, 4)
-    for x0, y0, x1, y1 in ((8, 8, 30, 30), (98, 8, 120, 30), (8, 98, 30, 120), (98, 98, 120, 120)):
-        f.rect((x0, y0, x1, y1), BRONZE, 0.5, 1.0, 4)
-    f.rect((54, 52, 74, 78), BRONZE, 0.55, 1.0, 4)
-    f.disc((64, 64), 4, DARK, 0.3, -1.0, 2)
+    """Reinforced oak supply chest side: grained horizontal planks, stile rails, forged iron straps and bronze rivets."""
+    f = Face(18, STEEL, 6)
+    img = _oak_planks(180, rows=4)
+    # Recessed oak panel bounded by vertical timber stiles so panels sit with real cabinet depth.
+    X, Y = coords()
+    vert_grain = vnoise(X * 54.0, Y * 3.0, 4, 185)
+    stile_m = (XS >= 6) & (XS < 17) | (XS >= 111) & (XS < 122)
+    stile_bevel = np.where((XS == 6) | (XS == 111), 0.14, np.where((XS == 16) | (XS == 121), -0.14, 0.0))
+    stile_v = 0.40 + stile_bevel + (vert_grain - 0.5) * 0.20 + (fbm(X, Y, 7, 2, 186) - 0.5) * 0.12
+    img = np.where(stile_m[..., None], paint(RAMPS["oak"], np.clip(stile_v, 0.04, 0.88), 0.25), img)
+    # Subtle dark bevel line where stiles meet the inset plank field.
+    stile_edge = (XS == 17) | (XS == 110)
+    img = np.where(stile_edge[..., None], RAMPS["oak"][0], img)
+    # Keep outer dark-iron perimeter frame from Face.
+    inner = (XS >= 6) & (XS < 122) & (YS >= 6) & (YS < 122)
+    f.img[inner] = img[inner]
+    # Heavy forged dark-iron horizontal binding straps flush against top and bottom rails with bronze rivets.
+    f.rect((6, 6, 122, 20), STEEL, 0.36, 1.0, 3, grain=0.14)
+    f.rect((6, 108, 122, 122), STEEL, 0.36, 1.0, 3, grain=0.14)
+    # Recessed shadow under the upper strap for crisp relief.
+    f.rect((17, 20, 111, 23), DARK, 0.20, -1.0, 1, outline=False)
+    # Central steel cross-brace bracket and bronze stud accents.
+    f.rect((58, 20, 70, 108), STEEL, 0.32, 1.0, 3, grain=0.14)
+    f.bolts(((14, 13), (40, 13), (88, 13), (114, 13), (14, 115), (40, 115), (88, 115), (114, 115)), 3, BRONZE)
+    f.bolts(((64, 34), (64, 64), (64, 94)), 2, BRONZE)
     return f.rgba()
 
 
 def box_top():
-    f = Face(19, RAMPS["oak"], 7)
-    f.rect((16, 16, 112, 112), RAMPS["oak"], 0.5, -1.0, 4)
-    f.rect((16, 60, 112, 68), DARK, 0.2, -1.0, 2)
-    for x0, y0, x1, y1 in ((8, 8, 30, 30), (98, 8, 120, 30), (8, 98, 30, 120), (98, 98, 120, 120)):
-        f.rect((x0, y0, x1, y1), BRONZE, 0.5, 1.0, 4)
+    """Reinforced oak supply chest lid: grained oak boards inside a bevelled dark-iron frame with forged hinge straps."""
+    f = Face(19, STEEL, 8)
+    img = _oak_planks(190, rows=4)
+    inner = (XS >= 8) & (XS < 120) & (YS >= 8) & (YS < 120)
+    f.img[inner] = img[inner]
+    # Inner bevel shadow around the iron lid rim.
+    f.rect((8, 8, 120, 11), DARK, 0.22, -1.0, 1, outline=False)
+    f.rect((8, 8, 11, 120), DARK, 0.22, -1.0, 1, outline=False)
+    # Two forged dark-iron lid reinforcing / hinge straps running across the boards.
+    for x0, x1 in ((24, 36), (92, 104)):
+        f.rect((x0, 8, x1, 120), STEEL, 0.38, 1.0, 3, grain=0.14)
+        f.bolts(((x0 + 6, 22), (x0 + 6, 64), (x0 + 6, 106)), 2, BRONZE)
+    # Domed bronze corner bolts on the lid interior corners.
+    f.bolts(((15, 15), (113, 15), (15, 113), (113, 113)), 3, BRONZE)
     return f.rgba()
 
 

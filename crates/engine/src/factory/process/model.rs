@@ -129,6 +129,51 @@ impl Processor {
     pub(in crate::factory) fn write_dynamic(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         draw_dynamic(self, out, rel, time);
     }
+
+    /// Whether this processor has any smoke- or rocket-exhaust-emitting parts (`static_view.rs`).
+    pub(in crate::factory) fn has_smoke(&self) -> bool {
+        self.spec.parts.iter().any(|p| matches!(p.look, Look::Smoke | Look::Rocket))
+    }
+
+    /// Records active smoke sources for this processor into `track` (`factory/smoke.rs`). `in_chimney_range` gates
+    /// standard chimneys while allowing distant rocket launches to stay visible across the full view distance.
+    pub(in crate::factory) fn record_smoke(
+        &self,
+        track: &mut smoke::SmokeTrack,
+        world_centre: Vec3,
+        time: f64,
+        in_chimney_range: bool,
+    ) {
+        let working = self.status == Status::Working;
+        let yaw = self.dir as f32 * std::f32::consts::FRAC_PI_2;
+        let centre = world_centre + self.footprint().centre(self.dir);
+        for (idx, part) in self.spec.parts.iter().enumerate() {
+            match part.look {
+                Look::Smoke if working && in_chimney_range => {
+                    let at = local(centre, yaw, part.at.map(f64::from));
+                    track.record(
+                        smoke::source_key(smoke::TAG_PROCESSOR, self.pos, idx as u8),
+                        at,
+                        part.size[0],
+                        smoke::seed(self.pos),
+                        1.0,
+                        smoke::KIND_CHIMNEY,
+                    );
+                }
+                Look::Rocket => {
+                    if let Some(share) = batch_share(self, time) {
+                        let done = share * 1000.0;
+                        let lift = ((done - LIFT_AT) / (1000.0 - LIFT_AT)).clamp(0.0, 1.0);
+                        let thrust = ((done - IGNITE_AT) / (LIFT_AT - IGNITE_AT)).clamp(0.0, 1.0) as f32;
+                        let at = local(centre, yaw, part.at.map(f64::from));
+                        let base = at - Vec3::new(0.0, f64::from(part.size[1]) / 2.0, 0.0);
+                        super::rocket::record_smoke(track, self.pos, base, yaw, lift * lift * LIFT_HEIGHT, thrust);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
 }
 
 /// Static parts of `p` at offset-relative `rel`: hull parts, tier band box, channel mark, pipe fittings and lintels.
@@ -199,12 +244,7 @@ fn draw_dynamic_body(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) ->
                 }
                 continue;
             }
-            Look::Smoke => {
-                if working {
-                    smoke::puffs(out, at, time, smoke::seed(p.pos), part.size[0]);
-                }
-                continue;
-            }
+            Look::Smoke => continue,
             Look::Product => {
                 super::display::draw(p, out, at, yaw, part.size, time);
                 continue;
