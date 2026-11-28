@@ -2,26 +2,59 @@
 
 use super::*;
 use crate::action::Action;
-use crate::block::{STONE, TORCH};
+use crate::block::{LAMP, LED, PANEL_LIGHT, STONE, STREET, TORCH};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
-use crate::item::ItemId;
+use crate::item::{ItemId, CORE_DRILL, IRON_INGOT, LINE_HOOK, SCANNER, SCANNER_MK2, TELESCOPE};
 
 fn stack(item: impl Into<ItemId>, count: u32) -> Stack {
     Stack { item: item.into(), count }
 }
 
 #[test]
-fn swapping_trades_the_selected_stack_with_the_left_hand_and_back() {
+fn only_useful_items_are_allowed_in_the_left_hand() {
+    for good in [
+        SCANNER,
+        SCANNER_MK2,
+        CORE_DRILL,
+        TELESCOPE,
+        LINE_HOOK,
+        ItemId::block(TORCH),
+        ItemId::block(LAMP),
+        ItemId::block(PANEL_LIGHT),
+        ItemId::block(LED),
+        ItemId::block(STREET),
+    ] {
+        assert!(allowed(good), "{} should be allowed in the left hand", crate::item::name(good));
+    }
+    for bad in [ItemId::NONE, ItemId::block(STONE), IRON_INGOT] {
+        assert!(!allowed(bad), "{} should not be allowed in the left hand", crate::item::name(bad));
+    }
+}
+
+#[test]
+fn swapping_trades_useful_stacks_with_the_left_hand_and_refuses_others() {
     let mut inv = Inventory::default();
     inv.slots[2] = stack(TORCH, 20);
     inv.select(2);
     let before = inv.version;
     inv.swap_offhand();
     assert_eq!((inv.offhand, inv.selected_stack()), (stack(TORCH, 20), Stack::default()), "the whole stack moves");
+    // A non-useful item in the selected slot cannot enter the left hand.
     inv.slots[2] = stack(STONE, 5);
+    let v_refuse = inv.version;
     inv.swap_offhand();
-    assert_eq!((inv.offhand, inv.selected_stack()), (stack(STONE, 5), stack(TORCH, 20)));
+    assert_eq!((inv.offhand, inv.selected_stack()), (stack(TORCH, 20), stack(STONE, 5)));
+    assert_eq!(inv.version, v_refuse);
+    // Another useful item swaps cleanly.
+    inv.slots[2] = stack(SCANNER, 1);
+    inv.swap_offhand();
+    assert_eq!((inv.offhand, inv.selected_stack()), (stack(SCANNER, 1), stack(TORCH, 20)));
+    // An empty selected slot takes the item back out (including any legacy item from an older save).
+    inv.offhand = stack(STONE, 3);
+    inv.slots[2] = Stack::default();
+    inv.swap_offhand();
+    assert_eq!((inv.offhand, inv.selected_stack()), (Stack::default(), stack(STONE, 3)));
     assert!(inv.version > before);
 
     let mut empty = Inventory::default();
@@ -30,8 +63,11 @@ fn swapping_trades_the_selected_stack_with_the_left_hand_and_back() {
 }
 
 #[test]
-fn the_cursor_clicks_the_left_hand_like_a_slot() {
-    let mut inv = Inventory { cursor: stack(TORCH, 3), ..Default::default() };
+fn the_cursor_clicks_the_left_hand_for_useful_items_only() {
+    let mut inv = Inventory { cursor: stack(STONE, 4), ..Default::default() };
+    inv.click_offhand();
+    assert_eq!((inv.offhand, inv.cursor), (Stack::default(), stack(STONE, 4)), "stone is refused");
+    inv.cursor = stack(TORCH, 3);
     inv.click_offhand();
     assert_eq!((inv.offhand, inv.cursor), (stack(TORCH, 3), Stack::default()));
     inv.cursor = stack(TORCH, 4);

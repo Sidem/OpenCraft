@@ -17,7 +17,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `input`, `view`, `render`, `inventory`, `machine`, `crafting`, `research`, `creative`, `content`, `hud`, `sites`, `save`,
   `net`, `minimap`, `prospect`, `analytics`, `towns`, `orbit`, `ruins`, `signs`, `opening`, `blueprint`, `hand_waste`,
   `lessons`, `guide`, `surroundings`, `beat`, `xray`, `led`, `seismic`, `codex`, `static_boxes`, `calendar`, `weather` (+ `weather_map`: stations and the map's samples), `debug` (give, teleport, run_ticks, scene building).
-- `events.rs`: `SimEvent`s → item spawns, sounds, toasts, analytics. `authority.rs`: bodies, loose items, join/leave. `grass_sweep.rs`: seeds grass on bare dirt near bodies (`Action::GrowGrass`).
+- `events.rs`: `SimEvent`s → item spawns, sounds, toasts, analytics. `authority.rs`: bodies, loose items, join/leave. `grass_sweep.rs`: seeds grass on bare dirt near bodies (`Action::GrowGrass`). `ice_sweep.rs`: freezes top-layer water, schedules warm ice melt and decays inventory ice above 0 °C.
 
 ### Deterministic core (changes only through `Action`s at a tick)
 - `sim.rs`: `Sim`, `step`, `state_hash`, `PlayerId`. `sim/`: `state.rs` (the core's bytes, in order), `event.rs`, `timers.rs` (leaf decay and `leaf_held_by_tree`, grass, saplings),
@@ -26,7 +26,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `action.rs`: the `Action` enum. `action/`: `apply.rs` (one arm each), `clicks.rs`, `blocks.rs`, `docks.rs`, `multiblock.rs`,
   `codec.rs` + `codec/read.rs` (bytes; tags append only).
 - `bytes.rs`: canonical encoding (a block id is one byte below 255, else 255 and a `u16`). `save.rs`: the file, `SAVE_VERSION`. `join.rs`: const-table joins. `math.rs`: vectors, hashes, `Rng`.
-- `doors.rs`, `deposits.rs` (pools, tiers, `HAND_YIELD`), `daytime.rs` (clock and calendar: seasons, day length, growth by season), `weather/` (the atmosphere, core state saved since 92: `air.rs` a wrapping grid of temperature, vapour, cloud, pressure and wind stepped every 10 in-game minutes; `physics.rs` saturation, dew point, noise; `reading.rs` a station's reading at a place; `climate.rs` the ground's temperature and damp; `forecast.rs` the air run ahead on a copy; `ice.rs` frozen water from a place's frost, a pure function of place and date), `crafting.rs`, `take_apart.rs`, `perks.rs`, `mode.rs`, `tools.rs` (tool classes, retired tools).
+- `doors.rs`, `deposits.rs` (pools, tiers, `HAND_YIELD`), `daytime.rs` (clock and calendar: seasons, day length, growth by season), `weather/` (the atmosphere, core state saved since 92: `air.rs` a wrapping grid of temperature, vapour, cloud, pressure and wind stepped every 10 in-game minutes; `physics.rs` saturation, dew point, noise; `reading.rs` a station's reading at a place; `climate.rs` the ground's temperature and damp; `forecast.rs` the air run ahead on a copy; `ice.rs` 1-layer freeze thresholds and world/inventory melt half-life maths), `crafting.rs`, `take_apart.rs`, `perks.rs`, `mode.rs`, `tools.rs` (tool classes, retired tools).
 - `inventory.rs` + `inventory/stacks.rs` + `inventory/kinds.rs`; `equipment.rs` (worn gear, packs, upgrades); `tool_belt/` (the worn Tool Belt: speeds, crouch reach, the hand's head, migration); `offhand.rs`; `left_hand.rs` (what G does with the left hand's scanner, core drill, telescope or line hook; the drill's forecast); `line_hook.rs` (the Line Hook's pull, hold and wire ride, through `Player::pull`).
 - `research.rs`; `research/`: `techs.rs` (`TECHS`), `ids.rs`, `rings.rs` (rings, wedges, thresholds, red deeds), `red_green.rs`, `blue.rs`, `violet.rs`, `gold_sky.rs`, `later.rs` (techs added since, at the open end), `migrate.rs` (save < 86 migration), `queue.rs`, `bonus.rs`.
 - `codex/`: world-wide obtained-items bitset (save 83), `data.rs` (periodic table forms/facts), `achievements.rs`.
@@ -76,6 +76,8 @@ local player's hands, presentation, then the **deterministic core**, which never
   Space elevator (M14A): block 270 (`block/elevator.rs`), item 463, `recipes/towns.rs`, tech 78 (`research/later.rs`).
   Weather Station (ATMOS): block 271 (`block/weather_station.rs`), item 464, `recipes/solar.rs`, tech 79 Meteorology (`research/later.rs`).
   Site Grader: block 272 (`block/grader.rs`), item 465 (`item/later.rs`), `textures/grader.rs`, `item_models/grader.rs`, `factory/process/grader/` (`mod.rs`, `work.rs`, `view.rs`), bespoke control console and interactive bird's-eye survey map in `web/src/ui/grader.ts`, `grader-map.ts`, `grader-panel.css`.
+  Ice: block 274 (`block/ice.rs`), item 469 (`item/later.rs`), `textures/geology.rs` `ice`, `weather/ice.rs`, `ice_sweep.rs`.
+  River Spring: block 275 (`block/spring.rs`), `textures/geology.rs` `spring`, `worldgen/springs.rs` (v15 highland springs) & `worldgen/rivers.rs` (headwater springs).
   Clay & kilns (MAT-CLAY): blocks 263–269 (`block/clay.rs`; wide, paired in `WIDE_BLOCK_ITEMS`), items 451–457, `recipes/clay.rs` (rows 232–236, `Category::Firing`), `worldgen/clay.rs` (v14 beds and pockets), `textures/clay.rs`; river towns' `WARES` in `settlements/orders.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs`): `ItemId`; ids below 256 are blocks, wider blocks pair with items in `WIDE_BLOCK_ITEMS`. `wood.rs`: the ten woods.
 - `recipes/`: `mod.rs` (`RECIPES`; `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`; `machine_later.rs`), `process_notes.rs` (one line of real chemistry a chemical machine row; shown on its card and in the item guide), `rows.rs`, `tiers.rs`,
@@ -90,7 +92,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `chunk.rs` (32³ + sparse shapes/paint/bare turf faces/waterlogged cells), `world/mod.rs` (`*_anywhere` accessors), `world/shapes.rs` (save 84), `world/colours.rs` (save 85), `world/sod.rs` (save 90), `world/waterlog.rs` (save 91), `world/streaming.rs`, `world/boxlight.rs`,
   `world/glows.rs`, `world/settle.rs` (simulation liquid edits wait 0.15 s), `world/cover_clear.rs` (bladerang-cut columns; saved), `world/upgrade.rs` (in-place deposits-layer refresh).
 - `worldgen/mod.rs`: heights, caves, `generate`, generator versions (pinned by `released_versions_never_change`). `layers.rs` (`Layers`: ground, water, cover, deposits), `column.rs`,
-  `biome.rs`, `landform.rs`, `caves.rs`, `water.rs`, `rivers.rs` + `rivers/`, `shore.rs`, `trees.rs` (up to version 11),
+  `biome.rs`, `landform.rs`, `caves.rs`, `water.rs`, `rivers.rs` + `rivers/`, `shore.rs`, `springs.rs` (v15 highland springs), `trees.rs` (up to version 11),
   `grow/` (version 12: `kinds.rs`, `shapes.rs`, `place.rs`), `geology.rs` + `strata.rs` + `ore.rs`, `gas.rs` (v13 gas fields), `clay.rs` (v14 clay and kaolin), `bearing.rs`, `ruins.rs`, `logbook.rs`.
 - `noise.rs`, `light.rs` (sky and block light while meshing; render cache only).
 

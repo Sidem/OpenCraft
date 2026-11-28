@@ -21,7 +21,7 @@ export class OffhandSlot {
   constructor(private readonly game: Game, private readonly drawIcon: (item: number) => HTMLCanvasElement) {
     this.icon.width = this.icon.height = ICON_PX;
     this.root.append(h('span', 'key', 'J'), this.use, this.icon, this.count);
-    this.root.title = 'Left hand: J swaps it with the selected slot';
+    this.root.title = 'Left hand: holds tools (scanner, drill, telescope, line hook) or lights · J swaps';
   }
 
   /** Redraws the slot if its stack changed. */
@@ -35,7 +35,9 @@ export class OffhandSlot {
     const uses = this.game.left_use() !== 0;
     this.use.classList.toggle('hidden', !uses);
     const name = this.game.item_name(item);
-    this.root.title = n > 0 ? `${name} in the left hand (J swaps${uses ? ', G uses it' : ''})` : 'Left hand: J swaps it with the selected slot';
+    this.root.title = n > 0
+      ? `${name} in the left hand (J swaps${uses ? ', G uses it' : ''})`
+      : 'Left hand: holds tools (scanner, drill, telescope, line hook) or lights · J swaps';
     this.item = item;
     this.n = n;
   }

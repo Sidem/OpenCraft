@@ -16,11 +16,21 @@
 //! To add a timed rule: a `TimerKind` (append: saves store it as a byte), its check in `block_changed`
 //! and its effect in `fire`.
 
-use crate::block::{is_leaves, is_log, is_sapling, is_turf, sapling_of, BlockId, AIR, DIRT, GRASS, SOLID};
+use crate::block::{
+    is_leaves, is_log, is_sapling, is_turf, sapling_of, BlockId, AIR, DIRT, FLOW_1, FLOW_7, GRASS, ICE, SOLID, SPRING,
+    WATER,
+};
 use crate::bytes::{ByteReader, ByteWriter};
+use crate::inventory::Stack;
+use crate::item::ICE_ITEM;
 use crate::math::{IVec3, Vec3};
-use crate::sim::{Sim, SimEvent};
-use crate::weather::growth_due;
+use crate::sim::water::SIDES;
+use crate::sim::{PlayerId, Sim, SimEvent};
+use crate::weather::ice::{
+    can_evaporate_puddle, can_melt, melt_inventory_count, should_freeze_at, INVENTORY_MELT_HALF_LIFE,
+    INVENTORY_MELT_STEP_SECS, PUDDLE_EVAP_HALF_LIFE, PUDDLE_EVAP_MIN_SECS, WORLD_MELT_HALF_LIFE,
+};
+use crate::weather::{growth_due, Reading};
 use crate::TICK_RATE;
 
 use super::sod::SOD_HALF_LIFE;
@@ -81,6 +91,8 @@ pub enum TimerKind {
     GrassDie = 2,
     SaplingGrow = 3,
     SodGrow = 4,
+    IceMelt = 5,
+    PuddleEvap = 6,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -96,7 +108,6 @@ pub struct BlockTimers {
 }
 
 impl BlockTimers {
-    #[cfg(test)]
     pub fn len(&self) -> usize {
         self.list.len()
     }
@@ -125,6 +136,8 @@ impl BlockTimers {
                 2 => TimerKind::GrassDie,
                 3 => TimerKind::SaplingGrow,
                 4 => TimerKind::SodGrow,
+                5 => TimerKind::IceMelt,
+                6 => TimerKind::PuddleEvap,
                 _ => return None,
             };
             timers.schedule(Timer { due, pos, kind });
@@ -176,7 +189,107 @@ impl Sim {
         self.sign_cell_changed(pos, old);
         self.led_cell_changed(pos);
         self.street_cell_changed(pos, old);
+        self.check_ice(pos);
         self.water_changed(pos, old);
+    }
+
+    /// Starts an ice-melt timer for `ICE` or a puddle-evaporation timer for exposed warm `FLOW_1` at `pos`
+    /// (and neighbouring `FLOW_1` cells that may have just become isolated when `pos` thinned to `<= 1/8`).
+    pub(crate) fn check_ice(&mut self, pos: IVec3) {
+        let up = IVec3::new(0, 1, 0);
+        let b = self.block(pos);
+        if b == ICE {
+            let temp = Reading::at(&self.atmosphere, self.world.generator(), pos.x, pos.y, pos.z).temp;
+            if can_melt(temp) {
+                self.schedule(pos, TimerKind::IceMelt, WORLD_MELT_HALF_LIFE);
+            }
+        } else if b == FLOW_1 || b == AIR {
+            if b == FLOW_1 {
+                self.check_puddle_cell(pos);
+            } else if pos.y > 0 {
+                self.check_puddle_cell(pos - up);
+            }
+            for s in SIDES {
+                self.check_puddle_cell(pos + s);
+            }
+        }
+    }
+
+    fn check_puddle_cell(&mut self, pos: IVec3) {
+        let b = self.block(pos);
+        if b != FLOW_1 {
+            return;
+        }
+        let above = self.block(pos + IVec3::new(0, 1, 0));
+        let temp = Reading::at(&self.atmosphere, self.world.generator(), pos.x, pos.y, pos.z).temp;
+        if can_evaporate_puddle(b, above, pos.y, temp) && self.isolated_puddle(pos) {
+            self.schedule_after(pos, TimerKind::PuddleEvap, PUDDLE_EVAP_MIN_SECS, PUDDLE_EVAP_HALF_LIFE);
+        }
+    }
+
+    /// Whether a `FLOW_1` cell is a standalone thin puddle (not fed by a `SPRING` or adjacent to deeper `>= 2/8` water).
+    fn isolated_puddle(&mut self, pos: IVec3) -> bool {
+        !SIDES.iter().any(|&s| {
+            let n = pos + s;
+            self.block(n) == SPRING || self.water_mass(n) >= 2
+        })
+    }
+
+    /// Freezes top-layer water at `pos` into `ICE` if it is exposed to `AIR` and cold enough.
+    /// `WATER` (8/8) freezes directly; a slightly lowered `FLOW_7` (7/8) pond surface freezes by borrowing 1/8 from an
+    /// adjacent water cell (`7 + dm -> 8 (ICE) + (dm - 1)`) so total water+ice mass is strictly conserved.
+    pub(crate) fn freeze_water(&mut self, pos: IVec3) {
+        let old = self.block(pos);
+        let above = self.block(pos + IVec3::new(0, 1, 0));
+        if !should_freeze_at(&self.atmosphere, self.world.generator(), old, above, pos.x, pos.y, pos.z) {
+            return;
+        }
+        if old == FLOW_7 {
+            let mut donor: Option<(IVec3, u8)> = None;
+            let candidates =
+                [pos + SIDES[0], pos + SIDES[1], pos + SIDES[2], pos + SIDES[3], pos - IVec3::new(0, 1, 0)];
+            for c in candidates {
+                let m = self.water_mass(c);
+                if m >= 2 && donor.is_none_or(|(_, best)| m > best) {
+                    donor = Some((c, m));
+                }
+            }
+            let Some((d, dm)) = donor else { return };
+            if !self.set_water_mass(d, dm - 1) {
+                return;
+            }
+        }
+        if self.world.set_block_anywhere_later(pos, ICE) {
+            self.block_changed(pos, old);
+        }
+    }
+
+    /// Applies one interval of inventory ice melting for `player` standing at `pos` when above freezing temperature.
+    pub(crate) fn melt_inventory_ice(&mut self, player: PlayerId, pos: IVec3) {
+        let temp = Reading::at(&self.atmosphere, self.world.generator(), pos.x, pos.y, pos.z).temp;
+        if !can_melt(temp) {
+            return;
+        }
+        let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
+        let cap = core.inventory.capacity();
+        let mut changed = false;
+        let dt = INVENTORY_MELT_STEP_SECS;
+        for s in core.inventory.slots[..cap].iter_mut().chain([&mut core.inventory.cursor, &mut core.inventory.offhand])
+        {
+            if s.item == ICE_ITEM && !s.is_empty() {
+                let melted = melt_inventory_count(s.count, INVENTORY_MELT_HALF_LIFE, dt, &mut self.rng);
+                if melted > 0 {
+                    s.count -= melted;
+                    if s.count == 0 {
+                        *s = Stack::default();
+                    }
+                    changed = true;
+                }
+            }
+        }
+        if changed {
+            core.inventory.version += 1;
+        }
     }
 
     /// Starts the grass timers `p` calls for, if any: dirt that can green grows, grass with every face covered dies,
@@ -224,6 +337,8 @@ impl Sim {
             TimerKind::GrassDie => (GRASS, DIRT),
             TimerKind::SaplingGrow => return self.grow_sapling(t.pos),
             TimerKind::SodGrow => return self.grow_sod(t.pos),
+            TimerKind::IceMelt => (ICE, WATER),
+            TimerKind::PuddleEvap => (FLOW_1, AIR),
         };
         if self.block(t.pos) != block {
             return;
@@ -232,6 +347,14 @@ impl Sim {
             TimerKind::LeafDecay => is_leaves(block) && !self.leaf_supported(t.pos),
             TimerKind::GrassGrow => self.grass_can_grow(t.pos),
             TimerKind::GrassDie => self.buried(t.pos),
+            TimerKind::IceMelt => {
+                can_melt(Reading::at(&self.atmosphere, self.world.generator(), t.pos.x, t.pos.y, t.pos.z).temp)
+            }
+            TimerKind::PuddleEvap => {
+                let above = self.block(t.pos + IVec3::new(0, 1, 0));
+                let temp = Reading::at(&self.atmosphere, self.world.generator(), t.pos.x, t.pos.y, t.pos.z).temp;
+                can_evaporate_puddle(block, above, t.pos.y, temp) && self.isolated_puddle(t.pos)
+            }
             TimerKind::SaplingGrow | TimerKind::SodGrow => false, // returned above
         };
         // The remesh waits for the streaming budget: many timers fire in a burst (a felled tree's leaves); grass waits
@@ -239,7 +362,7 @@ impl Sim {
         if !holds {
             return;
         }
-        let changed = if t.kind == TimerKind::LeafDecay {
+        let changed = if matches!(t.kind, TimerKind::LeafDecay | TimerKind::IceMelt | TimerKind::PuddleEvap) {
             self.world.set_block_anywhere_later(t.pos, new)
         } else {
             self.world.grow_block_anywhere(t.pos, new)
@@ -274,7 +397,9 @@ impl Sim {
             TimerKind::GrassGrow | TimerKind::SodGrow | TimerKind::SaplingGrow => {
                 growth_due(self.world.generator(), &self.atmosphere, pos, self.tick, ticks)
             }
-            TimerKind::LeafDecay | TimerKind::GrassDie => self.tick + ticks,
+            TimerKind::LeafDecay | TimerKind::GrassDie | TimerKind::IceMelt | TimerKind::PuddleEvap => {
+                self.tick + ticks
+            }
         };
         self.timers.schedule(Timer { due: due.max(self.tick + 1), pos, kind });
     }

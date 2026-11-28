@@ -234,7 +234,7 @@ pub fn stack_size(id: ItemId) -> u32 {
 
 /// Blocks with ids of 256 and up and the item each is. Item ids stay dense (the tables are `0..ITEM_COUNT`), so
 /// such an item is an ordinary `EXTRA` row whose `places` is the block; list the pair here, in block order.
-pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 18] = [
+pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 19] = [
     (block::GAS_WELL, GAS_WELL_ITEM),
     (block::WELLHEAD_SEPARATOR, WELLHEAD_SEPARATOR_ITEM),
     (block::GAS_PLANT, GAS_PLANT_ITEM),
@@ -253,12 +253,13 @@ pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 18] = [
     (block::WEATHER_STATION, WEATHER_STATION_ITEM),
     (block::SITE_GRADER, SITE_GRADER_ITEM),
     (block::ROPE, ROPE_ITEM),
+    (block::ICE, ICE_ITEM),
 ];
 
 /// How many item ids there are: the table is `0..ITEM_COUNT`, blocks then `EXTRA`.
 pub const ITEM_COUNT: usize = 256 + EXTRA.len();
 
-const EXTRA: [ItemDef; 213] = [
+const EXTRA: [ItemDef; 214] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -476,6 +477,7 @@ const EXTRA: [ItemDef; 213] = [
     device("Headlamp", tex::LAMP, [0.7, 0.3, 0.5]),
     wide_block("Rope", tex::ROPE, block::ROPE),
     device("Line Hook", tex::MAT_GUNMETAL, [0.5, 0.8, 0.3]),
+    wide_block("Ice", tex::ICE, block::ICE),
 ];
 
 /// A wood's log: bark round, the oak's rings at the ends; it places nothing.

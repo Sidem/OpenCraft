@@ -32,7 +32,9 @@
 //! 13 = CHEM-GAS natural gas fields (`gas.rs`): deep gas shale veins and lodes on their own grid under plains,
 //! lowlands and deserts without disturbing any existing ore deposit;
 //! 14 = MAT-CLAY's clay beds by rivers, lakes and ponds and kaolin pockets in highland granite (`clay.rs`), on their own
-//! streams like the gas fields.
+//! streams like the gas fields;
+//! 15 = natural river headwater springs and standalone highland springs (`rivers.rs`, `springs.rs`) for strictly
+//! mass-conserving finite water.
 
 mod bearing;
 mod biome;
@@ -49,6 +51,7 @@ mod ore;
 mod rivers;
 mod ruins;
 mod shore;
+mod springs;
 mod strata;
 mod trees;
 mod water;
@@ -79,7 +82,7 @@ use crate::math::{hash2, hash3, smoothstep, unit, IVec3};
 use crate::noise::Perlin;
 
 /// The newest generator version, which new worlds get. A save records its world's own version.
-pub const WORLDGEN_VERSION: u32 = 14;
+pub const WORLDGEN_VERSION: u32 = 15;
 pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;
@@ -116,6 +119,8 @@ pub struct WorldGen {
     columns: FxHashMap<(i32, i32), Rc<Column>>,
     /// Version 7's river nodes and reaches (`rivers.rs`), caches.
     rivers: rivers::RiverCache,
+    /// Version 15's standalone highland springs (`springs.rs`), cache.
+    springs: springs::SpringCache,
     /// Version 3's ponds per cell (`water.rs`), a cache.
     ponds: RefCell<FxHashMap<(i32, i32), Option<water::Pond>>>,
     /// The last cell asked about, which neighbouring columns nearly always share.
@@ -155,6 +160,7 @@ impl WorldGen {
             meander: Perlin::new(s ^ 0x0B),
             columns: FxHashMap::default(),
             rivers: Default::default(),
+            springs: Default::default(),
             ponds: RefCell::default(),
             last_pond: Cell::new(None),
             ruins: RefCell::default(),
@@ -187,6 +193,9 @@ impl WorldGen {
         let mut h = self.base_height(x, z);
         if self.layers.water >= 7 {
             h = self.shape_rivers(x, z, h);
+        }
+        if self.layers.water >= 15 {
+            h = self.shape_springs(x, z, h);
         }
         if self.layers.water >= 3 {
             self.shape_ponds(x, z, h)
@@ -353,6 +362,15 @@ impl WorldGen {
         for r in &col.ruins {
             r.stamp(base, &mut b);
         }
+        for &sp in &col.springs {
+            if sp.y >= base.y && sp.y < base.y + CHUNK_SIZE {
+                let (lx, ly, lz) = ((sp.x - base.x) as usize, (sp.y - base.y) as usize, (sp.z - base.z) as usize);
+                b[index(lx, ly, lz)] = SPRING;
+                if ly > 0 {
+                    b[index(lx, ly - 1, lz)] = STONE;
+                }
+            }
+        }
         Chunk::from_blocks(b)
     }
 }
@@ -369,6 +387,8 @@ struct Column {
     water: Vec<i32>,
     /// Version 8: the top of the falling water above each column's water (`i32::MIN` for none; empty before).
     falls: Vec<i32>,
+    /// Version 15: natural `SPRING` aquifer blocks inside this column (river headwaters and highland springs).
+    springs: Vec<IVec3>,
     guard: Option<WaterGuard>,
     trees: Vec<Tree>,
     /// Version 9: the ruins that reach into this column (`ruins.rs`).

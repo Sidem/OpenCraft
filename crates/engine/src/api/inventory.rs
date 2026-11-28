@@ -83,9 +83,14 @@ impl Game {
         self.inventory().offhand.count
     }
 
-    /// What `G` does with the left hand's item (`left_hand::LEFT_*`): 0 nothing, 1 scan, 2 drill, 3 telescope.
+    /// What `G` does with the left hand's item (`left_hand::LEFT_*`): 0 nothing, 1 scan, 2 drill, 3 telescope, 4 hook.
     pub fn left_use(&self) -> u8 {
         crate::left_hand::left_use_of(self.left_item())
+    }
+
+    /// Whether `item` may be placed in the left hand (`offhand::allowed`: left-hand tools and lights).
+    pub fn offhand_allowed(&self, item: u16) -> bool {
+        crate::offhand::allowed(ItemId(item))
     }
 
     /// Swaps the selected hotbar stack with the left hand's (next tick).

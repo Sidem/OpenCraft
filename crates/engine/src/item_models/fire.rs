@@ -1,18 +1,30 @@
-//! Item models for FIRE: charred wood billets (`CHARCOAL`) and the rifle-style liquid-fuel torch (`FLAMETHROWER`).
-//! Built from real cylinders, frustums, bars and boxes; bottoms rest at `-size[1] / 2` (-0.175) inside [-0.5, 0.5].
+//! Item models for FIRE and hand lights: charred wood billets (`CHARCOAL`), the rifle-style liquid-fuel torch
+//! (`FLAMETHROWER`), and the slim handheld `TORCH` (wooden shaft, dark collar and glowing flame tip).
+//! Built from real cylinders, frustums, bars and boxes; bottoms rest at `-size[1] / 2` inside [-0.5, 0.5].
 
 use super::shapes::{bar_x, cylinder, frustum, Build};
 use super::{part, turned, Part};
-use crate::block::tex;
+use crate::block::{self, tex};
 use crate::item::{ItemId, CHARCOAL, FLAMETHROWER};
+
+const ITEM_TORCH: ItemId = ItemId::block(block::TORCH);
 
 pub(super) fn parts(item: ItemId) -> &'static [Part] {
     match item {
         CHARCOAL => &CHARCOAL_MODEL,
         FLAMETHROWER => &FLAMETHROWER_MODEL,
+        ITEM_TORCH => &TORCH_MODEL,
         _ => &[],
     }
 }
+
+/// A slim handheld torch: wooden shaft, charred collar and warm flame tip (`icon_frame` keeps its flat sprite icon).
+const TORCH_MODEL: [Part; 4] = [
+    cylinder([0.0, -0.14, 0.0], 0.13, 0.54, tex::HANDLE),
+    cylinder([0.0, 0.15, 0.0], 0.16, 0.07, tex::SOOT),
+    frustum([0.0, 0.25, 0.0], 0.14, 0.14, 0.45, tex::LAMP_YELLOW),
+    frustum([0.0, 0.34, 0.0], 0.09, 0.09, 0.2, tex::LAMP),
+];
 
 /// A small cluster of charred wood billets: matte charcoal cylinders and fractured chunks resting on -0.175.
 const CHARCOAL_MODEL: [Part; 5] = [

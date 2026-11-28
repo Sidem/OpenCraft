@@ -290,9 +290,9 @@ pub(super) fn is_ground(b: BlockId) -> bool {
     SOLID[b as usize] && !is_tree(b)
 }
 
-/// Whether a cut takes `b`: everything but air, water, bedrock and machines (belts and pipes too).
+/// Whether a cut takes `b`: everything but air, water, unbreakable rock (bedrock, spring) and machines (belts and pipes too).
 pub fn cut_takes(b: BlockId) -> bool {
-    b != AIR && !LIQUID[b as usize] && b != BEDROCK && machine(b).is_none()
+    b != AIR && !LIQUID[b as usize] && b != BEDROCK && b != crate::block::SPRING && machine(b).is_none()
 }
 
 /// The corners of a site between `a` and `b`, lowest first, if it is small enough.

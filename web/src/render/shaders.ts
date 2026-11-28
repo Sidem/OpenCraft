@@ -6,7 +6,6 @@
 // by turning each block's tile in place (`turnUv`, engine `block/turn.rs`), which keeps greedy quads merged.
 // `WATER` is the translucent liquid variant (render/water.ts); its GLSL lives in water-glsl.ts.
 import { WATER_FRAG, WATER_FRAG_DECL, WATER_VERT, WATER_VERT_DECL } from './water-glsl';
-export { ICE_WORDS } from './water-glsl';
 
 export const TERRAIN_TINT_PERIOD = 256;
 /** The texture unit of the self-light array (`u_glow`); 1 and 2 belong to the rain mask and the clouds. */

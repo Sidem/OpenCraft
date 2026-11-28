@@ -9,6 +9,8 @@ use crate::Game;
 #[test]
 fn site_grader_conserves_every_block_spares_or_mines_ores_and_paves_chosen_floor() {
     let mut g = Game::new(42, 3);
+    // Mid-summer so the high-altitude test pond stays unfrozen while the grader fills it.
+    g.sim.tick = crate::daytime::DAY_TICKS * crate::daytime::YEAR_DAYS * 3 / 8;
     run_until_ready(&mut g);
     let base_y = 90;
     // Flat stone foundation across the entire site.
@@ -185,6 +187,7 @@ fn legacy_v2_grader_save_with_12_output_slots_loads_cleanly() {
 
     let mut v2 = Vec::with_capacity(v3.len() + 24);
     v2.extend_from_slice(&v3[..out_end]);
+    v2[4..8].copy_from_slice(&92u32.to_le_bytes()); // legacy v2 layout was save version 92
     v2.extend_from_slice(&[0u8; 4 * 6]); // 4 extra empty output slots (12 total)
     v2.extend_from_slice(&v3[out_end..magic_at]);
     v2.extend_from_slice(&w_v2.bytes);

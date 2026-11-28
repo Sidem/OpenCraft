@@ -32,18 +32,13 @@ export function boxViews(game: Game, memory: WebAssembly.Memory, floats: number)
   };
 }
 
-/** Water's constants from the engine, read once: its texture layer, the sea's height, and ice's table shape (water.ts). */
+/** Water's constants from the engine, read once: its texture layer (water.ts). */
 export interface WaterConstants {
   layer: number;
-  seaLevel: number;
-  /** Cold indices per row of the ice table (the last means never freezes), and the level from which ice bears a body. */
-  iceLevels: number;
-  iceBears: number;
 }
 
 export function waterConstants(game: Game): WaterConstants {
-  const iceLevels = game.ice_cold_levels(), iceBears = game.ice_bears_level();
-  return { layer: game.water_layer(), seaLevel: game.sea_level(), iceLevels, iceBears };
+  return { layer: game.water_layer() };
 }
 
 export interface FrameInfo {
@@ -67,8 +62,6 @@ export interface FrameInfo {
   /** Seasonal foliage (`game.season_foliage()`, 120 floats) and ground (`game.season_ground()`, 12 floats) uniforms. */
   seasonFoliage: Float32Array;
   seasonGround: Float32Array;
-  /** Ice on water (`game.ice_table()`): lake, flowing and sea rows of cold indices, a level 0..255 each (water.ts). */
-  ice: Uint8Array;
   /** Box instances (dropped items, belt items, machine parts), `INSTANCE_FLOATS` each. */
   boxes: Float32Array;
   boxCount: number;

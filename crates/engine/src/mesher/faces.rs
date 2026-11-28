@@ -52,7 +52,6 @@ impl Mesher {
         let centre_paint = &self.centre_paint;
         let has_paint = self.has_paint;
         let centre_bare = &self.centre_bare;
-        let (warmth, y0) = (self.warmth, self.origin[1]);
         let opp_bit = 1u8 << (face ^ 1);
         let vis = &self.vis;
         let mask = &mut self.mask;
@@ -72,8 +71,9 @@ impl Mesher {
                     return;
                 }
                 // A liquid under an open cell: its top face and the top edges of its sides sit lower.
+                // Under `ICE`, water stays full height so it meets the ice block seamlessly with no air gap.
                 let above = pad[p + P2] as usize;
-                let surface = liquid && !LIQUID[above] && !OPAQUE[above];
+                let surface = liquid && !LIQUID[above] && !OPAQUE[above] && above != crate::block::ICE as usize;
                 // Corners (0,0) (1,0) (1,1) (0,1) of the face, each AO | light << 2.
                 let mut corners = 0u64;
                 for (i, (du, dv)) in [(-su, -sv), (su, -sv), (su, sv), (-su, sv)].into_iter().enumerate() {
@@ -91,7 +91,7 @@ impl Mesher {
                     corners |= u64::from(k) << (i * CORNER_BITS);
                 }
                 let layer = if liquid {
-                    u64::from(water::look(pad, p) | water::ice(b, face, c, y0, warmth) << 5)
+                    u64::from(water::look(pad, p))
                 } else {
                     u64::from(face_layer(b, face, c, light[q] & 15, centre_bare))
                 };

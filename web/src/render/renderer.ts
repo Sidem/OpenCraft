@@ -409,7 +409,7 @@ export class Renderer {
     drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.boxes, f.boxCount, f.round, f.roundCount, undefined, f.beltScroll);
     const [grassCalls] = this.grass.draw(this.viewProj, f.eye, sky, fog, f.seasonGround, ground, wv, this.grassQuality);
     drawCalls += grassCalls;
-    const [waterCalls, waterQuads] = this.water.draw(vis, this.viewProj, [ex, ey, ez], sky, fog, f.ice, ground, wv);
+    const [waterCalls, waterQuads] = this.water.draw(vis, this.viewProj, [ex, ey, ez], sky, fog, wv);
     drawCalls += waterCalls;
     quads += waterQuads;
     if (vis.some((m) => m.translucent > 0 || (m.shaped?.translucent ?? 0) > 0)) {

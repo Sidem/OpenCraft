@@ -71,6 +71,48 @@ pub fn water(x: i32, y: i32) -> [u8; 4] {
     c[3] = 180 + (24.0 * ripple) as u8;
     c
 }
+
+/// Translucent frozen ice: pale glacial blue with soft frost mottling, subtle diagonal fracture gleams and a crisp rim.
+pub fn ice(x: i32, y: i32) -> [u8; 4] {
+    let frost = smooth(266, x, y, 4);
+    let edge = x == 0 || x == 15 || y == 0 || y == 15;
+    let streak = (x + y * 2).rem_euclid(16) == 5 && n(267, x, y) > 0.35;
+    let glint = (x - y).rem_euclid(16) == 3 && n(268, x, y) > 0.65;
+    let base = if glint || streak {
+        [224.0, 242.0, 252.0]
+    } else if edge {
+        [182.0, 218.0, 238.0]
+    } else {
+        [152.0 + 48.0 * frost, 198.0 + 34.0 * frost, 224.0 + 24.0 * frost]
+    };
+    let mut c = rgb(base, 0.94 + 0.08 * n(269, x, y));
+    c[3] = if glint || streak {
+        232
+    } else if edge {
+        216
+    } else {
+        188 + (28.0 * frost) as u8
+    };
+    c
+}
+
+/// Wet dark mossy aquifer stone with bright turquoise-blue water seepage fissures (`block/spring.rs`).
+pub fn spring(x: i32, y: i32) -> [u8; 4] {
+    let mut c = nature::grain([76, 86, 92], 270, x, y);
+    let moss = smooth(273, x, y, 4);
+    let seep = smooth(274, x, y, 3);
+    let crack = (x + (y / 2)).rem_euclid(8) == 3 && seep > 0.44 || ((5..=10).contains(&y) && seep > 0.66);
+    if crack {
+        let foam = n(275, x, y);
+        c = rgb([58.0 + 62.0 * foam, 148.0 + 58.0 * foam, 198.0 + 44.0 * foam], 0.94 + 0.08 * seep);
+    } else if moss > 0.62 {
+        c = rgb([72.0, 106.0, 74.0], 0.88 + 0.16 * n(276, x, y));
+    } else if seep > 0.56 {
+        c = tint(c, [-12, 4, 14]);
+    }
+    c
+}
+
 fn tint(c: [u8; 4], delta: [i8; 3]) -> [u8; 4] {
     [
         c[0].saturating_add_signed(delta[0]),

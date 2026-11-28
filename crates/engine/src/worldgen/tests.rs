@@ -88,8 +88,35 @@ fn released_versions_never_change() {
     // Version 12 (grown trees, forest biomes): pinned 2026-11-14, re-pinned that day before release (grown oaks of their
     // own log, no wood dug into the ground, palm fronds arching lower).
     assert_eq!(digest(12), 0x1e26_f2b5_5860_7d5b, "version 12");
-    // Version 13 (gas fields): pinned 2026-11-25 with version 14 (clay), which branches only at `layers.deposits >= 14`.
+    // Version 13 (gas fields): pinned 2026-11-25; version 14 (clay beds & kaolin): pinned before v15 (springs).
     assert_eq!(digest(13), 0x1e26_f2b5_5860_7d5b, "version 13");
+    assert_eq!(digest(14), 14_919_023_231_853_893_203, "version 14");
+}
+
+#[test]
+fn v15_worlds_generate_headwater_and_highland_springs() {
+    let mut g15 = WorldGen::with_version(1337, 15);
+    let mut g14 = WorldGen::with_version(1337, 14);
+    let (mut headwaters, mut highlands, mut v14_springs) = (0usize, 0usize, 0usize);
+    for cz in -20..=20 {
+        for cx in -20..=20 {
+            let hw = g15.river_headwaters_in(cx, cz);
+            let hl = g15.highland_springs_in(cx, cz);
+            for &sp in hw.iter().chain(&hl) {
+                let c = g15.generate(IVec3::new(cx, sp.y >> 5, cz));
+                assert_eq!(c.get((sp.x & 31) as usize, (sp.y & 31) as usize, (sp.z & 31) as usize), SPRING);
+                let c14 = g14.generate(IVec3::new(cx, sp.y >> 5, cz));
+                if c14.get((sp.x & 31) as usize, (sp.y & 31) as usize, (sp.z & 31) as usize) == SPRING {
+                    v14_springs += 1;
+                }
+            }
+            headwaters += hw.len();
+            highlands += hl.len();
+        }
+    }
+    assert!(headwaters > 0, "v15 rivers should have headwater springs");
+    assert!(highlands > 0, "v15 terrain should have standalone highland springs");
+    assert_eq!(v14_springs, 0, "v14 worlds must never generate SPRING blocks");
 }
 
 #[test]

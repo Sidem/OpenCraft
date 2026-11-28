@@ -122,7 +122,9 @@ impl WorldGen {
             let u = s.axis / s.width;
             let mut bed = s.level - 1 - (s.depth * (1.0 - u * u)).round() as i32;
             if s.lip {
-                bed = bed.max(s.level - 2);
+                // Version 15: continuous 1-block-deep bedrock lip over drops (real-world rapid/waterfall shelf).
+                let lip_depth = if self.layers.water >= 15 { 1 } else { 2 };
+                bed = bed.max(s.level - lip_depth);
             }
             bed -= s.plunge;
             return if s.level <= SEA_LEVEL { bed.min(h) } else { bed };
@@ -148,6 +150,75 @@ impl WorldGen {
     /// Whether any river or lake shapes the ground at (x, z) (ponds keep off).
     pub(super) fn river_near(&self, x: i32, z: i32) -> bool {
         self.river_sample(x, z).is_some()
+    }
+
+    /// Version 15: natural `SPRING` aquifer block positions at river headwater basins inside chunk column `(cx, cz)`.
+    pub(super) fn river_headwaters_in(&self, cx: i32, cz: i32) -> Vec<crate::math::IVec3> {
+        let (x0, z0) = (cx * 32, cz * 32);
+        let (gx0, gz0) = (x0.div_euclid(CELL), z0.div_euclid(CELL));
+        let mut out = Vec::new();
+        for gz in gz0 - 1..=gz0 + 1 {
+            for gx in gx0 - 1..=gx0 + 1 {
+                let n = self.river_node(gx, gz);
+                if !n.wet || n.ocean || n.level <= SEA_LEVEL + 2 {
+                    continue;
+                }
+                let Some(down) = self.river_down(&n) else { continue };
+                let has_upstream = (-1..=1).any(|dz| {
+                    (-1..=1).any(|dx| {
+                        (dx, dz) != (0, 0) && {
+                            let m = self.river_node(gx + dx, gz + dz);
+                            m.wet && self.river_down(&m).is_some_and(|d| (d.gx, d.gz) == (gx, gz))
+                        }
+                    })
+                });
+                if has_upstream {
+                    continue;
+                }
+                if !self.node_segs(gx, gz).iter().any(|s| s.len > 0.0) {
+                    continue;
+                }
+                // Walk upstream from the headwater pool centre until hitting the dry rocky headwall rim touching water.
+                let (dx, dz) = ((down.x - n.x) as f64, (down.z - n.z) as f64);
+                let len = (dx * dx + dz * dz).sqrt().max(1.0);
+                let (ux, uz) = (-dx / len, -dz / len);
+                let mut rim = None;
+                for step in 1..=16 {
+                    let sx = n.x + (ux * step as f64).round() as i32;
+                    let sz = n.z + (uz * step as f64).round() as i32;
+                    let dry = self.river_sample(sx, sz).is_none_or(|s| s.sd >= 0.0 || s.weir != i32::MIN);
+                    if dry {
+                        let touches = [(1, 0), (-1, 0), (0, 1), (0, -1)].iter().any(|&(ox, oz)| {
+                            self.river_sample(sx + ox, sz + oz)
+                                .is_some_and(|s| s.sd < 0.0 && s.weir == i32::MIN && s.level == n.level)
+                        });
+                        if touches {
+                            rim = Some((sx, sz));
+                            break;
+                        }
+                    }
+                }
+                if let Some((sx, sz)) = rim {
+                    if sx >= x0 && sx < x0 + 32 && sz >= z0 && sz < z0 + 32 {
+                        out.push(crate::math::IVec3::new(sx, n.level, sz));
+                    }
+                    // Optional adjacent second spring block along the rim for wider headwaters.
+                    let (px, pz) = ((-uz).round() as i32, ux.round() as i32);
+                    let (ax, az) = (sx + px, sz + pz);
+                    if (ax != sx || az != sz) && ax >= x0 && ax < x0 + 32 && az >= z0 && az < z0 + 32 {
+                        let dry = self.river_sample(ax, az).is_none_or(|s| s.sd >= 0.0 || s.weir != i32::MIN);
+                        let touches = [(1, 0), (-1, 0), (0, 1), (0, -1)].iter().any(|&(ox, oz)| {
+                            self.river_sample(ax + ox, az + oz)
+                                .is_some_and(|s| s.sd < 0.0 && s.weir == i32::MIN && s.level == n.level)
+                        });
+                        if dry && touches {
+                            out.push(crate::math::IVec3::new(ax, n.level, az));
+                        }
+                    }
+                }
+            }
+        }
+        out
     }
 
     /// The segment whose water is nearest (x, z), as it sees the column (cached).
@@ -227,12 +298,25 @@ impl WorldGen {
         let mut out = Vec::new();
         let down = self.river_down(&n);
         let v8 = self.layers.water >= 8;
+        let v15 = self.layers.water >= 15;
         if n.wet {
             if let Some(d) = &down {
                 out.push(Rc::new(if v8 {
                     let course = self.course(&n, d);
                     let (ends, levels) = self.course_pools(&n, d, &course);
-                    Seg::winding(&n, d, course, ends, levels)
+                    let (a, b) = if v15 {
+                        let up_a = self.river_upstream_count(n.gx, n.gz, 8);
+                        let up_b = self.river_upstream_count(d.gx, d.gz, 8);
+                        (Node { width: Self::v15_width(&n, up_a), ..n }, Node { width: Self::v15_width(d, up_b), ..*d })
+                    } else {
+                        (n, *d)
+                    };
+                    let mut seg = Seg::winding(&a, &b, course, ends, levels);
+                    if v15 {
+                        let up_a = self.river_upstream_count(n.gx, n.gz, 8);
+                        seg.set_hydrology(if up_a == 0 { 1.8 } else { RIVER_DEPTH }, true);
+                    }
+                    seg
                 } else {
                     Seg::new(&n, Some(d), self.river_levels(&n, d))
                 }));
@@ -287,6 +371,41 @@ impl WorldGen {
             }
         }
         best
+    }
+
+    /// Version 15: counts wet upstream tributary nodes feeding `(gx, gz)` (bounded recursion; acyclic by `Node::key`).
+    fn river_upstream_count(&self, gx: i32, gz: i32, depth: u8) -> u32 {
+        if depth == 0 {
+            return 0;
+        }
+        let mut count = 0u32;
+        for dz in -1..=1 {
+            for dx in -1..=1 {
+                if (dx, dz) == (0, 0) {
+                    continue;
+                }
+                let m = self.river_node(gx + dx, gz + dz);
+                if m.wet && self.river_down(&m).is_some_and(|d| (d.gx, d.gz) == (gx, gz)) {
+                    count += 1 + self.river_upstream_count(m.gx, m.gz, depth - 1);
+                }
+            }
+        }
+        count
+    }
+
+    /// Version 15: hydraulic half-width scaling from narrow headwater spring brooks (`~1.2..1.6`) to wide rivers as
+    /// tributaries merge downstream.
+    fn v15_width(n: &Node, upstream: u32) -> f64 {
+        if n.ocean {
+            return n.width;
+        }
+        let factor = match upstream {
+            0 => 0.42,
+            1 => 0.65,
+            2 => 0.82,
+            _ => 1.0,
+        };
+        (n.width * factor).clamp(1.25, n.width)
     }
 
     /// Whether node `n` holds a lake: a river ends here, or wet country chose one.

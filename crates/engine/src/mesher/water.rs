@@ -11,16 +11,14 @@
 //! Every liquid vertex carries, instead of AO and a texture layer (all water uses one tile, `u_waterLayer`):
 //! bits 21..22 the low two bits of its `drop` (sixteenths below the top of its block, 0..15),
 //! bits 23..24 the `kind` of water, bits 25..27 its flow direction (`dir`, eighths of a turn from +X towards
-//! +Z), bits 28..29 the high two bits of the drop. Its attribute byte (`a_light.y`) holds its ice (`ice`): a top face's
-//! cold index, plus 64 for flowing water. The shader (`render/shaders.ts`, `WATER`) reads them.
+//! +Z), bits 28..29 the high two bits of the drop. The shader (`render/shaders.ts`, `WATER`) reads them.
 //!
 //! Invariants: only reads the padded cells around `p` (one cell of border), so a chunk meshes alone.
 //! To add a kind of water look: a `KIND_*` below, its rule in `look`, its case in the shader.
 
 use super::{pidx, N, P, P2};
-use crate::block::{block_of_wet, flow_level, BlockId, LIQUID, OPAQUE};
+use crate::block::{block_of_wet, flow_level, BlockId, ICE, LIQUID, OPAQUE};
 use crate::chunk::Chunk;
-use crate::weather::ice;
 
 /// Still water: no slope, nothing falls in.
 pub const KIND_STILL: u32 = 0;
@@ -98,7 +96,7 @@ pub(super) fn corner_drop(pad: &[BlockId], p: usize, hx: isize, hz: isize) -> u3
         }
         if !LIQUID[b as usize] {
             weight += 1;
-        } else if LIQUID[pad[c + P2] as usize] {
+        } else if LIQUID[pad[c + P2] as usize] || pad[c + P2] == ICE {
             return 0;
         } else {
             let h = height(b) as i32;
@@ -108,15 +106,6 @@ pub(super) fn corner_drop(pad: &[BlockId], p: usize, hx: isize, hz: isize) -> u3
         }
     }
     (FULL - ((sum + weight / 2) / weight).max(1)) as u32
-}
-
-/// The ice data of face `face` of the liquid block `b` at padded cell `c`, in a chunk whose lowest block is at height
-/// `y0` and whose climate is `warmth` (`weather::ice::vertex_code`; only a top face says how cold its place is).
-pub(super) fn ice(b: BlockId, face: usize, c: [usize; 3], y0: i32, warmth: Option<[i32; 4]>) -> u32 {
-    let y = y0 + c[1] as i32 - 1;
-    let cold =
-        warmth.filter(|_| face == 2).map(|w| ice::cold_of(ice::warmth_between(w, c[0] as i32 - 1, c[2] as i32 - 1), y));
-    ice::vertex_code(b, y, cold)
 }
 
 /// The tile data of the liquid cell `p`: its kind and flow direction, packed as `kind | dir << 2`.
@@ -149,10 +138,17 @@ fn cell_height(pad: &[BlockId], c: usize, from: usize) -> i32 {
     0
 }
 
-/// Flowing water with water above it: one cell of a waterfall.
+/// Falling water: flowing water with liquid above it, or a full water block falling over air/flowing water.
 fn falls(pad: &[BlockId], p: usize) -> bool {
     let b = pad[p];
-    LIQUID[b as usize] && flow_level(b).is_some() && LIQUID[pad[p + P2] as usize]
+    if !LIQUID[b as usize] || !LIQUID[pad[p + P2] as usize] {
+        return false;
+    }
+    if flow_level(b).is_some() {
+        return true;
+    }
+    let below = pad[p - P2];
+    below == crate::block::AIR || flow_level(below).is_some()
 }
 
 /// The direction of a slope as one of eight turns (0 +X, 2 +Z, 4 -X, 6 -Z, odd ones between); 0 when flat.

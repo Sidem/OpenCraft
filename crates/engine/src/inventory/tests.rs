@@ -178,6 +178,7 @@ fn every_item_sorts_into_the_kind_a_player_expects() {
         (ItemId::block(block::SLAG), RAW),
         (ItemId::block(block::DIRT), NATURAL),
         (ItemId::block(block::LOG), NATURAL),
+        (item::ICE_ITEM, NATURAL),
     ];
     for (it, kind) in expect {
         assert_eq!(KINDS[kind_of(it) as usize], KINDS[kind as usize], "{}", item::name(it));
@@ -185,7 +186,7 @@ fn every_item_sorts_into_the_kind_a_player_expects() {
     for it in every_item() {
         let kind = kind_of(it);
         assert!((kind as usize) < KINDS.len(), "{} has no kind", item::name(it));
-        if it.0 >= 256 && !it.as_block().is_some_and(block::is_ore) {
+        if it.0 >= 256 && !it.as_block().is_some_and(|b| block::is_ore(b) || b == block::ICE) {
             assert!(kind != RAW && kind != NATURAL, "{} is made, not found", item::name(it));
         }
     }

@@ -334,7 +334,11 @@ pub const GRADER_LOUVRE: u16 = GRADER_YELLOW + 1;
 pub const GRADER_TREAD: u16 = GRADER_YELLOW + 2;
 pub const GRADER_TRUSS: u16 = GRADER_YELLOW + 3;
 pub const GRADER_BUCKET: u16 = GRADER_YELLOW + 4;
-pub const COUNT: usize = GRADER_BUCKET as usize + 1;
+/// Translucent ice (`block/ice.rs`, `textures/geology.rs`).
+pub const ICE: u16 = GRADER_BUCKET + 1;
+/// Wet mossy aquifer rock (`block/spring.rs`, `textures/geology.rs`).
+pub const SPRING: u16 = ICE + 1;
+pub const COUNT: usize = SPRING as usize + 1;
 
 /// The case layer of the kit of tier `tier` (1 is Mk2, the green kit).
 pub const fn kit_paint(tier: u8) -> u16 {

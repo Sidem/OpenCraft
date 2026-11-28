@@ -70,7 +70,9 @@ const B: PlayerId = PlayerId(1);
 // Save 91 (WATER-LOG): the core ends with waterlogged cells (`world/waterlog.rs`, 4_611_326_991_443_829_416).
 // Save 92 (ATMOS): the core ends with the atmosphere (`weather/air.rs`), and growth follows its rain
 // (9_328_715_617_160_390_380); the research table has the Meteorology tech 79.
-const GOLDEN_HASH: u64 = 13_864_879_926_007_902_903;
+// Save 94 (finite water + springs): new worlds record generator 15 (`[15; 4]` in `Layers`) with tributary-scaled
+// headwater brooks and natural springs (previous v14 hash: 13_864_879_926_007_902_903).
+const GOLDEN_HASH: u64 = 12_678_842_370_411_301_778;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

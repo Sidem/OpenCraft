@@ -254,6 +254,10 @@ const FOUND: &[(ItemId, &str)] = &[
     (b(block::GRANITE), "The rock under the highlands: dig into granite hills and mountains."),
     (b(block::SANDSTONE), "The rock under desert sand: dig below it."),
     (b(block::BASALT), "The black rock of basalt fields."),
+    (
+        b(block::ICE),
+        "Mine it from the frozen top layer of lakes and ponds below freezing. Melts above 0 °C in your pack and in the world.",
+    ),
     (b(block::SPENT_ROCK), "What ore turns into once a miner has drawn its share out: dig it where a deposit ran dry."),
     (SCRAP_METAL, "Break the rusted plating, girders and machines of ruins. Taking iron things apart gives some too."),
     (CRUDE_BARREL, "A pumpjack or wellhead separator set over oil sand fills empty barrels with crude oil."),

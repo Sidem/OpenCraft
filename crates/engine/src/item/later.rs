@@ -171,3 +171,5 @@ pub const HEADLAMP: ItemId = ItemId(466);
 pub const ROPE_ITEM: ItemId = ItemId(467);
 /// The Line Hook (GEAR-HOOK): a left-hand device, `G` pulls the body to a block or rides power wires (`line_hook.rs`).
 pub const LINE_HOOK: ItemId = ItemId(468);
+/// A block of ice (FREEZE): mined from the frozen top layer of water (`block::ICE`), melts above 0 °C.
+pub const ICE_ITEM: ItemId = ItemId(469);

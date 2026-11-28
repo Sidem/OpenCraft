@@ -265,3 +265,25 @@ fn the_first_person_left_hand_holds_its_item_low_left_ahead_and_inside_the_body_
         }
     }
 }
+
+#[test]
+fn left_hand_sits_lower_at_rest_and_keeps_held_lights_compact() {
+    let mut right_lamp = Vec::new();
+    let mut left_lamp = Vec::new();
+    let mut left_raised = Vec::new();
+    let lamp = ItemId::block(crate::block::LAMP);
+    let m = Motion::default();
+    view_hand::push_view_hand(&mut right_lamp, 0.0, 0.0, &m, lamp);
+    view_hand::push_view_left_hand(&mut left_lamp, 0.0, 0.0, &m, lamp, 0.0);
+    view_hand::push_view_left_hand(&mut left_raised, 0.0, 0.0, &m, lamp, 1.0);
+    // The held cube is the last emitted part for both hands.
+    let last_size = |v: &[f32]| v[v.len() - INSTANCE_FLOATS + 4];
+    let last_y = |v: &[f32]| v[v.len() - INSTANCE_FLOATS + 1];
+    assert!(
+        last_size(&left_lamp) < last_size(&right_lamp) * 0.6,
+        "lamp in left hand ({}) must be noticeably smaller than in right hand ({})",
+        last_size(&left_lamp),
+        last_size(&right_lamp)
+    );
+    assert!(last_y(&left_lamp) < last_y(&left_raised) - 0.02, "resting left hand sits lower than raised left hand");
+}

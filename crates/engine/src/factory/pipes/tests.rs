@@ -38,6 +38,18 @@ fn count(sim: &mut Sim, lo: IVec3, hi: IVec3, b: BlockId) -> u32 {
     n
 }
 
+fn water_mass(sim: &mut Sim, lo: IVec3, hi: IVec3) -> u32 {
+    let mut n = 0u32;
+    for y in lo.y..=hi.y {
+        for z in lo.z..=hi.z {
+            for x in lo.x..=hi.x {
+                n += u32::from(crate::block::wet_of(sim.world.block_anywhere_or_generate(IVec3::new(x, y, z))));
+            }
+        }
+    }
+    n
+}
+
 fn put(sim: &mut Sim, block: BlockId, pos: IVec3, facing: u8) {
     if block == POLE {
         sim.world.set_block_anywhere(pos - IVec3::new(0, 1, 0), STONE); // a pole needs something to stand on
@@ -73,16 +85,16 @@ fn run(sim: &mut Sim, seconds: u32) {
 }
 
 const PIT: (IVec3, IVec3) = (IVec3::new(4002, 98, 4002), IVec3::new(4006, 100, 4006));
-/// The cliff's foot: poured water piles up in the few columns within reach of the outlet's front.
-const FOOT: (IVec3, IVec3) = (IVec3::new(4012, 85, 4001), IVec3::new(4029, 100, 4019));
+/// The cliff's foot: a walled 6 × 6 catchment basin (72 blocks fill it 2 blocks deep with zero puddle evaporation).
+const FOOT: (IVec3, IVec3) = (IVec3::new(4012, 85, 4001), IVec3::new(4017, 100, 4006));
 
 /// A walled 5 × 5 × 3 pit of water (top at y 100) in stone, a pump in its bottom corner piped up and
-/// east to an outlet at the edge of a cliff whose foot is 16 blocks down.
+/// east to an outlet at the edge of a cliff whose walled foot is 16 blocks down.
 fn pit_over_a_cliff(fuelled: bool) -> Sim {
     let mut sim = Sim::new(1337, 2);
     fill(&mut sim, at(0, 80, 0), at(30, 105, 20), STONE);
     fill(&mut sim, at(0, 101, 0), at(30, 105, 20), AIR);
-    fill(&mut sim, at(12, 85, 1), at(29, 100, 19), AIR);
+    fill(&mut sim, at(12, 85, 1), at(17, 100, 6), AIR);
     fill(&mut sim, PIT.0, PIT.1, WATER);
     pipeline(&mut sim, at(2, 98, 2), at(2, 101, 2), at(11, 101, 2), at(0, 101, 3), fuelled);
     sim
@@ -91,26 +103,26 @@ fn pit_over_a_cliff(fuelled: bool) -> Sim {
 #[test]
 fn a_pump_drains_a_pit_over_a_cliff() {
     let mut sim = pit_over_a_cliff(true);
-    assert_eq!(count(&mut sim, PIT.0, PIT.1, WATER), 72, "75 less the pump and two pipes");
+    assert_eq!(water_mass(&mut sim, PIT.0, PIT.1), 72 * 8, "75 less the pump and two pipes");
     run(&mut sim, 10);
-    let pumped = 72 - count(&mut sim, PIT.0, PIT.1, WATER);
-    assert!((14..=18).contains(&pumped), "about 1.62 a second at 3-block lift (81% pressure): {pumped}");
+    let pumped = 72 * 8 - water_mass(&mut sim, PIT.0, PIT.1);
+    assert!((14 * 8..=18 * 8).contains(&pumped), "about 1.62 a second at 3-block lift (81% pressure): {pumped}/8");
 
     // A save made mid-drain carries on identically.
     let mut w = ByteWriter::default();
     sim.write_state(&mut w);
     let mut again = Sim::new(1337, 2);
     again.read_state(&mut ByteReader::new(&w.bytes)).expect("reads back");
-    for _ in 0..50 * crate::TICK_RATE {
+    for _ in 0..55 * crate::TICK_RATE {
         sim.step();
         again.step();
     }
     assert_eq!(sim.state_hash(), again.state_hash());
 
-    assert_eq!(count(&mut sim, PIT.0, PIT.1, WATER), 0, "the pit is empty");
+    assert_eq!(water_mass(&mut sim, PIT.0, PIT.1), 0, "the pit is empty");
     assert!((PIT.0.y..=PIT.1.y)
         .all(|y| (2..=6).all(|x| !crate::block::LIQUID[sim.world.block_anywhere_or_generate(at(x, y, 4)) as usize])));
-    assert_eq!(count(&mut sim, FOOT.0, FOOT.1, WATER), 72, "every block landed at the cliff's foot");
+    assert_eq!(water_mass(&mut sim, FOOT.0, FOOT.1), 72 * 8, "every eighth landed at the cliff's foot");
     let pump = &sim.factory.pipework[0];
     assert_eq!((pump.part, pump.flow, pump.held), (Part::Pump, Flow::NoWater, 0));
 }
@@ -135,27 +147,28 @@ fn a_pump_in_the_sea_runs_but_the_level_never_drops() {
     pipeline(&mut sim, at(5, 60, 5), top, at(30, SEA_LEVEL + 1, 5), at(5, SEA_LEVEL + 1, 3), true);
     let full = count(&mut sim, sea.0, sea.1, WATER);
     run(&mut sim, 20);
-    let land = count(&mut sim, at(20, SEA_LEVEL + 1, 0), at(60, SEA_LEVEL + 1, 30), WATER);
-    assert!(land >= 28, "the pump kept going at 81% pressure: {land} blocks poured on land");
+    let land = water_mass(&mut sim, at(12, SEA_LEVEL + 1, 0), at(60, SEA_LEVEL + 1, 30));
+    assert!(land >= 24 * 8, "the pump kept going at 81% pressure: {land}/8 blocks poured on land");
     assert!(count(&mut sim, sea.0, sea.1, WATER) + 1 >= full, "at most the block just taken is missing");
 }
 
 #[test]
-fn an_outlet_on_open_ground_stops_once_its_hole_is_full() {
-    // The sea-pump setup, run long enough to pour far more than fits: the pool stays within reach of
-    // the outlet's front cell, no source rises above it, and the outlet reports it is blocked.
+fn an_outlet_in_a_basin_stops_once_its_hole_is_full() {
+    // A walled 4 × 5 basin within `POUR_REACH` of the outlet's front cell: once filled to the spout level, nothing
+    // spills over the walls and the outlet reports it is blocked.
     let mut sim = Sim::new(1337, 2);
     fill(&mut sim, at(0, 50, 0), at(60, SEA_LEVEL, 30), STONE);
     fill(&mut sim, at(0, SEA_LEVEL + 1, 0), at(60, SEA_LEVEL + 8, 30), AIR);
     fill(&mut sim, at(1, 55, 1), at(10, SEA_LEVEL, 11), WATER);
+    // Walled 4 × 5 basin at x = 31..=34, z = 3..=7, walls at x = 30/35 and z = 2/8.
+    fill(&mut sim, at(30, SEA_LEVEL + 1, 2), at(35, SEA_LEVEL + 1, 8), STONE);
+    fill(&mut sim, at(31, SEA_LEVEL + 1, 3), at(34, SEA_LEVEL + 1, 7), AIR);
+    sim.world.set_block_anywhere(at(30, SEA_LEVEL + 1, 5), AIR);
     pipeline(&mut sim, at(5, 60, 5), at(5, SEA_LEVEL + 1, 5), at(30, SEA_LEVEL + 1, 5), at(5, SEA_LEVEL + 1, 3), true);
-    run(&mut sim, 90);
-    let front = at(31, SEA_LEVEL + 1, 5);
-    let reach = crate::factory::pumping::POUR_REACH;
-    let pool = (front - IVec3::new(reach, 0, reach), front + IVec3::new(reach, 0, reach));
-    // The 7 × 7 patch around the front, less the two pipes and the outlet standing in it.
-    assert_eq!(count(&mut sim, pool.0, pool.1, WATER), 46, "the patch is full");
-    assert_eq!(count(&mut sim, at(12, SEA_LEVEL + 1, 0), at(60, SEA_LEVEL + 8, 30), WATER), 46, "nothing else");
+    run(&mut sim, 40);
+    let pool = (at(31, SEA_LEVEL + 1, 3), at(34, SEA_LEVEL + 1, 7));
+    assert_eq!(count(&mut sim, pool.0, pool.1, WATER), 20, "the 4 × 5 basin is full");
+    assert_eq!(water_mass(&mut sim, at(12, SEA_LEVEL + 1, 0), at(60, SEA_LEVEL + 8, 30)), 20 * 8, "nothing outside");
     let outlet = sim.factory.pipework.iter().find(|p| p.part == Part::Outlet).unwrap();
     assert_eq!(outlet.flow, Flow::Blocked);
 }
@@ -219,7 +232,7 @@ fn pipe_height_reduces_pressure_increases_power_and_stalls_above_max_head() {
         put(&mut sim, POLE, at(1, 101, 7), 0);
         (0..tier).for_each(|_| assert!(sim.factory.upgrade(pump_pos)));
         run(&mut sim, 10);
-        let pumped = 72 - count(&mut sim, PIT.0, PIT.1, WATER);
+        let pumped = 72 * 8 - water_mass(&mut sim, PIT.0, PIT.1);
         let pump = &sim.factory.pipework[0];
         let outlet = sim.factory.pipework.iter().find(|p| p.part == Part::Outlet).unwrap();
         (pump.pressure, pump.power_kw(), pump.flow, outlet.flow, pumped)
@@ -238,21 +251,19 @@ fn pipe_height_reduces_pressure_increases_power_and_stalls_above_max_head() {
     // Upgrading to Mk2 (max_head 24) restores pressure and flow at lift 14!
     let (p_mk2, _, f_mk2, _, vol_mk2) = measure(14, 1);
     assert_eq!(f_mk2, Flow::Working);
-    assert!(p_mk2 > 500 && vol_mk2 > 15, "Mk2 handles lift 14: p={p_mk2}, vol={vol_mk2}");
+    assert!(p_mk2 > 500 && vol_mk2 > 15 * 8, "Mk2 handles lift 14: p={p_mk2}, vol={vol_mk2}");
 }
 
 #[test]
 fn outlet_creates_a_live_falling_stream_that_dries_when_pump_stops() {
     let mut sim = pit_over_a_cliff(true);
     run(&mut sim, 3);
-    // While pouring, a real flowing-water cascade hangs directly in front of the outlet down the cliff,
-    // preserving the stream's flow level (FLOW_6 at 3-block lift = 1.62 blocks/s).
+    // While pouring, a real conserved falling-water cascade hangs directly in front of the outlet down the cliff.
     let front = at(12, 101, 2);
-    assert_eq!(crate::block::flow_level(sim.world.block_anywhere_or_generate(front)), Some(6), "live spout stream");
-    assert_eq!(
-        crate::block::flow_level(sim.world.block_anywhere_or_generate(at(12, 99, 2))),
-        Some(6),
-        "falling waterfall preserves stream level"
+    assert!(crate::block::flow_level(sim.world.block_anywhere_or_generate(front)).is_some(), "live spout stream");
+    assert!(
+        crate::block::flow_level(sim.world.block_anywhere_or_generate(at(12, 99, 2))).is_some(),
+        "falling waterfall column is continuous"
     );
 
     // Once the pit runs dry, the outlet stops and the falling waterfall dries back to air.

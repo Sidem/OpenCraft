@@ -305,7 +305,7 @@ export class InventoryPanel {
       if (!item) s.root.title = `${g.gear_slot_name(i)}: nothing worn (Shift-click gear in your pack to wear it)`;
     });
     this.drawSlot(this.offhand, g.offhand_item(), g.offhand_count());
-    if (!g.offhand_count()) this.offhand.root.title = 'Left hand: empty (J swaps it with the selected slot)';
+    if (!g.offhand_count()) this.offhand.root.title = 'Left hand: tools (scanner, drill, telescope, line hook) or lights · J swaps';
     this.figure.update([...this.gear.map((_, i) => g.worn_item(i) !== 0), g.offhand_count() > 0]);
     this.gearUpgrades.update();
     this.drawSlot(this.cursor, g.cursor_item(), g.cursor_count());
@@ -322,7 +322,8 @@ export class InventoryPanel {
     const kind = (el?.dataset.slot ?? null) as SlotContext['kind'];
     const item = Number(el?.dataset.item || 0);
     const held = this.holding() ? this.game.cursor_item() : 0;
-    this.controls.show({ kind, item, held, shift: kind ? this.shiftLabel(kind, item) : '' });
+    const handOk = !held || this.game.offhand_allowed(held);
+    this.controls.show({ kind, item, held, shift: kind ? this.shiftLabel(kind, item) : '', handOk });
   }
 
   /** What Shift-click does with the stack in a slot of `kind`, in the controls bar's words. */

@@ -1,26 +1,42 @@
 //! The left hand: one more stack beside the hotbar (`Inventory::offhand`, saved from version 60, never counted
 //! as backpack room). The selected hotbar slot is the right hand; the key swaps the two stacks (`Action::Offhand`),
-//! and the inventory screen clicks the left hand like any slot.
+//! and the inventory screen clicks the left hand like any slot. Only useful left-hand items ([`allowed`]: left-hand
+//! instruments and light-emitting items) may enter it; taking an item out into an empty slot or cursor always works.
 //!
-//! What the left hand does: a light in it shines (`held_light.rs`), the avatar holds it, and the scanner, core drill
-//! and telescope work from it on `G` (`left_hand.rs`: it informs, never queues a core `Action`). Everything else works
-//! from the right hand only (mining is the worn Tool Belt's: `tool_belt/`).
+//! What the left hand does: a light in it shines (`held_light.rs`), the avatar holds it, and the scanner, core drill,
+//! telescope and line hook work from it on `G` (`left_hand.rs`: it informs, never queues a core `Action`). Everything
+//! else works from the right hand only (mining is the worn Tool Belt's: `tool_belt/`).
 
+use crate::block;
 use crate::inventory::{click_stack, Inventory};
+use crate::item::ItemId;
+use crate::left_hand::{left_use_of, LEFT_NONE};
+
+/// Whether `item` may be held in the left hand: a left-hand instrument (`G`) or a light-emitting item.
+pub fn allowed(item: ItemId) -> bool {
+    left_use_of(item) != LEFT_NONE || item.places().is_some_and(|b| block::def(b).light != 0)
+}
 
 impl Inventory {
-    /// Swaps the selected hotbar stack with the left hand's.
+    /// Swaps the selected hotbar stack with the left hand's, refusing non-useful items entering the left hand.
     pub fn swap_offhand(&mut self) {
         let selected = self.selected;
         if self.slots[selected].is_empty() && self.offhand.is_empty() {
+            return;
+        }
+        if !self.slots[selected].is_empty() && !allowed(self.slots[selected].item) {
             return;
         }
         std::mem::swap(&mut self.slots[selected], &mut self.offhand);
         self.version += 1;
     }
 
-    /// An inventory-screen click on the left hand: pick up, put down, merge or swap with the cursor stack.
+    /// An inventory-screen click on the left hand: pick up, put down, merge or swap with the cursor stack,
+    /// refusing non-useful items entering the left hand.
     pub fn click_offhand(&mut self) {
+        if !self.cursor.is_empty() && !allowed(self.cursor.item) {
+            return;
+        }
         if click_stack(&mut self.offhand, &mut self.cursor) {
             self.version += 1;
         }

@@ -124,6 +124,9 @@ impl Action {
                 depth: r.u8()?,
                 offset: r.u8()? as i8,
             },
+            90 => Action::FreezeWater { pos: r.ivec3()? },
+            91 => Action::CheckIceMelt { pos: r.ivec3()? },
+            92 => Action::MeltInventoryIce { pos: r.ivec3()? },
             35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })

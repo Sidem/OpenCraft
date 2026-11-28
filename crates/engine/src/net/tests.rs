@@ -92,13 +92,16 @@ fn flowing_water_stays_in_step() {
     build_pond_above_a_pit(&mut client.sim);
     host.act(Action::BreakBlock { pos: DAM });
     let mut hashes = vec![host.sim.state_hash()];
-    for _ in 0..400 {
+    for _ in 0..1200 {
         assert!(host.host_stamp(1, &client.take_outbox()));
         let frames = frames_of(&mut host, 1);
         hashes.push(host.sim.state_hash());
         assert!(client.push_frames(&frames));
         client.update(1.0 / 60.0);
         assert_eq!(client.sim.state_hash(), hashes[client.sim.tick as usize], "tick {}", client.sim.tick);
+        if client.sim.water.pending_count() == 0 && client.sim.tick > 100 {
+            break;
+        }
     }
     let below = DAM + IVec3::new(1, -10, 0);
     assert!(block::LIQUID[client.sim.world.block_anywhere_or_generate(below) as usize], "water fell on both");

@@ -3,7 +3,8 @@
 //! without shifting its ground, water or surface cover.
 //!
 //! - `ground`: landforms (`landform.rs`, v7/v8/v11), biomes & rock provinces (`biome.rs`, v2), caves (`caves.rs`, v6).
-//! - `water`: sea & ponds (`water.rs`, v3/v8), rivers & lakes (`rivers.rs`, v7/v8), waterfalls (`column.rs`, v8).
+//! - `water`: sea & ponds (`water.rs`, v3/v8), rivers & lakes (`rivers.rs`, v7/v8/v15), waterfalls (`column.rs`, v8),
+//!   natural headwater and highland springs (`springs.rs`, v15).
 //! - `cover`: trees (`trees.rs`, v9; `grow/`, v12; forest biomes `local_biome_at`, v12) and ruins (`ruins.rs`, v9/v10).
 //! - `deposits`: ore placement (`ore.rs`, v2/v3; `geology.rs`, v5/v6/v8; `strata.rs`, v4/v6; `bearing.rs`) and future
 //!   additions (gas fields `gas.rs` v13, clay and kaolin `clay.rs` v14) placed on their own grid without disturbing

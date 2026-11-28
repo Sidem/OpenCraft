@@ -33,6 +33,8 @@ pub(super) struct Seg {
     /// Version 8: a reach's course, a lake's shore.
     pub course: Option<Course>,
     shore: Option<Shore>,
+    /// Version 15: gently narrow drops over natural bedrock lips.
+    narrow_lips: bool,
 }
 
 /// What a segment says about one column.
@@ -77,6 +79,7 @@ impl Seg {
             ends: Vec::new(),
             course: None,
             shore: None,
+            narrow_lips: false,
         }
     }
 
@@ -84,6 +87,12 @@ impl Seg {
     pub fn winding(a: &Node, b: &Node, course: Course, ends: Vec<f64>, levels: Vec<i32>) -> Seg {
         let seg = Seg::new(a, Some(b), levels);
         Seg { len: course.len(), ends, course: Some(course), ..seg }
+    }
+
+    /// Version 15: tunes channel depth and bedrock-lip constriction for realistic headwater brooks.
+    pub fn set_hydrology(&mut self, depth: f64, narrow_lips: bool) {
+        self.depth = depth;
+        self.narrow_lips = narrow_lips;
     }
 
     /// Version 8's lake at `n` (its width the full radius) with `shore`.
@@ -133,12 +142,16 @@ impl Seg {
         // Farther than this from the axis, no column is shaped (`river_sample` keeps `sd` under `BANK + MAX_RAMP`).
         let limit = BANK + MAX_RAMP + self.wa.max(self.wb) * (1.0 + WOBBLE);
         let Some((axis, s)) = course.nearest(px, pz, limit) else { return self.pooled(f64::MAX, 1.0, 0) };
-        let width = (self.wa + (self.wb - self.wa) * s / self.len) * (1.0 + WOBBLE * wobble);
         let pool = |s: f64| self.ends.partition_point(|&e| e <= s).max(1) - 1;
         let i = pool(s);
+        let lip = i + 1 < self.ends.len() && self.ends[i + 1] - s < LIP;
+        let mut width = (self.wa + (self.wb - self.wa) * s / self.len) * (1.0 + WOBBLE * wobble);
+        if self.narrow_lips && lip {
+            width *= 0.80;
+        }
         let mut out = self.pooled(axis, width, i);
         out.bank = self.levels[pool(s - BANK_LAG)];
-        out.lip = i + 1 < self.ends.len() && self.ends[i + 1] - s < LIP;
+        out.lip = lip;
         if i > 0 && s - self.ends[i] < PLUNGE {
             out.plunge = (self.levels[i - 1] - self.levels[i] - 1).clamp(0, 3);
         }

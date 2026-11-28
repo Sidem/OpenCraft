@@ -49,9 +49,12 @@ fn blocks_below_256_are_their_own_items_and_wide_ones_are_listed() {
     }
     assert_eq!(ItemId::block(BLOCK_COUNT as BlockId), ItemId::NONE, "a wide block with no listed item has none");
     assert_eq!(IRON_INGOT.as_block(), None, "an ingot is no block");
-    // Every block past 255 needs its item row, whose `places` is that block, so it can be held and placed (an ore,
-    // like clay, is held but stays in the ground).
+    // Every breakable or placeable block past 255 needs its item row, whose `places` is that block, so it can be held
+    // and placed (an ore, like clay, is held but stays in the ground; unbreakable natural blocks like SPRING have none).
     for b in 256..BLOCK_COUNT as BlockId {
+        if crate::block::def(b).break_time < 0.0 && !crate::block::def(b).placeable {
+            continue;
+        }
         let (_, item) = *WIDE_BLOCK_ITEMS.iter().find(|p| p.0 == b).unwrap_or_else(|| panic!("block {b} has no item"));
         let places = (!crate::block::is_ore(b)).then_some(b);
         assert_eq!((item.as_block(), item.places()), (Some(b), places));

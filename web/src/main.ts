@@ -370,16 +370,13 @@ async function main(): Promise<void> {
   };
 
   // Seasonal foliage and ground uniforms, re-read only when the year fraction moves noticeably (or after a time jump).
-  // The ice table (`game.ice_table()`) moves as slowly, so it rides along.
   let seasonYear = -1, seasonFoliage = new Float32Array(game.season_foliage()), seasonGround = new Float32Array(game.season_ground());
-  let ice = game.ice_table();
   const seasonNow = () => {
     const yf = game.year_fraction();
     if (Math.abs(yf - seasonYear) > 1e-4) {
       seasonYear = yf;
       seasonFoliage = new Float32Array(game.season_foliage());
       seasonGround = new Float32Array(game.season_ground());
-      ice = game.ice_table();
     }
   };
 
@@ -415,7 +412,7 @@ async function main(): Promise<void> {
       days: game.day_number() - 1 + game.time_of_day(),
       weather: weatherNow(now),
       wind,
-      seasonFoliage, seasonGround, ice,
+      seasonFoliage, seasonGround,
       lineCells: game.line_cells(),
       quarryBoxes: machine.quarryBox() ?? game.placement_box(),
       cracks: game.quarry_cracks(),

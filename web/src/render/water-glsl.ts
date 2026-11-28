@@ -1,33 +1,19 @@
 // The `WATER` variant's GLSL, spliced into shaders.ts's chunk shaders (render/water.ts draws it). A liquid vertex carries
-// its surface drop, the kind of water, its flow direction and its ice instead of AO and a texture layer (engine
+// its surface drop, the kind of water and its flow direction instead of AO and a texture layer (engine
 // `mesher/water.rs` says how they are packed). The kind sets the look: still water shimmers slowly and glints in the
 // sun, a laminar flow streaks along its direction, rapids churn and foam, a fall streaks downwards in white; thin
-// water is clearer. Ice (engine `weather/ice.rs`) is looked up per vertex in the engine's table and drawn over it.
-// To change a look: the matching branch of `WATER_FRAG`.
-
-/** `uvec4`s holding the engine's ice table, four levels a word (`weather/ice.rs`: `KINDS` × `COLD_LEVELS` bytes). */
-export const ICE_WORDS = 12;
+// water is clearer. To change a look: the matching branch of `WATER_FRAG`.
 
 /** Vertex declarations (in place of the terrain's texture-layer outputs). */
 export const WATER_VERT_DECL = /* glsl */ `
 uniform float u_waterLayer; // the one tile every liquid vertex shares
-// Ice: the table's levels four to a word (rows lake, flowing, sea), and sea level, cold indices a row, the level that
-// bears a body (0..1).
-uniform uvec4 u_ice[${ICE_WORDS}];
-uniform vec4 u_iceShape;
-flat out float v_ice; // the ice on this surface, 0 open water to 1 the thickest
 flat out uvec3 v_water; // kind of water, flow direction (eighths of a turn from +X to +Z), face
 out float v_depth; // the surface's height above the block's floor (0..1) on a top face
 `;
 
-/** Vertex main, after `p`, `face` and `ao` are read: the surface drop, the ice, kind and flow. */
+/** Vertex main, after `p`, `face` and `ao` are read: the surface drop, kind and flow. */
 export const WATER_VERT = /* glsl */ `
   float drop = float(ao | (((a_vert >> 28u) & 3u) << 2u)) / 16.0;
-  // A top face's cold index and flowing bit (mesher/water.rs, fn ice); still water at or below sea level is sea.
-  uint code = a_light.y & 127u, levels = uint(u_iceShape.y), cold = code & 63u;
-  uint row = (code & 64u) != 0u ? 1u : (u_worldOrigin.y + p.y - 1.0 <= u_iceShape.x ? 2u : 0u);
-  uint at = row * levels + cold, word = at >> 2u;
-  v_ice = face == 2u && cold < levels - 1u ? float((u_ice[word >> 2u][word & 3u] >> ((at & 3u) * 8u)) & 255u) / 255.0 : 0.0;
   p.y -= drop;
   uint info = (a_vert >> 23u) & 31u;
   v_water = uvec3(info & 3u, info >> 2u, face);
@@ -42,11 +28,8 @@ uniform vec3 u_direct;
 uniform vec4 u_wind; // (dirX, dirZ, strength 0..1+, integrated phase)
 flat in uvec3 v_water; // kind (0 still, 1 laminar, 2 turbulent, 3 falling), direction, face
 in float v_depth;
-flat in float v_ice;
 in vec2 v_ground;
 in vec2 v_open;
-uniform vec4 u_iceShape;
-uniform vec2 u_ground; // wet ground and snow cover, 0..1 (render/precip.ts): snow lies on ice too
 const vec2 FLOW_DIR[8] = vec2[8](vec2(1, 0), vec2(0.7071, 0.7071), vec2(0, 1), vec2(-0.7071, 0.7071), vec2(-1, 0),
                                  vec2(-0.7071, -0.7071), vec2(0, -1), vec2(0.7071, -0.7071));
 const vec3 FOAM = vec3(0.86, 0.97, 0.98);
@@ -60,7 +43,7 @@ float waterNoise(vec2 p) {
 }
 `;
 
-/** Fragment main, after `tint`: the water's look by kind, then ice over it; writes `o_color`. */
+/** Fragment main, after `tint`: the water's look by kind; writes `o_color`. */
 export const WATER_FRAG = /* glsl */ `
   float t = u_time;
   vec2 uv = v_uvl.xy;
@@ -72,12 +55,11 @@ export const WATER_FRAG = /* glsl */ `
   vec2 across = vec2(-d.y, d.x);
   vec4 a, b;
   float foam = 0.0, ripple = 0.9, shine = 1.0;
-  float openWind = top ? v_open.x * clamp(1.0 - v_ice / max(u_iceShape.z, 0.05), 0.0, 1.0) : 0.0;
-  float wStr = u_wind.z * openWind;
+  float wStr = u_wind.z * (top ? v_open.x : 0.0);
   vec2 wdir = u_wind.xy;
   vec2 wperp = vec2(-wdir.y, wdir.x);
   if (kind == 0u) {
-    // Still water: two copies drifting downwind with chop and gale whitecaps scaled by wind strength on open unfrozen water.
+    // Still water: two copies drifting downwind with chop and gale whitecaps scaled by wind strength on open water.
     float drift = 0.05 + 0.14 * wStr;
     vec2 wuv = vec2(dot(uv, wperp), dot(uv, wdir));
     a = texture(u_tex, vec3(wuv + vec2(t * 0.03, -t * drift), layer));
@@ -125,18 +107,5 @@ export const WATER_FRAG = /* glsl */ `
   float alpha = c.a * mix(0.45, 1.0, smoothstep(0.0, 0.5, v_depth));
   alpha = max(kind == 3u ? max(alpha, 0.7) : alpha, foam * 0.9);
   alpha = max(alpha, min(glint, 1.0));
-  if (v_ice > 0.0) {
-    // Ice creeps in from patches (a grey skin while it is too thin to bear), then a pale sheet with frosted spots and
-    // faint cracks that whitens as it thickens; snow settles on it like on the ground.
-    float form = clamp(v_ice / u_iceShape.z, 0.0, 1.0), thick = clamp((v_ice - u_iceShape.z) / (1.0 - u_iceShape.z), 0.0, 1.0);
-    float frost = waterNoise(v_ground * 0.35) * 0.6 + waterNoise(v_ground * 2.3) * 0.4;
-    float cover = form >= 1.0 ? 1.0 : smoothstep(frost, frost + 0.25, form * 1.25);
-    float crack = smoothstep(0.93, 0.99, 1.0 - abs(waterNoise(v_ground * 0.8 + 7.1) * 2.0 - 1.0)) * (1.0 - thick * 0.6);
-    vec3 ice = mix(vec3(0.5, 0.62, 0.68), vec3(0.74, 0.86, 0.93), form);
-    ice = mix(ice, vec3(0.9, 0.94, 0.98), thick * 0.55 + frost * thick * 0.3) * (1.0 - crack * 0.3);
-    ice = mix(ice, vec3(0.92, 0.95, 0.99), smoothstep(0.2, 0.8, u_ground.y) * 0.9);
-    col = mix(col, ice * v_light * tint, cover);
-    alpha = mix(alpha, mix(0.55, 0.97, max(form * 0.6, thick)), cover);
-  }
   o_color = vec4(applyFog(col, v_rel), alpha);
 `;

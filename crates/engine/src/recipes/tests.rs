@@ -77,6 +77,7 @@ const WORLD_BLOCKS: &[BlockId] = &[
     DARK_SAND,
     GREEN_SAND,
     PALE_SAND,
+    block::ICE,
 ];
 /// Items the world gives other than block drops (leaves drop saplings: `action.rs`; pumpjacks fill crude barrels;
 /// recyclers pay coins; the ruins' rusted blocks leave scrap metal: `sim/scrap.rs`).

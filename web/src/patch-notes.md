@@ -4,6 +4,11 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-28 · v0.18.10 · Tidier left hand, mineable ice & finite water with springs
+- **A quieter, more useful left hand.** Your left hand now holds only items that do something there—scanners, core drill, telescope, line hook, and lights (torches and lamps). It rests lower at the edge of the screen so it stays out of your view, lifts when you press **G**, and holds torches and lamps compactly (torches now have a slim 3D handheld model).
+- **Real, mineable ice on top of frozen water.** In freezing weather only the top layer of still lakes and ponds turns into translucent **Ice** blocks, leaving liquid water underneath. You can mine and place ice blocks anywhere, and they gradually melt back to water (and melt away in your inventory) whenever you are above 0 °C.
+- **Mass-conserving finite water & natural river springs.** Inland water above sea level now conserves matter strictly across flowing, leveling, pumping, melting and refreezing—mining ice from a pond smoothly lowers and refills the surface with no dent, melted ice on your floor spreads into thin puddles that evaporate in warm air instead of spawning infinite water, and partially lowered ponds refreeze cleanly by borrowing a fraction from adjacent water. New worlds (worldgen v15) place unbreakable, pluggable **River Spring** aquifer blocks at high-elevation river headwaters and mountain springs that continuously feed downhill streams and rivers, while the ocean remains endless.
+
 ## 2026-11-28 · v0.18.9 · Lighter frames
 - **The world redraws about three times faster.** Rebuilding a piece of ground after an edit, grass or a newly loaded area now costs a third of what it did, so flying over big bases and old dug worlds no longer stutters.
 - **Big factories cost less to look at.** Items on belts behind you are no longer built every frame, and lighting the rest is quicker, so a large base runs lighter while you stand in it.

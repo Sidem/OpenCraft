@@ -31,8 +31,6 @@ pub struct Cover<'a> {
     pub biomes: &'a [Biome],
     /// The columns the player cleared: 32 rows by z, bit x of a row set for a cleared column; empty for none.
     pub cleared: &'a [u32],
-    /// The climate's warmth round the chunk (`weather::ice::lattice_corners`): what water surfaces tell the shader of ice.
-    pub warmth: [i32; 4],
 }
 
 /// Least sky light (of 15) a cell needs to grow ground cover, and under a shaded canopy for fallen leaf litter.

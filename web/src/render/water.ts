@@ -43,27 +43,21 @@ export class WaterPass {
     this.prog = createProgram(gl, S.chunkVert, S.litFrag, ['WATER']);
     this.u = uniforms(gl, this.prog, [
       'u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_time', 'u_sunDir', 'u_direct', 'u_held',
-      'u_waterLayer', 'u_ice', 'u_iceShape', 'u_ground', 'u_wind',
+      'u_waterLayer', 'u_wind',
     ] as const);
   }
 
-  /** The engine's constants (frame.ts `waterConstants`): every liquid vertex's texture layer, the sea, ice's table. */
-  constants: WaterConstants = { layer: 0, seaLevel: 0, iceLevels: 1, iceBears: 255 };
-  private readonly iceWords = new Uint32Array(S.ICE_WORDS * 4);
+  /** The engine's constants (frame.ts `waterConstants`): every liquid vertex's texture layer. */
+  constants: WaterConstants = { layer: 0 };
 
-  /** Draws the liquid quads of `vis` (sorted front to back), iced from `ice` (`game.ice_table()`) with snow from
-   *  `ground` (precip.ts); returns [draw calls, quads]. */
+  /** Draws the liquid quads of `vis` (sorted front to back); returns [draw calls, quads]. */
   draw(vis: readonly WaterMesh[], viewProj: Float32Array, eye: Rgb, sky: Sky, fog: { color: Rgb; range: [number, number] },
-    ice: Uint8Array, ground: readonly number[], wind: readonly [number, number, number, number]): [number, number] {
+    wind: readonly [number, number, number, number]): [number, number] {
     const gl = this.gl, u = this.u, c = this.constants;
     gl.useProgram(this.prog);
     gl.uniformMatrix4fv(u.u_viewProj, false, viewProj);
     gl.uniform1i(u.u_tex, 0);
     gl.uniform1f(u.u_waterLayer, c.layer);
-    this.iceWords.set(new Uint32Array(ice.buffer, ice.byteOffset, Math.min(ice.length >> 2, this.iceWords.length)));
-    gl.uniform4uiv(u.u_ice, this.iceWords);
-    gl.uniform4f(u.u_iceShape, c.seaLevel, c.iceLevels, c.iceBears / 255, 0);
-    gl.uniform2f(u.u_ground, ground[0], ground[1]);
     gl.uniform4f(u.u_wind, wind[0], wind[1], wind[2], wind[3]);
     gl.uniform3f(u.u_fogColor, ...fog.color);
     gl.uniform3f(u.u_skyLight, ...sky.light);

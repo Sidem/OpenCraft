@@ -133,6 +133,11 @@ impl WorldGen {
                 return level;
             }
         }
+        if self.layers.water >= 15 {
+            if let Some(level) = self.spring_water(x, z, h) {
+                return level;
+            }
+        }
         if let Some(p) = self.pond_near(x, z) {
             if p.covers(x, z) && h < p.level {
                 return p.level;
@@ -211,6 +216,9 @@ impl WorldGen {
             return None;
         }
         if self.layers.water >= 7 && self.river_near(x, z) {
+            return None;
+        }
+        if self.layers.water >= 15 && self.spring_near(x, z) {
             return None;
         }
         let rim = DIRS16.map(|(dx, dz)| self.base_height(x + dx * (r + 1) / 1000, z + dz * (r + 1) / 1000));

@@ -228,8 +228,7 @@ impl World {
             let biomes = self.generator.biomes(p.x, p.z);
             let cleared = self.cleared.rows(p.x, p.z);
             let (x0, z0) = (p.x << CHUNK_SHIFT, p.z << CHUNK_SHIFT);
-            let warmth = crate::weather::ice::lattice_corners(&self.generator, x0, z0);
-            let cover = Cover { x0, z0, biomes: &biomes, cleared, warmth };
+            let cover = Cover { x0, z0, biomes: &biomes, cleared };
             self.mesher.mesh(&refs, &self.lighting.pad, Some(&cover))
         };
         self.dirty.remove(&p);

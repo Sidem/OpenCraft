@@ -17,6 +17,8 @@ export interface SlotContext {
   held: number;
   /** What Shift-click does with the hovered stack ("Move to the box", "Wear it"…). */
   shift: string;
+  /** Whether the cursor's `held` item may enter the left hand (`offhand_allowed`). */
+  handOk?: boolean;
 }
 
 /** Keys and mouse buttons a control is pressed with. */
@@ -33,7 +35,7 @@ export function slotControls(c: SlotContext): Control[] {
     return c.item ? [{ keys: ['Left'], label: 'Take' }] : [];
   }
   if (c.kind === 'hand') {
-    if (c.held) return [{ keys: ['Left'], label: c.item ? 'Swap' : 'Put in the left hand' }];
+    if (c.held) return c.handOk === false ? [] : [{ keys: ['Left'], label: c.item ? 'Swap' : 'Put in the left hand' }];
     return c.item ? [{ keys: ['Left'], label: 'Pick up' }] : [];
   }
   if (c.kind === 'gear') {

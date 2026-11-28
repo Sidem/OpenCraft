@@ -72,6 +72,7 @@ mod helper_hands;
 mod helpers;
 mod hints;
 mod hitbox;
+mod ice_sweep;
 mod interaction;
 mod inventory;
 mod item;
@@ -468,6 +469,7 @@ impl Game {
 
         self.step_items();
         self.sweep_grass();
+        self.sweep_ice();
         if self.role.may_step(self.sim.tick) {
             self.step_core();
         }

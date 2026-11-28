@@ -183,26 +183,6 @@ impl Factory {
             }
         }
     }
-
-    /// Flow level (1..=7) if an actively pouring pipe outlet faces directly into `pos`.
-    /// On the first tick after a save load (while `dirty` is still set before `step_pipework` runs),
-    /// preserves any existing `current` flow level at an outlet's front cell so save/reload stays deterministic.
-    pub(crate) fn outlet_stream_level_at(&self, pos: IVec3, current: crate::block::BlockId) -> Option<u8> {
-        let mut best = 0u8;
-        let cur_lvl = crate::block::flow_level(current).unwrap_or(0);
-        for (d, &dir) in DIRS.iter().enumerate() {
-            if let Some(&Slot::Pipe(i)) = self.at.get(&(pos - dir)) {
-                let p = &self.pipework[i as usize];
-                if p.part == Part::Outlet && p.facing as usize == d {
-                    let lvl = if self.dirty { cur_lvl } else { p.pouring };
-                    if lvl > best {
-                        best = lvl;
-                    }
-                }
-            }
-        }
-        (best > 0).then_some(best)
-    }
 }
 
 impl Machine for Pipework {
@@ -286,7 +266,7 @@ impl Machine for Pipework {
                         )
                     }
                     Flow::NoPower => f.power.grid_line(pole),
-                    Flow::NoWater => format!("No water: takes still water within {PUMP_RANGE} blocks"),
+                    Flow::NoWater => format!("No water: takes water within {PUMP_RANGE} blocks"),
                     Flow::Full | Flow::Blocked => {
                         format!("Full · lift {lift} / {} blocks ({pct}% pressure)", tier.max_head)
                     }

@@ -32,6 +32,21 @@ pub enum Action {
     GrowGrass {
         pos: IVec3,
     },
+    /// The authority's ice sweep saw exposed top-layer still water at `pos` below freezing (`ice_sweep.rs`): the core
+    /// checks again and turns it into `block::ICE` (`Sim::freeze_water`).
+    FreezeWater {
+        pos: IVec3,
+    },
+    /// The authority's ice sweep saw `block::ICE` at `pos` above freezing (`ice_sweep.rs`): the core checks again and
+    /// schedules `TimerKind::IceMelt` (`Sim::check_ice`).
+    CheckIceMelt {
+        pos: IVec3,
+    },
+    /// The authority's once-per-second check for a player carrying `ICE_ITEM` at `pos` above freezing (`ice_sweep.rs`):
+    /// the core applies half-life decay to the player's ice stacks (`Sim::melt_inventory_ice`).
+    MeltInventoryIce {
+        pos: IVec3,
+    },
     /// Places one item from `slot` at `pos`. `facing` is the belt direction (`factory::dir_from_yaw`;
     /// a multi-block machine's turn); `against` is the clicked block, which gives a miner its drill face
     /// and deposit. A multi-block machine takes `pos` as its anchor and needs every cell free.

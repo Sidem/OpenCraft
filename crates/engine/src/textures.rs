@@ -218,6 +218,8 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::GLASS => geology::glass(x, y),
         tex::LAMP => geology::lamp(x, y),
         tex::WATER => geology::water(x, y),
+        tex::ICE => geology::ice(x, y),
+        tex::SPRING => geology::spring(x, y),
         tex::SCANNER => tools::scanner(x, y),
         tex::SCANNER_MK2 => tools::scanner_mk2(x, y),
         tex::CORE_DRILL => tools::core_drill(x, y),

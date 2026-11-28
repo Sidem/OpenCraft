@@ -251,6 +251,12 @@ pub use grader::{GRADER_COUNT, SITE_GRADER};
 /// A hanging rope, id 273 (`rope.rs`).
 mod rope;
 pub use rope::{ROPE, ROPE_COUNT};
+/// Natural and placed ice, id 274 (`ice.rs`).
+mod ice;
+pub use ice::{ICE, ICE_COUNT};
+/// Natural river spring aquifer rock, id 275 (`spring.rs`).
+mod spring;
+pub use spring::{SPRING, SPRING_COUNT};
 const BASE_COUNT: usize = 129;
 pub const BLOCK_COUNT: usize = BASE_COUNT
     + DECOR_COUNT
@@ -273,7 +279,9 @@ pub const BLOCK_COUNT: usize = BASE_COUNT
     + ELEVATOR_COUNT
     + WEATHER_STATION_COUNT
     + GRADER_COUNT
-    + ROPE_COUNT;
+    + ROPE_COUNT
+    + ICE_COUNT
+    + SPRING_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;
@@ -356,6 +364,7 @@ mod waterlog;
 pub use waterlog::{block_of_wet, waterloggable, wet_of, WET_SOURCE};
 
 /// The flowing water block of `level` (1..=7).
+#[cfg(test)]
 #[inline]
 pub fn flow(level: u8) -> BlockId {
     FLOW_1 + level.clamp(1, 7) as BlockId - 1

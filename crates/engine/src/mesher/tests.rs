@@ -120,7 +120,7 @@ fn machines_are_left_to_the_host_and_do_not_hide_faces() {
     // Only the stone is meshed, with all six faces (the miner beside it hides nothing).
     assert_eq!(m.opaque_quads, 6);
     let boxed = mesh_single(|c| c.set(1, 1, 1, STORAGE));
-    assert_eq!(boxed.opaque_quads, 6, "storage boxes are plain cubes");
+    assert_eq!(boxed.opaque_quads, 0, "storage boxes are drawn as 3D models by the host");
 }
 
 #[test]
@@ -310,32 +310,23 @@ fn waterlogged_belt_draws_water_and_merges_across_neighbours_and_chunk_borders()
 }
 
 #[test]
-fn a_water_surface_carries_its_cold_and_kind_for_ice_and_other_faces_never_freeze() {
-    use crate::block::FLOW_1;
-    use crate::weather::ice::{cold_of, NEVER};
-    use crate::worldgen::Biome;
+fn water_under_ice_has_zero_surface_drop_and_ice_culls_internal_faces() {
+    use crate::block::ICE;
     let air = Chunk::uniform(AIR);
     let mut c = Chunk::uniform(AIR);
     c.set(5, 5, 5, WATER);
-    c.set(9, 5, 5, FLOW_1 + 2);
+    c.set(5, 6, 5, ICE);
+    c.set(6, 6, 5, ICE);
     let mut refs = [&air; 27];
     refs[neighbor_index(0, 0, 0)] = &c;
-    let biomes = vec![Biome::Plains; 1024];
-    let mut m = Mesher::new();
-    m.set_origin([0, 96, 0]);
-    let cover = Cover { x0: 0, z0: 0, biomes: &biomes, cleared: &[], warmth: [-500; 4] };
-    let out = m.mesh(&refs, &DAYLIGHT, Some(&cover));
-    let cold = u32::from(cold_of(-500, 101));
+    let out = Mesher::new().mesh(&refs, &DAYLIGHT, None);
+    // Two adjacent translucent ice cubes cull their shared face and greedy-merge the 4 long sides + 2 ends = 6 quads.
+    assert_eq!(out.translucent_quads, 6);
+    // Water directly under ice is not treated as an open surface (drop = 0 on all its vertices).
     let first = (out.opaque_quads + out.cutout_quads) as usize * 4;
-    let (mut lake, mut flowing) = (0, 0);
-    for i in first..first + out.liquid_quads as usize * 4 {
-        let (x, _, _, face, _) = decode(out.verts[i]);
-        let code = (out.verts[out.vertex_count() + i / 2] >> ((i % 2) * 16 + 8)) & 127;
-        match (face, x < 8) {
-            (2, true) => (lake += 1, assert_eq!(code, cold)).1,
-            (2, false) => (flowing += 1, assert_eq!(code, cold | 64)).1,
-            _ => assert_eq!(code, u32::from(NEVER), "face {face}"),
-        }
+    for &v in &out.verts[first..first + out.liquid_quads as usize * 4] {
+        let (_, _, _, _, ao) = decode(v);
+        let hi = (v >> 28) & 3;
+        assert_eq!(ao | (hi << 2), 0, "water beneath ice sits flush with zero drop");
     }
-    assert_eq!((lake, flowing), (4, 4), "one top quad each");
 }

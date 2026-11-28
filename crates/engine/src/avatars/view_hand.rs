@@ -108,23 +108,30 @@ pub(super) fn push_view_hand(out: &mut Vec<f32>, yaw: f64, pitch: f64, m: &Motio
     rig.muzzle
 }
 
-/// First-person left arm, mirrored from the right, drawn only while the left hand holds something: its item rests in a
-/// cupped hand low on the left and comes up a little while `G` works it (`raise`, 0 to 1).
+/// First-person left arm, tucked low on the left edge so it stays out of the view at rest, drawn only while the left
+/// hand holds something; it lifts gently while `G` works it (`raise`, 0 to 1). Light-emitting items are drawn even more
+/// compactly so carrying a light never crowds the viewport.
 pub(super) fn push_view_left_hand(out: &mut Vec<f32>, yaw: f64, pitch: f64, m: &Motion, held: ItemId, raise: f64) {
     if held == ItemId::NONE {
         return;
     }
     let mut rig = Rig { out, at: Vec3::ZERO, yaw, head_yaw: yaw, muzzle: None };
-    let breath_y = m.breath.sin() * 0.008 * (1.0 - raise);
-    let hand = Vec3::new(-0.30, -0.33 + 0.07 * raise + breath_y, -0.47 + 0.05 * raise) * VIEW_SCALE;
-    let elbow = Vec3::new(-0.52, -0.60 + 0.03 * raise, -0.21) * VIEW_SCALE;
+    let breath_y = m.breath.sin() * 0.006 * (1.0 - raise);
+    let hand = Vec3::new(-0.37 + 0.05 * raise, -0.43 + 0.09 * raise + breath_y, -0.46 + 0.04 * raise) * VIEW_SCALE;
+    let elbow = Vec3::new(-0.54 + 0.03 * raise, -0.64 + 0.05 * raise, -0.20) * VIEW_SCALE;
     let at = |p: Vec3| rotate(p, pitch);
-    let basis = mul(rx_m(pitch), mul(yaw_m(-0.22), mul(rx_m(0.28 + 0.35 * raise), rz_m(0.48))));
+    let basis = mul(rx_m(pitch), mul(yaw_m(-0.26), mul(rx_m(0.24 + 0.34 * raise), rz_m(0.52))));
     let dorsal = apply(basis, Vec3::new(0.0, 1.0, 0.0));
     rig.hand_parts(&hand::forearm_parts(at(elbow), at(hand), dorsal, VIEW_SCALE));
     rig.hand_parts(&hand::hand_parts(at(hand), basis, VIEW_SCALE, -1.0, HandGrip::Item));
-    rig.held_item(at(hand), pitch, VIEW_TIP_BACK, held, VIEW_SCALE, true, &Pose::default());
+    let is_light = crate::held_light::reach(held) > 0.0;
+    let item_scale = VIEW_SCALE * if is_light { LEFT_LIGHT_SCALE } else { LEFT_ITEM_SCALE };
+    rig.held_item(at(hand), pitch, VIEW_TIP_BACK * 0.6, held, item_scale, false, &Pose::default());
 }
+/// Scale of an instrument held in the left hand relative to `VIEW_SCALE` (without `VIEW_GROW`, keeping the view clear).
+const LEFT_ITEM_SCALE: f64 = 0.78;
+/// Scale of a light-emitting item in the left hand: compact so a lamp or torch never blocks the viewport.
+const LEFT_LIGHT_SCALE: f64 = 0.56;
 /// How far a held item that isn't a tool tips its top towards the eye in first person, radians.
 pub(super) const VIEW_TIP_BACK: f64 = 0.45;
 

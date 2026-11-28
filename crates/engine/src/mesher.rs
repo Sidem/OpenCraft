@@ -110,8 +110,6 @@ pub struct Mesher {
     trees: tree_grid::TreeGrid,
     /// The world block at the chunk's lowest corner: leaf cards scatter by world cell.
     origin: [i32; 3],
-    /// The climate round the chunk (`Cover::warmth`), which water surfaces read for ice; `None` with no cover.
-    warmth: Option<[i32; 4]>,
 }
 
 impl Default for Mesher {
@@ -154,7 +152,6 @@ impl Mesher {
             shaped: shaped::Shaped::default(),
             trees: tree_grid::TreeGrid::default(),
             origin: [0; 3],
-            warmth: None,
         }
     }
 
@@ -175,7 +172,6 @@ impl Mesher {
         self.liquid_light.clear();
         self.translucent_light.clear();
         self.shaped.clear();
-        self.warmth = cover.map(|c| c.warmth);
         if !Self::is_trivially_empty(n) {
             self.fill_padded(n);
             self.fill_rows();

@@ -57,7 +57,15 @@ impl WorldGen {
         let max_y = trees.iter().map(|t| t.top()).fold(max_ground, i32::max);
         let max_y = ruins.iter().map(|r| r.top()).fold(max_y, i32::max);
         let falls = if self.layers.water >= 8 { falls(&wet, P) } else { Vec::new() };
+        let springs = if self.layers.water >= 15 {
+            let mut list = self.river_headwaters_in(cx, cz);
+            list.extend(self.highland_springs_in(cx, cz));
+            list
+        } else {
+            Vec::new()
+        };
         let max_y = water.iter().chain(&falls).copied().fold(max_y, i32::max);
+        let max_y = springs.iter().map(|s| s.y).fold(max_y, i32::max);
         let guard = (self.layers.water >= 3).then(|| WaterGuard::new(hm.iter().copied().zip(wet).collect())).flatten();
         let near = self.deposits_near(cx, cz);
         if self.layers.deposits >= 2 {
@@ -71,6 +79,7 @@ impl WorldGen {
             biomes: biomes.into(),
             water,
             falls,
+            springs,
             guard,
             trees,
             ruins,

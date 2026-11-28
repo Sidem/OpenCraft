@@ -6,9 +6,7 @@ use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
 
 use crate::math::IVec3;
-use crate::weather::ice::{self, IceTable};
 use crate::weather::{self, Ahead, Kind, Outlook, Reading, FORECAST_FIELDS};
-use crate::worldgen::SEA_LEVEL;
 use crate::{Game, TICK_RATE};
 
 /// Days a forecast or a `weather_ahead` search looks ahead at most.
@@ -62,23 +60,6 @@ impl Game {
     /// Numbers per day in `weather_forecast`.
     pub fn forecast_fields(&self) -> u32 {
         FORECAST_FIELDS as u32
-    }
-
-    /// The ice on every kind of water now (`weather::ice::IceTable`): rows lake, flowing, sea of `ice_cold_levels`
-    /// levels each, 0 open water to 255, bearing a body from `ice_bears_level`. The water shader looks a surface up by
-    /// the cold index and kind its vertices carry (`mesher/water.rs`).
-    pub fn ice_table(&self) -> Vec<u8> {
-        IceTable::at(self.sim.tick).bytes().to_vec()
-    }
-    pub fn ice_cold_levels(&self) -> u32 {
-        ice::COLD_LEVELS as u32
-    }
-    pub fn ice_bears_level(&self) -> u32 {
-        u32::from(ice::BEARS_LEVEL)
-    }
-    /// Still water at or below this height is sea (ice's third row).
-    pub fn sea_level(&self) -> i32 {
-        SEA_LEVEL
     }
 
     /// Seconds of game time until the camera's sky next turns to `want` (0 clear, 1 cloudy, 2 rain or storm, 3 storm,
