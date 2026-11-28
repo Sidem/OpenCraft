@@ -4,6 +4,11 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-28 · v0.18.9 · Lighter frames
+- **The world redraws about three times faster.** Rebuilding a piece of ground after an edit, grass or a newly loaded area now costs a third of what it did, so flying over big bases and old dug worlds no longer stutters.
+- **Big factories cost less to look at.** Items on belts behind you are no longer built every frame, and lighting the rest is quicker, so a large base runs lighter while you stand in it.
+- **Fewer hitches in big factories.** Machine parts and belt items now send half as much data to the graphics card each frame, so the slower frames in a busy base are about a third shorter.
+
 ## 2026-11-28 · v0.18.8 · Smoother grass
 - **Spreading grass no longer slows the game.** Grass creeping over an old dug base made the game redraw the ground about 170 times a second; nearby grass now shows up in batches every few seconds instead, and a standing base runs about three times lighter while it spreads.
 

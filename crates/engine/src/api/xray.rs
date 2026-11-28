@@ -2,6 +2,7 @@
 
 use wasm_bindgen::prelude::*;
 
+use crate::box_pack::PACKED_WORDS;
 use crate::Game;
 
 #[wasm_bindgen]
@@ -35,23 +36,23 @@ impl Game {
         String::new()
     }
 
-    /// Byte offset of this frame's X-ray records (`xray_count()` of them, the instance layout of `instance_ptr`), the
-    /// factory's boxes near the camera; the host draws them behind the terrain only.
+    /// Byte offset of this frame's X-ray boxes (`xray_count()` of them, packed as `instance_ptr`'s, round bodies left
+    /// out), the factory's boxes near the camera; the host draws them behind the terrain only.
     pub fn xray_ptr(&self) -> usize {
-        self.xray.boxes.as_ptr() as usize
+        self.packed.xray.as_ptr() as usize
     }
 
     pub fn xray_count(&self) -> usize {
-        self.xray.boxes.len() / crate::factory::INSTANCE_FLOATS
+        self.packed.xray.len() / PACKED_WORDS
     }
 
-    /// The round bodies among them, copied out as `round_ptr`'s are.
+    /// The round bodies among them.
     pub fn xray_round_ptr(&self) -> usize {
-        self.xray.round.as_ptr() as usize
+        self.packed.xray_round.as_ptr() as usize
     }
 
     pub fn xray_round_count(&self) -> usize {
-        self.xray.round.len() / crate::factory::INSTANCE_FLOATS
+        self.packed.xray_round.len() / PACKED_WORDS
     }
 
     /// Blocks around the camera within which buried machines show, and the share of it where they start to fade.

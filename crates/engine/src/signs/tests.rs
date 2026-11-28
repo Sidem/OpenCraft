@@ -38,7 +38,7 @@ fn signs_held(g: &Game) -> u32 {
 fn the_sign_is_followed_only_by_the_forester_and_the_trees() {
     assert_eq!(usize::from(SIGN) + SIGN_COUNT, usize::from(FORESTER));
     assert_eq!(usize::from(FORESTER) + FORESTER_COUNT, usize::from(crate::block::PINE_LOG));
-    // Then the grown oak's log and the other woods' planks, floors and doors (lock/woods.rs), last.
+    // Then the grown oak's log and the other woods' planks, floors and doors (`block/woods.rs`), last.
     assert_eq!(
         usize::from(crate::block::PINE_LOG) + crate::block::TREES_COUNT,
         usize::from(crate::block::OAK_TREE_LOG)

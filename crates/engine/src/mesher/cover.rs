@@ -17,7 +17,7 @@ use crate::block::{
     tex, BlockId, AIR, BASALT, DIRT, FACE_TEX, GRANITE, GRASS, LIQUID, PALE_SAND, PALE_SOIL, RUSTY_SAND, RUSTY_SOIL,
     SAND,
 };
-use crate::chunk::Chunk;
+use crate::chunk::{Chunk, HOLDS_LEAVES};
 use crate::math::hash2;
 use crate::worldgen::Biome;
 
@@ -187,8 +187,12 @@ impl Mesher {
     }
 }
 
-/// Fast pre-check: whether the chunk or its upper neighbours hold any deciduous/shedding leaves at all.
+/// Fast pre-check: whether the chunk or its upper neighbours hold any deciduous/shedding leaves at all. Shedding leaves
+/// are leaves, so a neighbourhood without any (`Chunk::holds`, cached) needs no scan.
 fn has_shedding_leaves(pad: &[BlockId], n: &[&Chunk; 27]) -> bool {
+    if !n.iter().any(|c| c.holds(HOLDS_LEAVES)) {
+        return false;
+    }
     if pad.iter().any(|&b| sheds_litter(b)) {
         return true;
     }

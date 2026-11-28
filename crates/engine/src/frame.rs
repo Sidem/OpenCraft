@@ -7,6 +7,7 @@
 use wasm_bindgen::prelude::*;
 
 use crate::math::Vec3;
+use crate::view_cone::ViewCone;
 use crate::{block, factory, Game, TICK};
 
 /// Most ticks one frame may run. A 0.1 s frame (the host's cap) plus a leftover partial tick needs
@@ -100,12 +101,15 @@ impl Game {
         self.write_move_marker(eye);
         self.write_drone_instances(eye, alpha);
         let factory_from = self.instances.len() / crate::factory::INSTANCE_FLOATS;
+        let [fov_y, aspect] = self.view_shape;
+        let cone = ViewCone::new(self.strategy.render_yaw, self.strategy.render_pitch, fov_y, aspect);
         self.sim.factory.write_dynamic_instances(
             &self.static_boxes.index,
             &mut self.instances,
             eye,
             time,
             self.sim.world.view_distance(),
+            &cone,
         );
         let factory_to = self.instances.len() / crate::factory::INSTANCE_FLOATS;
         self.write_signs(eye);
@@ -116,7 +120,8 @@ impl Game {
         self.write_paint_spray(dt, eye, time);
         {
             let world = &mut self.sim.world;
-            factory::light_boxes(&mut self.instances, eye, |c| world.light_at(c));
+            let mut reader = crate::world::LightReader::default();
+            factory::light_boxes(&mut self.instances, eye, |c| reader.read(world, c));
         }
         self.write_elevator(eye);
         self.write_line_preview(eye, time);
@@ -132,8 +137,8 @@ impl Game {
         self.write_strategy_fog(eye);
         self.write_halos(eye);
         self.append_fire_halos();
-        factory::split_round(&self.instances, &mut self.round_instances);
         self.write_xray(factory_from..factory_to, eye);
+        self.pack_boxes();
         self.minimap.atlas.refresh_some(&self.sim.world);
     }
 }

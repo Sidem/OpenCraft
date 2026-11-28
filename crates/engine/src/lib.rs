@@ -31,6 +31,7 @@ mod bladerang;
 mod block;
 mod blueprint;
 mod blueprint_lesson;
+mod box_pack;
 mod bytes;
 mod camera;
 mod cargo_tools;
@@ -140,6 +141,7 @@ mod train_tools;
 mod up;
 mod upgrade_aim;
 mod upgrade_lesson;
+mod view_cone;
 mod weather;
 mod wire_props;
 pub mod wood;
@@ -267,7 +269,8 @@ pub struct Game {
     /// Box instances (dropped items, belt items, machine parts) for the current frame.
     instances: Vec<f32>,
     /// This frame's round bodies, copied out of `instances` (`factory::split_round`) for the host's cylinder pass.
-    round_instances: Vec<f32>,
+    /// This frame's box lists packed for the host (`box_pack`).
+    packed: box_pack::Packed,
     /// This frame's halos round light-giving blocks (`halos.rs`), `halos::HALO_FLOATS` each.
     halos: Vec<f32>,
     /// This frame's fire emitters and active flamethrower jets (`fire_view.rs`).
@@ -280,6 +283,9 @@ pub struct Game {
     static_boxes: static_boxes::StaticBoxes,
     /// Interpolated render time (seconds) for shader-driven animations (`belt_scroll`).
     render_time: f64,
+    /// The host's widest vertical field of view and screen aspect (`set_view_cone`; 0 until sent): the instance
+    /// writers skip what lies outside the camera's `view_cone::ViewCone`.
+    view_shape: [f64; 2],
     /// Box instances drawn see-through: a held machine's ghost and the belt stubs at ports (`port_view.rs`).
     ghosts: port_view::Ghosts,
     /// The X-ray goggles' view: the local on/off choice and this frame's records (`xray.rs`).
@@ -397,13 +403,14 @@ impl Game {
             minimap: Minimap::new(&textures),
             textures,
             instances: Vec::new(),
-            round_instances: Vec::new(),
+            packed: box_pack::Packed::default(),
             halos: Vec::new(),
             fire_view: fire_view::FireView::default(),
             show_hand: true,
             wire_props: Default::default(),
             static_boxes: static_boxes::StaticBoxes::default(),
             render_time: 0.0,
+            view_shape: [0.0; 2],
             ghosts: port_view::Ghosts::default(),
             xray: xray::Xray::default(),
             pickups: VecDeque::new(),

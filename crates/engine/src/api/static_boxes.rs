@@ -1,11 +1,13 @@
 //! Host API for per-chunk cached static machine and wire box buffers (`static_boxes/`).
 //!
-//! Exposes zero-copy pointers and counts for each chunk event popped by `next_static_box_event`, plus the per-tier
+//! Exposes zero-copy pointers and counts for each chunk event popped by `next_static_box_event` (an upserted chunk's
+//! boxes packed there, `box_pack`), plus the per-tier
 //! belt UV scroll uniform (`belt_scroll`) used by `web/src/render/box-glsl.ts`.
 
 use wasm_bindgen::prelude::*;
 
-use crate::factory::{BELT_TIERS, INSTANCE_FLOATS};
+use crate::box_pack::{pack, PACKED_WORDS};
+use crate::factory::BELT_TIERS;
 use crate::static_boxes::StaticBoxEvent;
 use crate::Game;
 
@@ -20,10 +22,14 @@ impl Game {
     /// Pops the next static box chunk event: 0 = none, 1 = upsert chunk, 2 = unload chunk.
     pub fn next_static_box_event(&mut self) -> u32 {
         self.static_boxes.cur = None;
+        self.packed.static_cubes.clear();
+        self.packed.static_round.clear();
         while let Some(ev) = self.static_boxes.events.pop_front() {
             match ev {
                 StaticBoxEvent::Upsert(p) => {
-                    if self.static_boxes.chunk(p).is_some() {
+                    if let Some(c) = self.static_boxes.chunk(p) {
+                        pack(&c.cubes, &mut self.packed.static_cubes);
+                        pack(&c.round, &mut self.packed.static_round);
                         self.static_boxes.cur = Some(ev);
                         return 1;
                     }
@@ -65,38 +71,23 @@ impl Game {
         }
     }
 
+    /// The upserted chunk's boxes, packed (`static_box_count()` records of `instance_floats()` words; none after an unload).
     pub fn static_box_ptr(&self) -> usize {
-        match self.static_boxes.cur {
-            Some(StaticBoxEvent::Upsert(p)) => self.static_boxes.chunk(p).map_or(0, |c| c.cubes.as_ptr() as usize),
-            _ => 0,
-        }
+        self.packed.static_cubes.as_ptr() as usize
     }
 
     pub fn static_box_count(&self) -> usize {
-        match self.static_boxes.cur {
-            Some(StaticBoxEvent::Upsert(p)) => {
-                self.static_boxes.chunk(p).map_or(0, |c| c.cubes.len() / INSTANCE_FLOATS)
-            }
-            _ => 0,
-        }
+        self.packed.static_cubes.len() / PACKED_WORDS
     }
 
+    /// The upserted chunk's round bodies, packed like `static_box_ptr`'s.
     pub fn static_round_ptr(&self) -> usize {
-        match self.static_boxes.cur {
-            Some(StaticBoxEvent::Upsert(p)) => self.static_boxes.chunk(p).map_or(0, |c| c.round.as_ptr() as usize),
-            _ => 0,
-        }
+        self.packed.static_round.as_ptr() as usize
     }
 
     pub fn static_round_count(&self) -> usize {
-        match self.static_boxes.cur {
-            Some(StaticBoxEvent::Upsert(p)) => {
-                self.static_boxes.chunk(p).map_or(0, |c| c.round.len() / INSTANCE_FLOATS)
-            }
-            _ => 0,
-        }
+        self.packed.static_round.len() / PACKED_WORDS
     }
-
     /// Total cached static box instances currently active across all loaded static chunks.
     pub fn static_box_total(&self) -> usize {
         self.static_boxes.total_instances

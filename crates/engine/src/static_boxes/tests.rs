@@ -72,7 +72,14 @@ fn static_plus_dynamic_matches_write_instances_in_count_and_round_split() {
 
     // Split path: static factory records (excluding wires) + dynamic factory records.
     let mut dyn_all = Vec::new();
-    g.sim.factory.write_dynamic_instances(&g.static_boxes.index, &mut dyn_all, eye, time, range);
+    g.sim.factory.write_dynamic_instances(
+        &g.static_boxes.index,
+        &mut dyn_all,
+        eye,
+        time,
+        range,
+        &crate::view_cone::ViewCone::ALL,
+    );
     let dyn_cubes = dyn_all.chunks_exact(INSTANCE_FLOATS).filter(|r| !is_round(r)).count();
     let dyn_round = dyn_all.chunks_exact(INSTANCE_FLOATS).filter(|r| is_round(r)).count();
 

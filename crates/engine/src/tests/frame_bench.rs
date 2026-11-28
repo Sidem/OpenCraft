@@ -1,6 +1,7 @@
 //! Frame cost of a real save, piece by piece (ignored; needs a save):
 //!   OC_SAVE=path\to\world.ocworld cargo test --release -q bench_save_frame -- --ignored --nocapture
 //! Times each presentation step `Game::update` runs after the ticks, so a slow frame can be pinned on one of them.
+//! `cone_keeps_every_box_on_screen` (same save) checks the view cone culls nothing on screen.
 //! `bench_port_view_and_labels` needs no save: the worst cases of the placement ghost, port marks and box labels
 //!   cargo test --release -q bench_port_view_and_labels -- --ignored --nocapture
 
@@ -65,10 +66,20 @@ fn bench_save_frame() {
     let mut out = Vec::new();
     ms("factory.write_dynamic_instances", 20, || {
         out.clear();
-        g.sim.factory.write_dynamic_instances(&g.static_boxes.index, &mut out, eye, time, range)
+        g.sim.factory.write_dynamic_instances(
+            &g.static_boxes.index,
+            &mut out,
+            eye,
+            time,
+            range,
+            &crate::view_cone::ViewCone::ALL,
+        )
     });
     println!("  -> {} dynamic factory boxes", out.len() / factory::INSTANCE_FLOATS);
-    ms("light_boxes (dynamic, warm)", 20, || factory::light_boxes(&mut out, eye, |c| g.sim.world.light_at(c)));
+    ms("light_boxes (dynamic, warm)", 20, || {
+        let mut reader = crate::world::LightReader::default();
+        factory::light_boxes(&mut out, eye, |c| reader.read(&mut g.sim.world, c))
+    });
     let mut round = Vec::new();
     ms("split_round (dynamic)", 20, || factory::split_round(&out, &mut round));
     let mut full = Vec::new();
@@ -126,4 +137,47 @@ fn bench_port_view_and_labels() {
         }
     });
     println!("  -> {} boxes", solid.len() / factory::INSTANCE_FLOATS);
+}
+
+/// The view cone never drops a dynamic box that is on screen (needs a save with a factory):
+///   OC_SAVE=path\to\world.ocworld cargo test --release -q cone_keeps_every -- --ignored --nocapture
+/// Projects every unculled box through the host's camera (`render/mat4.ts`) for 16 views; a model part reaching past
+/// `MODEL_REACH` (a quarry's drill once did) fails here.
+#[test]
+#[ignore]
+fn cone_keeps_every_box_on_screen() {
+    use crate::math::Vec3;
+    use crate::view_cone::ViewCone;
+    let bytes = std::fs::read(std::env::var("OC_SAVE").expect("set OC_SAVE")).expect("save");
+    let mut g = Game::from_save(&bytes, 8).expect("load");
+    run_until_ready(&mut g);
+    let (eye, range) = (g.body().eye(), g.sim.world.view_distance());
+    let (fov, aspect) = (100f64.to_radians(), 16.0 / 9.0);
+    let t = (fov * 0.5).tan();
+    let key = |r: &[f32]| [r[0].to_bits(), r[1].to_bits(), r[2].to_bits()];
+    let (mut checked, mut culled) = (0, 0);
+    for k in 0..16 {
+        let (yaw, pitch) = (k as f64 * 0.785, [-1.2, -0.5, 0.0, 0.6][k % 4]);
+        let (mut all, mut cut) = (Vec::new(), Vec::new());
+        let cone = ViewCone::new(yaw, pitch, fov, aspect);
+        g.sim.factory.write_dynamic_instances(&g.static_boxes.index, &mut all, eye, 0.0, range, &ViewCone::ALL);
+        g.sim.factory.write_dynamic_instances(&g.static_boxes.index, &mut cut, eye, 0.0, range, &cone);
+        let kept: std::collections::HashSet<[u32; 3]> = cut.chunks_exact(factory::INSTANCE_FLOATS).map(key).collect();
+        let ((sy, cy), (sp, cp)) = (yaw.sin_cos(), pitch.sin_cos());
+        let (f, r, u) = (Vec3::new(sy * cp, sp, -cy * cp), Vec3::new(cy, 0.0, sy), Vec3::new(-sy * sp, cp, cy * sp));
+        for rec in all.chunks_exact(factory::INSTANCE_FLOATS) {
+            let p = Vec3::new(rec[0] as f64, rec[1] as f64, rec[2] as f64);
+            let z = p.dot(f);
+            if z <= 0.05 {
+                continue;
+            }
+            let margin = 0.9 * f64::from(rec[4].max(rec[5]).max(rec[6])) / (z * t); // the box's own size
+            if (p.dot(r) / (z * t * aspect)).abs() <= 1.0 + margin && (p.dot(u) / (z * t)).abs() <= 1.0 + margin {
+                checked += 1;
+                assert!(kept.contains(&key(rec)), "on screen but culled: {:?} (yaw {yaw}, pitch {pitch})", p + eye);
+            }
+        }
+        culled += (all.len() - cut.len()) / factory::INSTANCE_FLOATS;
+    }
+    println!("{checked} boxes on screen, all kept; {culled} culled over 16 views");
 }

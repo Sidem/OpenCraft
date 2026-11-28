@@ -33,13 +33,14 @@
 //! chunk (`tree_grid.rs`), go into a fourth, "shaped" list with its own vertex format (`shaped.rs`). Logs hide no
 //! faces beside them (`HIDES`).
 
-use crate::block::{is_leaves, is_log, BlockId, AIR, CUTOUT, LIQUID, MESHED, OPAQUE, TRANSLUCENT};
-use crate::chunk::{index, Chunk};
-use shaped::{HIDES, SHAPED};
+use crate::block::{is_leaves, is_log, BlockId, AIR, LIQUID, MESHED, OPAQUE};
+use crate::chunk::{index, Chunk, HOLDS_LEAVES, HOLDS_LOGS};
+use shaped::HIDES;
 
 mod blocks;
 mod cover;
 mod face_layer;
+mod faces;
 mod foliage;
 mod logs;
 mod plants;
@@ -92,6 +93,11 @@ pub struct Mesher {
     /// The centre chunk's bare turf faces (`Chunk::bares`, `sim/sod.rs`), sorted by cell; usually empty.
     centre_bare: Vec<(u16, u8)>,
     mask: Vec<(u64, u8)>,
+    /// Per padded (y, z) row, a bit per padded x: cells that may show a face, cells that hide one, and the faces
+    /// that may show in the direction being meshed (`faces.rs`).
+    cand: Vec<u64>,
+    hide: Vec<u64>,
+    vis: Vec<u64>,
     opaque: Vec<u32>,
     cutout: Vec<u32>,
     liquid: Vec<u32>,
@@ -134,6 +140,9 @@ impl Mesher {
             has_paint: false,
             centre_bare: Vec::new(),
             mask: vec![(0, 0); N * N],
+            cand: vec![0; P2],
+            hide: vec![0; P2],
+            vis: vec![0; P2],
             opaque: Vec::new(),
             cutout: Vec::new(),
             liquid: Vec::new(),
@@ -169,6 +178,7 @@ impl Mesher {
         self.warmth = cover.map(|c| c.warmth);
         if !Self::is_trivially_empty(n) {
             self.fill_padded(n);
+            self.fill_rows();
             for face in 0..6 {
                 self.mesh_face(face, light);
             }
@@ -180,8 +190,10 @@ impl Mesher {
                 let paint = if self.has_paint { Some(self.centre_paint.as_slice()) } else { None };
                 blocks::mesh_shaped_blocks(&self.pad, &self.pad_shapes, paint, light, &mut self.shaped);
             }
-            let (logs, leaves) = (self.pad.iter().any(|&b| is_log(b)), self.pad.iter().any(|&b| is_leaves(b)));
-            if logs || leaves {
+            // Only a neighbourhood holding tree blocks can put one in `pad` (`Chunk::holds`, cached): no scan otherwise.
+            let trees = n.iter().any(|c| c.holds(HOLDS_LOGS | HOLDS_LEAVES))
+                && self.pad.iter().any(|&b| is_log(b) || is_leaves(b));
+            if trees {
                 self.trees.fill(n);
                 logs::mesh_logs(&self.trees, &self.pad, light, &mut self.shaped);
                 foliage::mesh_leaves(&self.trees, light, self.origin, &mut self.shaped);
@@ -264,116 +276,6 @@ impl Mesher {
         }
         self.centre_bare.clear();
         self.centre_bare.extend_from_slice(centre.bares());
-    }
-
-    fn mesh_face(&mut self, face: usize, light: &[u8]) {
-        let (d, sign, u, v) = FACES[face];
-        let sn = STRIDE[d] * sign;
-        let (su, sv) = (STRIDE[u], STRIDE[v]);
-        let plane_offset = usize::from(sign > 0);
-        let pad = &self.pad;
-        let pad_shapes = &self.pad_shapes;
-        let has_shapes = self.has_shapes;
-        let centre_paint = &self.centre_paint;
-        let has_paint = self.has_paint;
-        let centre_bare = &self.centre_bare;
-        let (warmth, y0) = (self.warmth, self.origin[1]);
-        let opp_bit = 1u8 << (face ^ 1);
-        let mask = &mut self.mask;
-
-        for slice in 0..N {
-            let mut any = false;
-            for bv in 0..N {
-                for bu in 0..N {
-                    let mut c = [0usize; 3];
-                    c[d] = slice + 1;
-                    c[u] = bu + 1;
-                    c[v] = bv + 1;
-                    let p = pidx(c[0], c[1], c[2]);
-                    let b = pad[p];
-                    let mut key = 0u64;
-                    let mut paint = 0u8;
-                    if MESHED[b as usize] && !SHAPED[b as usize] && !(has_shapes && pad_shapes[p] != 0) {
-                        let q = (p as isize + sn) as usize;
-                        let liquid = LIQUID[b as usize];
-                        let translucent = TRANSLUCENT[b as usize];
-                        let qs = if has_shapes { pad_shapes[q] } else { 0 };
-                        let q_hides = HIDES[pad[q] as usize]
-                            && (qs == 0
-                                || crate::shape::full_face_mask(qs, crate::shape::Corner::OuterLeft) & opp_bit != 0);
-                        if !(q_hides || liquid && LIQUID[pad[q] as usize] || translucent && pad[q] == b && qs == 0) {
-                            // A liquid under an open cell: its top face and the top edges of its sides sit lower.
-                            let above = pad[p + P2] as usize;
-                            let surface = liquid && !LIQUID[above] && !OPAQUE[above];
-                            // Corners (0,0) (1,0) (1,1) (0,1) of the face, each AO | light << 2.
-                            let mut corners = 0u64;
-                            for (i, (du, dv)) in [(-su, -sv), (su, -sv), (su, sv), (-su, sv)].into_iter().enumerate() {
-                                let mut k = corner(pad, light, q, du, dv);
-                                if liquid {
-                                    // The corner's side of the cell on each axis: the normal's, then the face's own.
-                                    let mut side = [0isize; 3];
-                                    side[d] = sign;
-                                    side[u] = if i == 1 || i == 2 { 1 } else { -1 };
-                                    side[v] = if i >= 2 { 1 } else { -1 };
-                                    let drop = if surface && side[1] > 0 {
-                                        water::corner_drop(pad, p, side[0], side[2])
-                                    } else {
-                                        0
-                                    };
-                                    k = (k & 0x3FC) | (drop & 3) | (drop >> 2) << 10;
-                                }
-                                corners |= u64::from(k) << (i * CORNER_BITS);
-                            }
-                            let layer = if liquid {
-                                u64::from(water::look(pad, p) | water::ice(b, face, c, y0, warmth) << 5)
-                            } else {
-                                u64::from(face_layer(b, face, c, light[q] & 15, centre_bare))
-                            };
-                            key = KEY_FLAG
-                                | (u64::from(CUTOUT[b as usize]) << KEY_CUTOUT)
-                                | (u64::from(liquid) << KEY_LIQUID)
-                                | (u64::from(translucent) << KEY_TRANSLUCENT)
-                                | (layer << KEY_LAYER)
-                                | corners;
-                            if has_paint {
-                                paint =
-                                    crate::colour::get_face(centre_paint[index(c[0] - 1, c[1] - 1, c[2] - 1)], face);
-                            }
-                            any = true;
-                        }
-                    }
-                    mask[bu + bv * N] = (key, paint);
-                }
-            }
-            if !any {
-                continue;
-            }
-
-            let plane = (slice + plane_offset) as u32;
-            for bv in 0..N {
-                let mut bu = 0;
-                while bu < N {
-                    let entry = mask[bu + bv * N];
-                    let key = entry.0;
-                    if key == 0 {
-                        bu += 1;
-                        continue;
-                    }
-                    let (w, h) = grow(mask, (bu, bv), N);
-                    let out = if key & (1 << KEY_TRANSLUCENT) != 0 {
-                        (&mut self.translucent, &mut self.translucent_light)
-                    } else if key & (1 << KEY_LIQUID) != 0 {
-                        (&mut self.liquid, &mut self.liquid_light)
-                    } else if key & (1 << KEY_CUTOUT) != 0 {
-                        (&mut self.cutout, &mut self.cutout_light)
-                    } else {
-                        (&mut self.opaque, &mut self.opaque_light)
-                    };
-                    emit_quad(out, face, (d, u, v), plane, (bu as u32, bv as u32), (w as u32, h as u32), entry);
-                    bu += w;
-                }
-            }
-        }
     }
 }
 

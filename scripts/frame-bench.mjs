@@ -176,8 +176,8 @@ async function importSave() {
   await until(`document.getElementById('world-name')?.textContent === 'bench' && !!window.opencraft`, 120, 'the imported world');
 }
 
-async function measure(name, rows, traces) {
-  await wait(WARM_MS);
+async function measure(name, rows, traces, warm = WARM_MS) {
+  await wait(warm);
   const json = await run(`new Promise((done) => {
     const a = []; let last = null; const start = performance.now();
     const f = (t) => { if (last !== null) a.push(+(t - last).toFixed(2)); last = t; if (performance.now() - start < ${SECONDS * 1000}) requestAnimationFrame(f); else done(JSON.stringify(a)); };
@@ -225,10 +225,11 @@ try {
   console.log(browser, mode, JSON.stringify(gpu), JSON.stringify(stats));
   if (PROFILE) {
     // One profiled 'playing' row, then the engine's and the host's top functions: `node scripts/prof-top.mjs <file>`.
+    await wait(WARM_MS); // settle first: the profile holds the timed row only, not the loading before it
     await page.send('Profiler.enable');
     await page.send('Profiler.setSamplingInterval', { interval: 200 });
     await page.send('Profiler.start');
-    await measure('playing (profiled)', rows, traces);
+    await measure('playing (profiled)', rows, traces, 0);
     writeFileSync(PROFILE, JSON.stringify((await page.send('Profiler.stop')).result.profile));
   } else if (process.env.ONLY_PLAYING) {
     // `SETUP=<js>` runs first (e.g. give and wear a piece of gear); then only 'playing' is timed, `REPEAT` times.

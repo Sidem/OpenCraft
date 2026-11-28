@@ -77,6 +77,17 @@ pub const SOLID: [bool; TABLE_LEN] = {
     t
 };
 
+/// Blocks that give light (`BlockDef::light` names a `light::SOURCES` row).
+pub const SHINES: [bool; TABLE_LEN] = {
+    let mut t = [false; TABLE_LEN];
+    let mut i = 0;
+    while i < BLOCK_COUNT {
+        t[i] = DEFS[i].light != 0;
+        i += 1;
+    }
+    t
+};
+
 pub const FACE_TEX: [[u16; 6]; TABLE_LEN] = {
     let mut t = [[0u16; 6]; TABLE_LEN];
     let mut i = 0;

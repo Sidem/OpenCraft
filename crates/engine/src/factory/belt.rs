@@ -81,10 +81,10 @@ pub struct Belt {
     /// Front (highest `p`) first.
     pub items: Vec<BeltItem>,
     pub out: Link,
-    /// The side items come in from when they turn a corner here (elt_curve.rs): the player's bend, or else set when the
+    /// The side items come in from when they turn a corner here (`belt_curve.rs`): the player's bend, or else set when the
     /// only thing feeding this belt comes in from one side (derived).
     pub curve_from: Option<u8>,
-    /// The player's bend (elt_curve.rs: straight, or taking items in from the left or right), relative to dir.
+    /// The player's bend (`belt_curve.rs`: straight, or taking items in from the left or right), relative to dir.
     /// Only flat belts bend; core state.
     pub bend: u8,
     pub shape: Shape,

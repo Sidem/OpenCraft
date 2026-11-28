@@ -92,7 +92,7 @@ export class Renderer {
   private windNow = 0;
   private windVec: [number, number, number, number] = [1, 0, 0.2, 0];
 
-  constructor(private readonly canvas: HTMLCanvasElement, private viewRadius: number, instanceFloats: number, roundBit: number, antialias = true) {
+  constructor(private readonly canvas: HTMLCanvasElement, private viewRadius: number, instanceFloats: number, antialias = true) {
     const gl = canvas.getContext('webgl2', {
       antialias,
       alpha: false,
@@ -117,7 +117,7 @@ export class Renderer {
 
     this.quadIndex = gl.createBuffer()!;
     this.ensureQuadCapacity(1 << 15);
-    this.boxes = new BoxPipeline(gl, instanceFloats, roundBit);
+    this.boxes = new BoxPipeline(gl, instanceFloats);
     this.halos = new HaloPipeline(gl);
     this.fire = new FirePipeline(gl);
     this.sky = new SkyPass(gl);

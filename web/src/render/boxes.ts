@@ -1,11 +1,11 @@
 // Instanced boxes: dropped items, belt items and machine parts. The engine writes the instance records each frame
 // (`factory/render.rs`); this uploads them into growing GPU buffers and draws them with the lit cutout shader: the
-// daylight, lamps and shade of the cell each box stands in (the engine packs that light into the mode float). Two
-// instanced draw calls: every record over the unit cube, which skips the round bodies, then the round bodies (copied
-// out by the engine, `split_round`) over the unit cylinder (`round-mesh.ts`). `drawGhost` draws the engine's see-through
-// records the same way, tinted and blended (`u_ghost`).
-// Instance layout (INSTANCE_FLOATS floats): centre xyz, yaw, size xyz, uv scroll, texture layers
-// top/side/bottom, mode bits + 4 × light, pitch, roll, taper, glow. Four vec4s (see `boxVert` in box-glsl.ts).
+// daylight, lamps and shade of the cell each box stands in (the engine packs that light into each record). Two
+// instanced draw calls: the boxes over the unit cube, then the round bodies (a list of their own) over the unit
+// cylinder (`round-mesh.ts`). `drawGhost` draws the engine's see-through records the same way, tinted and blended
+// (`u_ghost`).
+// Instance layout: 8 words (`game.instance_floats()`) packed by the engine's `box_pack`: the centre as three floats,
+// then five words of halves and bit fields that `boxVert` (box-glsl.ts) decodes.
 
 import { createProgram, uniforms } from './gl';
 import { uploadHeldLights } from './held-light';
@@ -65,8 +65,8 @@ export class BoxPipeline {
   private readonly visibleStatic: StaticRegion[] = [];
   private packScratch = new Float32Array(0);
 
-  constructor(private readonly gl: WebGL2RenderingContext, private readonly instanceFloats: number, roundBit: number) {
-    this.prog = createProgram(gl, boxVert, S.litFrag, ['CUTOUT', 'BOXES', `ROUND_BIT ${roundBit}u`]);
+  constructor(private readonly gl: WebGL2RenderingContext, private readonly instanceFloats: number) {
+    this.prog = createProgram(gl, boxVert, S.litFrag, ['CUTOUT', 'BOXES']);
     this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_beltScroll', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_held', 'u_round', 'u_ghost', 'u_xray'] as const);
     const cubeCorners = boxCorners();
     this.cubeVerts = gl.createBuffer()!;
@@ -93,9 +93,12 @@ export class BoxPipeline {
     gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
     if (idx) gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idx);
     gl.bindBuffer(gl.ARRAY_BUFFER, instances);
-    for (const [loc, offset] of [[1, 0], [2, 16], [3, 32], [4, 48]]) {
+    const stride = this.instanceFloats * 4;
+    gl.vertexAttribPointer(1, 3, gl.FLOAT, false, stride, 0);
+    gl.vertexAttribIPointer(2, 4, gl.UNSIGNED_INT, stride, 12);
+    gl.vertexAttribIPointer(3, 1, gl.UNSIGNED_INT, stride, 28);
+    for (const loc of [1, 2, 3]) {
       gl.enableVertexAttribArray(loc);
-      gl.vertexAttribPointer(loc, 4, gl.FLOAT, false, this.instanceFloats * 4, offset);
       gl.vertexAttribDivisor(loc, 1);
     }
     gl.bindVertexArray(null);
@@ -283,16 +286,22 @@ export class BoxPipeline {
     viewProj: Float32Array, sky: Sky, fog: Fog, boxes: Float32Array, count: number,
     round: Float32Array, roundCount: number, ghost: Vec4 = SOLID, beltScroll: Vec4 = ZERO_SCROLL,
   ): number {
-    if (count === 0) return 0;
+    if (count === 0 && roundCount === 0) return 0;
     const gl = this.gl;
     this.bindShared(viewProj, sky, fog, ghost, beltScroll);
     gl.uniform3f(this.u.u_offset, 0, 0, 0);
-    gl.uniform1i(this.u.u_round, 0);
-    this.drawPass(this.cube, boxes, count);
-    if (roundCount === 0) return 1;
-    gl.uniform1i(this.u.u_round, 1);
-    this.drawPass(this.round, round, roundCount);
-    return 2;
+    let calls = 0;
+    if (count > 0) {
+      gl.uniform1i(this.u.u_round, 0);
+      this.drawPass(this.cube, boxes, count);
+      calls++;
+    }
+    if (roundCount > 0) {
+      gl.uniform1i(this.u.u_round, 1);
+      this.drawPass(this.round, round, roundCount);
+      calls++;
+    }
+    return calls;
   }
 
   /** Draws see-through boxes (a held machine's ghost, belt stubs at ports: `port_view.rs`), blended without depth write. */
@@ -300,7 +309,7 @@ export class BoxPipeline {
     viewProj: Float32Array, sky: Sky, fog: Fog, boxes: Float32Array, count: number,
     round: Float32Array, roundCount: number, blocked: boolean, beltScroll: Vec4 = ZERO_SCROLL,
   ): number {
-    if (count === 0) return 0;
+    if (count === 0 && roundCount === 0) return 0;
     const gl = this.gl;
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -316,7 +325,7 @@ export class BoxPipeline {
     viewProj: Float32Array, sky: Sky, fog: Fog, boxes: Float32Array, count: number,
     round: Float32Array, roundCount: number, radius: number, fadeFrom: number, beltScroll: Vec4 = ZERO_SCROLL,
   ): number {
-    if (count === 0) return 0;
+    if (count === 0 && roundCount === 0) return 0;
     const gl = this.gl;
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);

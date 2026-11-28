@@ -19,7 +19,7 @@ pub enum SimEvent {
         pos: IVec3,
         block: BlockId,
     },
-    /// A block was placed, or the machine there upgraded in place (lock is its family's).
+    /// A block was placed, or the machine there upgraded in place (`block` is its family's).
     BlockPlaced {
         player: PlayerId,
         pos: IVec3,

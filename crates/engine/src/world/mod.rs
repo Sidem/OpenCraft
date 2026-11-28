@@ -20,7 +20,7 @@ mod streaming;
 mod upgrade;
 mod waterlog;
 
-pub use boxlight::DAYLIGHT;
+pub use boxlight::{LightReader, DAYLIGHT};
 pub use cover_clear::PATCH_RADIUS;
 use cover_clear::{ClearedCover, COVER_SAVED};
 use std::collections::VecDeque;

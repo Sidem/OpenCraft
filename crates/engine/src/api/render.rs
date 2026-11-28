@@ -6,8 +6,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::avatars::LABEL_FLOATS;
 use crate::block;
+use crate::box_pack::PACKED_WORDS;
 use crate::daytime;
-use crate::factory::INSTANCE_FLOATS;
 use crate::held_light;
 use crate::math::IVec3;
 use crate::textures;
@@ -194,77 +194,72 @@ impl Game {
         (daytime::DAY_TICKS / crate::TICK_RATE as u64) as f64
     }
 
-    /// Byte offset of this frame's box instances (dropped items, belt items, machine parts):
-    /// `instance_count()` records of `factory::INSTANCE_FLOATS` f32 each.
+    /// Byte offset of this frame's boxes (dropped items, belt items, machine parts), packed for upload: `instance_count()`
+    /// records of `instance_floats()` 4-byte words (`box_pack`), round bodies left out (`round_ptr`).
     pub fn instance_ptr(&self) -> usize {
-        self.instances.as_ptr() as usize
+        self.packed.boxes.as_ptr() as usize
     }
 
     pub fn instance_count(&self) -> usize {
-        self.instances.len() / INSTANCE_FLOATS
+        self.packed.boxes.len() / PACKED_WORDS
     }
 
-    /// Record size for the renderer; kept here so hosts never mirror the instance format.
+    /// Record size for the renderer in 4-byte words; kept here so hosts never mirror the instance format.
     pub fn instance_floats(&self) -> usize {
-        INSTANCE_FLOATS
+        PACKED_WORDS
     }
 
-    /// Byte offset of this frame's round bodies, copied out of the box instances (which still hold them, marked
-    /// with `round_bit()`): `round_count()` records, drawn with a cylinder mesh.
+    /// Byte offset of this frame's round bodies, packed like `instance_ptr`'s: `round_count()` records, drawn with a
+    /// cylinder mesh.
     pub fn round_ptr(&self) -> usize {
-        self.round_instances.as_ptr() as usize
+        self.packed.round.as_ptr() as usize
     }
 
     pub fn round_count(&self) -> usize {
-        self.round_instances.len() / INSTANCE_FLOATS
+        self.packed.round.len() / PACKED_WORDS
     }
 
-    /// Byte offset of this frame's see-through box instances (a held machine's ghost, belt stubs at ports:
-    /// `port_view.rs`), `ghost_count()` records like `instance_ptr`'s; the host draws them blended over the rest.
+    /// Byte offset of this frame's see-through boxes (a held machine's ghost, belt stubs at ports: `port_view.rs`),
+    /// `ghost_count()` records like `instance_ptr`'s; the host draws them blended over the rest.
     pub fn ghost_ptr(&self) -> usize {
-        self.ghosts.boxes.as_ptr() as usize
+        self.packed.ghost.as_ptr() as usize
     }
 
     pub fn ghost_count(&self) -> usize {
-        self.ghosts.boxes.len() / INSTANCE_FLOATS
+        self.packed.ghost.len() / PACKED_WORDS
     }
 
-    /// The round bodies among the see-through boxes, copied out as `round_ptr`'s are.
+    /// The round bodies among the see-through boxes.
     pub fn ghost_round_ptr(&self) -> usize {
-        self.ghosts.round.as_ptr() as usize
+        self.packed.ghost_round.as_ptr() as usize
     }
 
     pub fn ghost_round_count(&self) -> usize {
-        self.ghosts.round.len() / INSTANCE_FLOATS
+        self.packed.ghost_round.len() / PACKED_WORDS
     }
 
     /// Byte offset of this frame's port marks (arrows and riding items at a machine's ports: `port_view.rs`),
     /// `marks_count()` records; the host draws them solid after the ghost, so they show through it.
     pub fn marks_ptr(&self) -> usize {
-        self.ghosts.marks.as_ptr() as usize
+        self.packed.marks.as_ptr() as usize
     }
 
     pub fn marks_count(&self) -> usize {
-        self.ghosts.marks.len() / INSTANCE_FLOATS
+        self.packed.marks.len() / PACKED_WORDS
     }
 
     /// The round bodies among the port marks.
     pub fn marks_round_ptr(&self) -> usize {
-        self.ghosts.marks_round.as_ptr() as usize
+        self.packed.marks_round.as_ptr() as usize
     }
 
     pub fn marks_round_count(&self) -> usize {
-        self.ghosts.marks_round.len() / INSTANCE_FLOATS
+        self.packed.marks_round.len() / PACKED_WORDS
     }
 
     /// Whether the held machine's ghost stands where something is in the way (the host tints it red).
     pub fn ghost_blocked(&self) -> bool {
         self.ghosts.blocked
-    }
-
-    /// The mode bit that marks a round body in an instance's mode-and-light float.
-    pub fn round_bit(&self) -> u32 {
-        crate::factory::ROUND
     }
 
     /// Byte offset of this frame's name-tag anchors, one per other player in range: `label_count()`

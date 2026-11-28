@@ -219,7 +219,8 @@ impl World {
         self.growth_meshed(p);
         let Some(refs) = neighbourhood(&self.chunks, &self.air, &self.floor, p) else { return false };
         self.mesher.set_origin([p.x << CHUNK_SHIFT, p.y << CHUNK_SHIFT, p.z << CHUNK_SHIFT]);
-        let out = if Mesher::is_trivially_empty(&refs) {
+        let lit = !Mesher::is_trivially_empty(&refs);
+        let out = if !lit {
             self.mesher.mesh(&refs, &[], None)
         } else {
             let Some((above, count)) = chunks_above(&self.chunks, &self.air, p) else { return false };
@@ -232,6 +233,9 @@ impl World {
             self.mesher.mesh(&refs, &self.lighting.pad, Some(&cover))
         };
         self.dirty.remove(&p);
+        if lit {
+            self.offer_lit(p);
+        }
         let entry = self.chunks.get_mut(&p).expect("centre chunk is loaded");
         match super::glows::scan(&entry.chunk, p) {
             g if g.is_empty() => self.glows.remove(&p),

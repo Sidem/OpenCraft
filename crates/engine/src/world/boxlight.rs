@@ -1,14 +1,17 @@
 //! Light for things drawn as instanced boxes (machines, belt items, dropped items, other players):
 //! `World::light_at` gives the sky and block light of a cell, so lamps and torches light them and
 //! shade darkens them like the terrain beside them. The chunk mesher's light field (`light.rs`) is
-//! only alive while a chunk meshes, so a cell's chunk is lit again here on demand and its interior kept in a
-//! cache (`LIGHT_CHUNKS`), with at most `LIGHTS_PER_FRAME` new chunks lit a frame so no view can stall one.
+//! only alive while a chunk meshes, so its interior is kept in a cache (`LIGHT_CHUNKS`) as the chunk meshes
+//! (`offer_lit`), or a cell's chunk is lit again here on demand, at most `LIGHTS_PER_FRAME` new chunks a frame so no
+//! view can stall one. A pass over many cells (a frame's instances) reads through a `LightReader`.
 //!
 //! Render cache only, derived from blocks, never core state. A chunk's entry goes stale when a block
 //! changes within light's reach (`World::set_block`, the same chunks it marks dirty for the mesher): it is
 //! lit again in the streaming budget, when nothing needs meshing (`World::work_step`), and reads as it was until
 //! then. An entry for a chunk that couldn't be lit yet (a neighbour isn't loaded) is dropped when more chunks load. Until it can be lit,
 //! a cell reads as plain daylight ([`DAYLIGHT`]), which is how boxes looked before they had light.
+
+use std::rc::Rc;
 
 use crate::block::BlockId;
 use crate::chunk::{index, CHUNK_VOLUME};
@@ -31,7 +34,7 @@ pub(super) const LIGHTS_PER_FRAME: u8 = 2;
 pub const DAYLIGHT: u8 = 15;
 
 /// The lit cells of a chunk (`chunk::index` order), or `None` if it can't be lit yet.
-pub(super) type Lit = Option<Box<[u8]>>;
+pub(super) type Lit = Option<Rc<[u8]>>;
 
 /// One cached chunk and when `light_at` last read it (`World::light_clock`). A `stale` entry is still
 /// read, and lit again by `World::work_step` when it has nothing else to do.
@@ -41,6 +44,30 @@ pub(super) struct Entry {
     stale: bool,
     /// Non-zero once `lit` is `Some`, bumped every time `lit` is recomputed (`static_boxes` staleness check).
     gen: u32,
+}
+
+/// Reads [`World::light_at`] for many cells in a row (a frame's box instances), looking a cell's chunk up only when it
+/// differs from the last cell's: instances come chunk by chunk, so most reads are an index. Lives for one pass; an
+/// entry relit or evicted meanwhile reads as it was when the pass first touched it.
+#[derive(Default)]
+pub struct LightReader {
+    last: Option<(IVec3, Lit)>,
+}
+
+impl LightReader {
+    /// The light byte of the cell at `p`, as `world.light_at(p)` gives it.
+    pub fn read(&mut self, world: &mut World, p: IVec3) -> u8 {
+        if !(0..WORLD_HEIGHT).contains(&p.y) {
+            return DAYLIGHT;
+        }
+        let c = chunk_of(p);
+        if !matches!(&self.last, Some((at, _)) if *at == c) {
+            world.light_at(p); // lights `c` within the frame's budget and marks it read
+            self.last = Some((c, world.light_cache.get(&c).and_then(|e| e.lit.clone())));
+        }
+        let (x, y, z) = local_of(p);
+        self.last.as_ref().and_then(|(_, cells)| cells.as_deref()).map_or(DAYLIGHT, |cells| cells[index(x, y, z)])
+    }
 }
 
 impl World {
@@ -170,12 +197,33 @@ impl World {
         true
     }
 
+    /// The mesher just lit chunk `c` (`self.lighting.pad` holds it): keeps that light for boxes instead of lighting the
+    /// chunk again later, when its entry is stale or the cache has room. A fresh entry is left alone (same light).
+    pub(super) fn offer_lit(&mut self, c: IVec3) {
+        let room = self.light_cache.len() < LIGHT_CHUNKS;
+        match self.light_cache.get(&c) {
+            Some(e) if e.stale || e.lit.is_none() => {}
+            None if room => {}
+            _ => return,
+        }
+        let cells = self.lit_interior();
+        let gen = self.next_light_gen();
+        let used = self.light_clock;
+        let e = self.light_cache.entry(c).or_insert(Entry { lit: None, used, stale: false, gen });
+        (e.lit, e.stale, e.gen) = (Some(cells), false, gen);
+    }
+
     /// Lights chunk `c` with the mesher's light code and copies out its interior.
     fn light_chunk(&mut self, c: IVec3) -> Lit {
         let refs = neighbourhood(&self.chunks, &self.air, &self.floor, c)?;
         let (above, count) = chunks_above(&self.chunks, &self.air, c)?;
         self.lighting.light(&refs, &std::array::from_fn(|i| &above[i][..count]));
-        let mut cells = vec![0u8; CHUNK_VOLUME].into_boxed_slice();
+        Some(self.lit_interior())
+    }
+
+    /// The interior of the chunk `self.lighting.pad` holds, in `chunk::index` order.
+    fn lit_interior(&self) -> Rc<[u8]> {
+        let mut cells = vec![0u8; CHUNK_VOLUME];
         for y in 0..32 {
             for z in 0..32 {
                 let from = ((y + 1) * PAD + z + 1) * PAD + 1;
@@ -183,7 +231,7 @@ impl World {
                 cells[to..to + 32].copy_from_slice(&self.lighting.pad[from..from + 32]);
             }
         }
-        Some(cells)
+        cells.into()
     }
 }
 

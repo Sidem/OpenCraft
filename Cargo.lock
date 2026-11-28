@@ -26,7 +26,7 @@ dependencies = [
 
 [[package]]
 name = "opencraft-engine"
-version = "0.18.8"
+version = "0.18.9"
 dependencies = [
  "console_error_panic_hook",
  "rustc-hash",

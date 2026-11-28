@@ -100,6 +100,7 @@ fn a_big_spread_of_boxes_is_lit_once_not_every_frame() {
 fn a_frame_lights_only_a_few_new_chunks_and_the_rest_read_as_daylight() {
     let (mut w, _) = streamed_world();
     let cells: Vec<IVec3> = (0..12).map(|y| IVec3::new(5, y * 16 + 5, 5)).collect(); // six chunks, two cells each
+    w.light_cache.clear(); // meshing already lit these (`offer_lit`); the budget is for chunks it did not
     w.begin_work();
     cells.iter().for_each(|&c| _ = w.light_at(c));
     assert_eq!(w.light_cache.values().filter(|e| e.lit.is_some()).count(), LIGHTS_PER_FRAME as usize);
@@ -131,4 +132,29 @@ fn an_unlit_place_reads_as_plain_daylight() {
     assert_eq!(w.light_at(unloaded), DAYLIGHT);
     assert_eq!(w.light_at(IVec3::new(0, -5, 0)), DAYLIGHT);
     assert_eq!(w.light_at(IVec3::new(0, WORLD_HEIGHT + 5, 0)), DAYLIGHT);
+}
+
+#[test]
+fn meshing_a_chunk_keeps_its_light_for_boxes() {
+    let (mut w, air) = streamed_world();
+    let c = chunk_of(air);
+    assert!(w.light_cache.get(&c).is_some_and(|e| e.lit.is_some()), "lit as it meshed");
+    w.begin_work();
+    w.light_at(air);
+    assert_eq!(w.light_budget(), LIGHTS_PER_FRAME, "reading it lit nothing new");
+}
+
+#[test]
+fn a_reader_reads_what_light_at_gives_across_chunks() {
+    let (mut w, air) = streamed_world();
+    assert!(w.set_block(air + IVec3::new(2, 0, 0), LAMP));
+    settle(&mut w);
+    let cells: Vec<IVec3> = (-40..40)
+        .flat_map(|x| (-2..3).map(move |y| air + IVec3::new(x, y * 7, x / 3)))
+        .chain([IVec3::new(0, -3, 0)])
+        .collect();
+    let mut reader = LightReader::default();
+    for &p in &cells {
+        assert_eq!(reader.read(&mut w, p), w.light_at(p), "at {p:?}");
+    }
 }

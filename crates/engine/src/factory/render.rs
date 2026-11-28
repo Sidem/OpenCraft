@@ -9,6 +9,7 @@ use crate::math::{IVec3, Vec3};
 
 use crate::block::{tex, BlockId, GENERATOR, LAB, QUARRY, STORAGE};
 use crate::deposits::DepositKey;
+use crate::view_cone::ViewCone;
 use crate::world::DAYLIGHT;
 
 use super::miner::MinerStatus;
@@ -29,6 +30,9 @@ const TAPER: usize = 14;
 const GLOW: usize = 15;
 const BEACON: f32 = 2.0;
 const TINTED_BEACON: f32 = 3.0;
+/// How far a machine's drawn parts can reach from its origin cell (the largest footprints, crane arms, beams), for view
+/// culling (`view_cone`): generous, as a part left out would vanish at the screen's edge.
+pub(super) const MODEL_REACH: f64 = 16.0;
 /// Texture layers that give light rather than take it (status lights, lamps, laser beams, jetpack/rocket plumes).
 #[inline]
 fn is_glowing(l: u16) -> bool {
@@ -388,6 +392,23 @@ pub(super) fn models<T: Machine>(list: &[T], out: &mut Vec<f32>, eye: Vec3, time
     for m in list {
         let rel = m.pos().as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye;
         if rel.x * rel.x + rel.y * rel.y + rel.z * rel.z <= range * range {
+            m.model(out, rel, time);
+        }
+    }
+}
+
+/// Like [`models`], only for the machines that can show inside `cone` (`MODEL_REACH` round each).
+pub(super) fn models_in_view<T: Machine>(
+    list: &[T],
+    out: &mut Vec<f32>,
+    eye: Vec3,
+    time: f64,
+    range: f64,
+    cone: &ViewCone,
+) {
+    for m in list {
+        let rel = m.pos().as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye;
+        if rel.x * rel.x + rel.y * rel.y + rel.z * rel.z <= range * range && cone.sees(rel, MODEL_REACH) {
             m.model(out, rel, time);
         }
     }

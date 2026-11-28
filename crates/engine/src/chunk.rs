@@ -1,9 +1,32 @@
 //! 32³ block storage for one chunk. Homogeneous chunks (all air, all stone) cost no heap memory;
 //! writing a different block makes them dense. `modified` marks player edits, which `World` keeps
 //! when the chunk streams out. Memory layout: see [`index`].
+//!
+//! Invariant: `kinds` caches which of the [`KINDS`] bits the chunk's blocks hold, so the mesher and its light can skip
+//! whole-chunk scans for what isn't there; every block write in this file keeps it exact or forgets it (`0`).
 
-use crate::block::BlockId;
+use std::cell::Cell;
+
+use crate::block::{is_leaves, is_log, BlockId, BLOCK_COUNT, SHINES, TABLE_LEN};
 use crate::bytes::{ByteReader, ByteWriter};
+
+/// Kinds of block [`Chunk::holds`] answers for: light-giving blocks, tree logs, leaves.
+pub const HOLDS_LIGHT: u8 = 1;
+pub const HOLDS_LOGS: u8 = 2;
+pub const HOLDS_LEAVES: u8 = 4;
+/// Set in `Chunk::kinds` once the other bits are known.
+const KNOWN: u8 = 0x80;
+/// Per block id, its `HOLDS_*` bits.
+const KINDS: [u8; TABLE_LEN] = {
+    let mut t = [0u8; TABLE_LEN];
+    let mut i = 0;
+    while i < BLOCK_COUNT {
+        let b = i as BlockId;
+        t[i] = (SHINES[i] as u8 * HOLDS_LIGHT) | (is_log(b) as u8 * HOLDS_LOGS) | (is_leaves(b) as u8 * HOLDS_LEAVES);
+        i += 1;
+    }
+    t
+};
 
 pub const CHUNK_SIZE: i32 = 32;
 pub const CHUNK_SHIFT: i32 = 5;
@@ -39,11 +62,37 @@ pub struct Chunk {
     wet: Option<Vec<(u16, u8)>>,
     /// Edited by the player since generation; kept when the chunk is streamed out.
     pub modified: bool,
+    /// The `HOLDS_*` bits of the blocks, valid when `KNOWN` is set (render-cache summary, never saved).
+    kinds: Cell<u8>,
 }
 
 impl Chunk {
     pub fn uniform(b: BlockId) -> Self {
-        Self { data: Data::Uniform(b), shapes: None, paint: None, bare: None, wet: None, modified: false }
+        Self {
+            data: Data::Uniform(b),
+            shapes: None,
+            paint: None,
+            bare: None,
+            wet: None,
+            modified: false,
+            kinds: Cell::new(0),
+        }
+    }
+
+    /// Whether any block in the chunk is of one of `kinds` (`HOLDS_*` bits); a dense chunk scans once, then caches.
+    pub fn holds(&self, kinds: u8) -> bool {
+        let known = match &self.data {
+            Data::Uniform(b) => KINDS[*b as usize],
+            Data::Dense(d) => match self.kinds.get() {
+                k if k & KNOWN != 0 => k,
+                _ => {
+                    let k = d.iter().fold(KNOWN, |k, &b| k | KINDS[b as usize]);
+                    self.kinds.set(k);
+                    k
+                }
+            },
+        };
+        known & kinds != 0
     }
 
     /// Takes ownership of a dense buffer, collapsing it to a uniform chunk when possible.
@@ -60,6 +109,7 @@ impl Chunk {
             bare: None,
             wet: None,
             modified: false,
+            kinds: Cell::new(0),
         }
     }
 
@@ -91,7 +141,10 @@ impl Chunk {
             self.data = Data::Dense(vec![u; CHUNK_VOLUME].into_boxed_slice());
         }
         if let Data::Dense(d) = &mut self.data {
-            d[index(x, y, z)] = b;
+            let old = std::mem::replace(&mut d[index(x, y, z)], b);
+            let (k, gone) = (self.kinds.get(), KINDS[old as usize] & !KINDS[b as usize]);
+            // A kind the old block had and the new one lacks may have been the last of it: forget all.
+            self.kinds.set(if gone != 0 { 0 } else { k | KINDS[b as usize] });
         }
     }
 
@@ -230,6 +283,7 @@ impl Chunk {
     /// Rewrites every legacy dyed concrete block in this chunk to plain `CONCRETE` painted on all six faces
     /// (called once when loading saves from before `SAVE_VERSION` 85).
     pub fn migrate_legacy_concretes(&mut self) {
+        self.kinds.set(0);
         let legacy = match self.data {
             Data::Uniform(b) => crate::colour::legacy_concrete_colour(b),
             Data::Dense(_) => None,

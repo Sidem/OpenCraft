@@ -135,7 +135,7 @@ async function main(): Promise<void> {
 
   const canvas = document.getElementById('game') as HTMLCanvasElement;
   const instanceFloats = game.instance_floats();
-  const renderer = new Renderer(canvas, viewRadius, instanceFloats, game.round_bit(), quality.settings.antialias);
+  const renderer = new Renderer(canvas, viewRadius, instanceFloats, quality.settings.antialias);
   const engineTex = new Uint8Array(wasm.memory.buffer, game.texture_ptr(), game.texture_byte_len()).slice();
   // The hand-painted art pack (tools/art) over the engine's generated layers; `?art=off` shows the generated ones.
   const art = params.get('art') === 'off' ? null : await composeTextures(engineTex, game.texture_size(), game.texture_layers());
@@ -298,6 +298,8 @@ async function main(): Promise<void> {
         input.unlock();
       }
     }
+    // The widest view this frame can draw (a scope only narrows it): boxes outside it are not built (engine view_cone).
+    game.set_view_cone(Math.max(renderer.fovY, (comfort.settings.fov * Math.PI) / 180), canvas.width / Math.max(1, canvas.height));
     const u0 = performance.now();
     game.update(dt);
     const updateMs = performance.now() - u0;

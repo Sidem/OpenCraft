@@ -105,13 +105,15 @@ local player's hands, presentation, then the **deterministic core**, which never
 - Tools: `prospect.rs`, `seismic/` (`mod.rs`, `scan.rs`, `volume.rs`: 2D MRI slice + 48³ 3D volume query), `survey.rs` + `survey/orbit.rs`, `telescope.rs` + `telescope/` (`ground.rs`, `beacons.rs`), `bladerang.rs` (the throw's flight, cuts and carried items), `rope_hands.rs` (right-click hangs rope: `action/rope.rs`, block `block/rope.rs`), `flame_hands.rs`, `flares.rs` + `api/flares.rs` (co-op flare columns, presentation only; relayed as `net/protocol.ts` `flare`, raised by `web/src/flare.ts`).
 
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
-- `mesher.rs` + `mesher/` (`quad.rs`, `face_layer.rs` (alternates, turf's lit grown faces), `plants.rs`, `water.rs`, `blocks/` + `blocks/slope.rs` shaped slabs/stairs/roofs, `cover.rs` + `cover/shape.rs`); trees: `shaped.rs`, `tree_grid.rs`, `logs.rs` + `logs/`
+- `mesher.rs` + `mesher/` (`faces.rs` (cube faces from visible-face bit rows), `quad.rs`, `face_layer.rs` (alternates, turf's lit grown faces), `plants.rs`, `water.rs`, `blocks/` + `blocks/slope.rs` shaped slabs/stairs/roofs, `cover.rs` + `cover/shape.rs`); trees: `shaped.rs`, `tree_grid.rs`, `logs.rs` + `logs/`
   (`node.rs`, `ring.rs`), `foliage.rs` + `foliage/style.rs` + `foliage/season.rs` (seasonal phenology, grass and litter).
 - `entities.rs` + `entities/merge.rs`, `avatars.rs` + `avatars/` (`grip.rs`, `hand.rs`, `tool_hold.rs`, `view_hand.rs`, `worn.rs`: worn gear on the body; first-person hands & character rig), `halos.rs`, `fire_view.rs` + `fire_view/torch.rs` (burning tree/ember emitters, ballistic torch plumes, flame lights & glow), `wire_props.rs`,
   `held_light.rs`, `drone_view.rs` + `companion_view.rs`, `orbit_fx.rs`, `sound.rs`.
 - `minimap.rs` + `minimap/` (`atlas.rs`, `marks.rs`, `describe.rs`, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
 - `xray.rs`: the X-ray goggles' view (a local switch; the factory's boxes near the camera, drawn behind the terrain only).
 - `static_boxes/`: per-chunk static machine and wire box cache (pre-lit, cube/round split, GPU-resident).
+- `view_cone/`: the camera's view cone; per-frame instance writers skip what is off screen.
+- `box_pack/`: packs the 64-byte box records into the 32 bytes the host uploads (layout decoded in `render/box-glsl.ts`).
 - `tier_palette.rs`: the two palettes of the tier colours Mk1–Mk5 (standard, colour-blind) and the player's local choice.
 - `item_guide.rs`: every way to get an item and what uses it. `analytics/` (`series.rs`, `machines.rs`, `power.rs`; never saved).
   `surroundings/` (ambient sound floats, `roof.rs`, `grass.rs` nearby lit turf cells for instanced 3D grass).

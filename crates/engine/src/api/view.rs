@@ -38,6 +38,11 @@ impl Game {
     pub fn camera_pitch(&self) -> f64 {
         self.strategy.render_pitch
     }
+    /// The widest vertical field of view the host draws with (radians; a scope only narrows it) and the screen's
+    /// width per height: per-frame box instances outside that view are skipped (`view_cone`). 0 shows everything.
+    pub fn set_view_cone(&mut self, fov_y: f64, aspect: f64) {
+        self.view_shape = [fov_y, aspect];
+    }
     pub fn strategy_cursor(&mut self, x: f64, y: f64, fov: f64, aspect: f64) {
         self.strategy.cursor = [x.clamp(-1.0, 1.0), y.clamp(-1.0, 1.0)];
         self.strategy.projection = [fov.clamp(0.5, 2.0), aspect.clamp(0.1, 10.0)];

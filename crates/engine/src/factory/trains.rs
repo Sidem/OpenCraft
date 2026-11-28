@@ -59,7 +59,7 @@ pub const CAR_SLOTS: usize = 24;
 const DWELL_TICKS: u32 = 300;
 
 pub struct Train {
-    /// Names the train while it lasts (from 1; iew.rs addresses its cargo by it).
+    /// Names the train while it lasts (from 1; `view.rs` addresses its cargo by it).
     pub id: u32,
     /// Directed edges, tail first.
     pub path: Vec<(IVec3, IVec3)>,

@@ -10,16 +10,19 @@ use rustc_hash::FxHashMap;
 
 use crate::chunk::CHUNK_SIZE;
 use crate::math::{IVec3, Vec3};
+use crate::view_cone::ViewCone;
 use crate::world::chunk_of;
 
 use super::pipes::Part;
 use super::power::wire;
 use super::rail::write_track;
-use super::render::{models, INSTANCE_FLOATS};
+use super::render::{models, models_in_view, INSTANCE_FLOATS, MODEL_REACH};
 use super::{router_model, tier_mark, Factory, Machine};
 
 /// Half the diagonal of a 32³ chunk plus a small overhang margin, for coarse chunk-sphere culling.
 const CHUNK_HALF_DIAG: f64 = 30.0;
+/// How far a belt's riding items reach from its cell centre (lifts and drops carry them a cell up or down).
+const BELT_REACH: f64 = 2.0;
 const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
 
@@ -315,8 +318,8 @@ impl Factory {
         out.extend_from_slice(&m.span_boxes);
     }
 
-    /// Writes only the dynamic and near-camera factory box instances within `range` of `eye`, using `index` to skip
-    /// out-of-range chunks and static-only machines.
+    /// Writes only the dynamic and near-camera factory box instances within `range` of `eye` and inside `cone`, using
+    /// `index` to skip out-of-range or unseen chunks and static-only machines.
     pub(crate) fn write_dynamic_instances(
         &self,
         index: &ChunkIndex,
@@ -324,6 +327,7 @@ impl Factory {
         eye: Vec3,
         time: f64,
         range: f64,
+        cone: &ViewCone,
     ) {
         let range2 = range * range;
         let chunk_max2 = (range + CHUNK_HALF_DIAG).powi(2);
@@ -332,7 +336,7 @@ impl Factory {
         for (&c, m) in &index.chunks {
             let mid = (c * CHUNK_SIZE).as_vec3() + Vec3::new(half, half, half) - eye;
             let dist2 = mid.x * mid.x + mid.y * mid.y + mid.z * mid.z;
-            if dist2 > chunk_max2 {
+            if dist2 > chunk_max2 || !cone.sees(mid, CHUNK_HALF_DIAG + MODEL_REACH) {
                 continue;
             }
             for &i in &m.belts {
@@ -341,7 +345,7 @@ impl Factory {
                     continue;
                 }
                 let rel = b.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye;
-                if rel.x * rel.x + rel.y * rel.y + rel.z * rel.z <= range2 {
+                if rel.x * rel.x + rel.y * rel.y + rel.z * rel.z <= range2 && cone.sees(rel, BELT_REACH) {
                     b.write_items(out, rel);
                 }
             }
@@ -374,12 +378,13 @@ impl Factory {
                 }
             }
         }
-        models(&self.miners, out, eye, time, range);
-        models(&self.storages, out, eye, time, range);
-        models(&self.generators, out, eye, time, range);
-        models(&self.labs, out, eye, time, range);
+        models_in_view(&self.miners, out, eye, time, range, cone);
+        models_in_view(&self.storages, out, eye, time, range, cone);
+        models_in_view(&self.generators, out, eye, time, range, cone);
+        models_in_view(&self.labs, out, eye, time, range, cone);
+        // Not culled: a quarry's drill hangs down to the depth it digs, far past `MODEL_REACH`; quarries are few.
         models(&self.quarries, out, eye, time, range);
-        models(&self.sensors, out, eye, time, range);
+        models_in_view(&self.sensors, out, eye, time, range, cone);
         self.write_beams(out, eye, time, range);
         self.write_train_models(out, eye, time, range);
     }

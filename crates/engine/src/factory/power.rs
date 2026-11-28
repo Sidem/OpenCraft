@@ -91,7 +91,7 @@ pub(crate) struct Power {
     pub mix: [Mix; SOURCES],
     /// Last tick's kW per kind of source on each grid (the analytics' per-grid view).
     pub grid_mix: Vec<[Mix; SOURCES]>,
-    /// This tick's demand per side, before laser losses are added to the grids (scratch for alance).
+    /// This tick's demand per side, before laser losses are added to the grids (scratch for `balance`).
     side_demand: Vec<u32>,
 }
 

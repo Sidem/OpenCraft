@@ -343,7 +343,7 @@ pub const TABLE_LEN: usize = BLOCK_COUNT.next_multiple_of(256);
 
 /// Flat lookup tables for hot loops (`tables.rs`).
 mod tables;
-pub use tables::{ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT, SOLID, TRANSLUCENT};
+pub use tables::{ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT, SHINES, SOLID, TRANSLUCENT};
 
 /// Whether placing a block may take this cell (air or water), and so whether aiming passes through it.
 #[inline]
